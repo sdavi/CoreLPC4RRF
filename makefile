@@ -16,6 +16,8 @@ PROCESSOR = LPC17xx
 #BOARD = AZTEEGX5MINI
 #BOARD = SMOOTHIEBOARD
 #BOARD = REARM
+#BOARD = AZSMZ
+#BOARD = MKSBASE
 BOARD = MBED
 BUILD_DIR = $(PWD)/build
 
@@ -23,8 +25,8 @@ BUILD_DIR = $(PWD)/build
 BUILD = Release
 
 #compile in Ethernet Networking?
-#NETWORKING = true
-NETWORKING = false
+NETWORKING = true
+#NETWORKING = false
 
 
 #enable DFU
@@ -189,8 +191,8 @@ CORE_OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(CORE_OBJ_SRC_C)) $(patsubst %.cpp,
 RTOS_CORE_SRC    += $(RTOS_SRC) $(RTOS_SRC_PORTABLE)
 RTOS_CORE_OBJ_SRC_C  += $(foreach src, $(RTOS_CORE_SRC), $(wildcard $(src)/*.c) )
 #RTOS Dynamic Memory Management
-#RTOS_CORE_OBJ_SRC_C  += $(RTOS_SRC)/portable/MemMang/heap_5.c
-RTOS_CORE_OBJ_SRC_C  += $(RTOS_SRC)/portable/MemMang/heap_4.c
+RTOS_CORE_OBJ_SRC_C  += $(RTOS_SRC)/portable/MemMang/heap_5.c
+#RTOS_CORE_OBJ_SRC_C  += $(RTOS_SRC)/portable/MemMang/heap_4.c
 
 CORE_OBJS += $(patsubst %.c,$(BUILD_DIR)/%.o,$(RTOS_CORE_OBJ_SRC_C))
 
@@ -257,6 +259,7 @@ RRF_OBJ_SRC_CXX   += $(foreach src, $(RRF_SRC), $(wildcard $(src)/*.cpp) )
 RRF_OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(RRF_OBJ_SRC_C)) $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(RRF_OBJ_SRC_CXX))
 
 RRF_INCLUDES = $(addprefix -I, $(RRF_SRC))
+RRF_INCLUDES += -I$(RRF_SRC_BASE)/Libraries/
 
 #end RRF
 
@@ -321,6 +324,6 @@ clean:
 	-rm -f firmware.lst firmware.elf firmware.hex firmware.map firmware.bin firmware.list
 
 distclean: clean cleancore cleanrrf
-	-rm -rf $(BUILD_DIR)/core.a $(RRF_OBJS) 
+	-rm -rf $(BUILD_DIR)/core.a $(RRF_OBJS) $(CORE_OBJS)
 
 .PHONY: all  clean distclean

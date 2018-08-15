@@ -104,5 +104,10 @@ bool inInterrupt();
 #endif //__cplusplus
 
 
+#define ExtInt_Slot1 (1)
+#define ExtInt_Slot2 (2)
+#define ExtInt_Slot3 (3)
+
+#define MaxExtInterrupts 3
 
 #endif

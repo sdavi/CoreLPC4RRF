@@ -66,7 +66,7 @@ void ConfigurePin(const PinDescription& pinDesc);
 #define SDA P0_0
 #define SCL P0_1
 
-
+#define MaxPinNumber 160 // 5*32
 
 
 #endif /* _VARIANT_ARDUINO_DUE_X_ */

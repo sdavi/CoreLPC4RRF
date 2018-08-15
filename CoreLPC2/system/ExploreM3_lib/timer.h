@@ -53,8 +53,8 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 
 #define PCLK_TIMER0  2
 #define PCLK_TIMER1  4   
-#define PCLK_TIMER3  12 
-#define PCLK_TIMER4  14
+#define PCLK_TIMER2  12
+#define PCLK_TIMER3  14
 
 #define SBIT_MR0I    0
 #define SBIT_MR0R    1

@@ -20,11 +20,16 @@
 #include <FreeRTOS.h>
 
 
-extern uint8_t ucHeap[configTOTAL_HEAP_SIZE];
+//extern uint8_t ucHeap[configTOTAL_HEAP_SIZE];
+
+//Heap5... only dynamic memory allocated in AHBRAM is done via FreeRTOS HEAP
+#define AHB_RAM_START 0x2007C000
 
 
 //SD:: This assumed Heap4.c is used in FreeRTOS
 //SD:: Add a backup to new to allocate memory in RTOS heap if insufficient memory in main SRAM
+
+
 
 void *operator new(size_t size)
 {
@@ -58,7 +63,7 @@ void operator delete(void * ptr)
 {
 
     //check the memory address to see if its within ucHeap array to know if we are using free or pvPortFree
-    if( (uint32_t) ptr >= (uint32_t) &ucHeap[0] && (uint32_t) ptr <= ((uint32_t)&ucHeap[0] + (uint32_t) configTOTAL_HEAP_SIZE) ){
+    if( (uint32_t) ptr >= AHB_RAM_START && (uint32_t) ptr < AHB_RAM_START+(32*1024) ){
         vPortFree(ptr);
     } else {
         free(ptr);
@@ -69,7 +74,7 @@ void operator delete(void * ptr)
 void operator delete(void *ptr , std::size_t)
 {
     //check the memory address to see if its within ucHeap array to know if we are using free or pvPortFree
-    if( (uint32_t) ptr >= (uint32_t) &ucHeap[0] && (uint32_t) ptr <= ((uint32_t)&ucHeap[0] + (uint32_t) configTOTAL_HEAP_SIZE) ){
+    if( (uint32_t) ptr >= AHB_RAM_START && (uint32_t) ptr < AHB_RAM_START+(32*1024) ){
         vPortFree(ptr);
     } else {
         free(ptr);
@@ -79,7 +84,7 @@ void operator delete(void *ptr , std::size_t)
 void operator delete[](void * ptr)
 {
     //check the memory address to see if its within ucHeap array to know if we are using free or pvPortFree
-    if( (uint32_t) ptr >= (uint32_t) &ucHeap[0] && ((uint32_t) ptr <= (uint32_t)&ucHeap[0] + (uint32_t)configTOTAL_HEAP_SIZE) ){
+    if( (uint32_t) ptr >= AHB_RAM_START && (uint32_t) ptr < AHB_RAM_START+(32*1024) ){
         vPortFree(ptr);
     } else {
         free(ptr);

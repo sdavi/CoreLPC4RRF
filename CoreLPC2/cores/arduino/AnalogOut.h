@@ -30,5 +30,19 @@ extern void AnalogOutInit();
  * \param freq (optional)
  */
 extern void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000);
+extern void GetTimerInfo( uint16_t freqs[4] );
+
+
+
+//Timer PWM
+#define TimerPWM_1 0x01
+#define TimerPWM_2 0x02
+#define TimerPWM_3 0x04
+
+#define TimerPWM_Slot1 (0x01 << 4)
+#define TimerPWM_Slot2 (0x02 << 4)
+#define TimerPWM_Slot3 (0x04 << 4)
+
+
 
 #endif // ANALOGOUT_H

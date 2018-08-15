@@ -68,16 +68,18 @@ extern uint32_t SystemCoreClock;
 #define configMINIMAL_STACK_SIZE				( ( unsigned short ) 120 )
 
 #define configAPPLICATION_ALLOCATED_HEAP        ( 1 )
-#if __LPC17xx__
-    #if defined(LPC_NETWORKING)
-        #define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 10168+3460  ) )
-    #else
-        //No Networking has more space
-        #define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 10168+3492+6300  ) )
-    #endif
-#else
-    #define configTOTAL_HEAP_SIZE					( ( size_t ) ( 1024) )
-#endif
+
+//SD:: now using Heap5 and configured to use all remaining space in AHBRam
+//#if __LPC17xx__
+//    #if defined(LPC_NETWORKING)
+//        #define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 10168+3460  ) )
+//    #else
+//        //No Networking has more space
+//        #define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 10168+3492+6300  ) )
+//    #endif
+//#else
+//    #define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 1024) )
+//#endif
 
 #define configMAX_TASK_NAME_LEN					( 10 )
 #define configUSE_TRACE_FACILITY				1

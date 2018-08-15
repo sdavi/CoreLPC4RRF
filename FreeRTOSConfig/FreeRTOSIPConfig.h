@@ -109,7 +109,7 @@
  http://www.freertos.org/Stacks-and-stack-overflow-checking.html */
 //#define ipconfigIP_TASK_STACK_SIZE_WORDS    ( configMINIMAL_STACK_SIZE * 5 )
 //SD::
-#define ipconfigIP_TASK_STACK_SIZE_WORDS    ( 104/*240*/ ) // around 240 if using debug printf
+#define ipconfigIP_TASK_STACK_SIZE_WORDS    ( 150 /*240*/ ) // around 240 if using debug printf
 
 /* ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS defines the total number of network buffer that
  are available to the IP stack.  The total number of network buffers is limited
