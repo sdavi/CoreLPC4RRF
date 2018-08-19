@@ -114,6 +114,8 @@ static bool AnalogWriteDac(const PinDescription& pinDesc, float ulValue)
     return false;/// TODO:: Implement this function
 }
 */
+
+
 const uint8_t numPwmChannels = 6;
 static bool PWMEnabled = false;
 static uint16_t PWMValue[numPwmChannels] = {0};
@@ -124,6 +126,7 @@ void PWM_Set( Pin pin, uint32_t dutyCycle )
 {
     //find entry in array
     uint8_t i = 0;
+    
     for(i=0;i<size(PinMap_PWM); i++){
         if(PinMap_PWM[i].pinNumber == pin){
 
@@ -188,8 +191,6 @@ static bool AnalogWritePwm(const PinDescription& pinDesc, float ulValue, uint16_
         return false;
     }
 
-    if(PWMValue[chan] == ulValue && PWMFreq == freq ) return true; // already running at this PWM+freq, Nothing more to do here
-
     
     if (PWMFreq != freq) // A change of Freq is requested. !!!This changes the Freq for ALL PWM channels!!!
     {
@@ -212,26 +213,22 @@ static bool AnalogWritePwm(const PinDescription& pinDesc, float ulValue, uint16_
             
             PWMEnabled = true;
         }
-        
-        uint32_t ticks = pwm_clock_mhz * (1000000/freq);
-        LPC_PWM1->TCR = TCR_RESET; //set reset
-        LPC_PWM1->MR0 = ticks; //Set the period (for ALL channels)
-        
-        // set the channel latch to update value at next period start
-        LPC_PWM1->LER |= 1 << 0;
-        
-        //Frequency of PWM channel has changed, we need to recalculate all the channels so their duty cycle remains the same
-        LPC_PWM1->MR1 = (uint32_t)((float)(LPC_PWM1->MR0) * PWMValue[0]);
-        LPC_PWM1->MR2 = (uint32_t)((float)(LPC_PWM1->MR0) * PWMValue[1]);
-        LPC_PWM1->MR3 = (uint32_t)((float)(LPC_PWM1->MR0) * PWMValue[2]);
-        LPC_PWM1->MR4 = (uint32_t)((float)(LPC_PWM1->MR0) * PWMValue[3]);
-        LPC_PWM1->MR5 = (uint32_t)((float)(LPC_PWM1->MR0) * PWMValue[4]);
-        LPC_PWM1->MR6 = (uint32_t)((float)(LPC_PWM1->MR0) * PWMValue[5]);
 
+        LPC_PWM1->TCR = TCR_RESET; //set reset
+
+        uint32_t ticks = pwm_clock_mhz * (1000000/freq);
+        LPC_PWM1->MR0 = ticks; //Set the period (for ALL channels)
+        LPC_PWM1->LER|= LER0_EN;
         
         // enable counter and pwm, clear reset
         LPC_PWM1->TCR = TCR_CNT_EN | TCR_PWM_EN;
 
+        //TODO:: if frequency changes while PWM is running their duty cycles will be wrong
+        //       update all running ones.... this is not an issue in RRF as we arent changing PWM freq for HW PWM
+
+        
+        //remember the PWM freq
+        PWMFreq = freq;
     }
 
     //setup the PWM channel
@@ -298,7 +295,7 @@ static inline void initTimer(uint8_t chan)
     }
     else  if(TimerPWMs[chan].timer == LPC_TIM2){
             LPC_SC->PCONP |= ((uint32_t)1<<SBIT_PCTIM2); // Ensure the Power bit is set for the Timer2
-            NVIC_SetPriority(TIMER2_IRQn, 9); //Timer Priority
+            NVIC_SetPriority(TIMER2_IRQn, 8); //Timer Priority
             NVIC_EnableIRQ(TIMER2_IRQn);
 
             TimerPWMs[chan].timer->PR   =  getPrescalarForUs(PCLK_TIMER2); // Prescalar for 1us... every 1us TC is incremented
@@ -306,7 +303,7 @@ static inline void initTimer(uint8_t chan)
     }
      else if(TimerPWMs[chan].timer == LPC_TIM3){
             LPC_SC->PCONP |= ((uint32_t)1<<SBIT_PCTIM3); // Ensure the Power bit is set for the Timer3
-            NVIC_SetPriority(TIMER3_IRQn, 10); //Timer Priority
+            NVIC_SetPriority(TIMER3_IRQn, 8); //Timer Priority
             NVIC_EnableIRQ(TIMER3_IRQn);
 
             TimerPWMs[chan].timer->PR   =  getPrescalarForUs(PCLK_TIMER3); // Prescalar for 1us... every 1us TC is incremented
@@ -316,12 +313,13 @@ static inline void initTimer(uint8_t chan)
 
     TimerPWMs[chan].timer->MR0 = 1000000/TimerPWMs[chan].frequency; //The PWM Period in us
     TimerPWMs[chan].timer->TC  = 0x00;  // Reset the Timer Count to 0
-    TimerPWMs[chan].timer->MCR = (1<<SBIT_MR0I) | (1<<SBIT_MR0R);     // Int on MR0 match and Reset Timer on MR0 match
+    TimerPWMs[chan].timer->MCR = ((1<<SBIT_MR0I) | (1<<SBIT_MR0R));     // Int on MR0 match and Reset Timer on MR0 match
     TimerPWMs[chan].timer->TCR  = (1 <<SBIT_CNTEN); //Start Timer
 
     timerInitialised |= (1 << chan);
     
 }
+
 
 
 static bool AnalogWriteTimer(float ulValue, uint16_t freq, Pin pin)
@@ -359,7 +357,6 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
         initTimer(timerChannel);
     }
 
-    
 //    if(freq != timerFrequency[chan] ){
 //        initTimer(timer, freq);
 //        timerFrequency[chan] = freq;
@@ -368,82 +365,51 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
 
 
     
-    uint32_t onTime = (1000000/freq) * ulValue;
-    uint32_t offTime;
-    
-    if(TimerPWMs[timerChannel].timer->MR0 - onTime > 0) offTime = TimerPWMs[timerChannel].timer->MR0 - onTime;
-    else offTime = TimerPWMs[timerChannel].timer->MR0 + 1; //set above MR0 (aka period) ... will not trigger int when off
-    
+    uint32_t onTime = (uint32_t)((float)(1000000/freq) * ulValue);
+    if(onTime >= TimerPWMs[timerChannel].timer->MR0) onTime = TimerPWMs[timerChannel].timer->MR0+1; // set above MR0
         
-    if(onTime == 0)
+ 
+    switch(TimerPWMPinsArray[pin] & 0xF0) // slot number is on upper bits
     {
-        //pin off
-        
-//        if(outputUsed[chan] == 0){
-//            //no outputs enabled, nothing to do
-//        }
-//        else
-//        {
-//
-//            switch(TimerPWMPinsArray[pin] & 0xF0) // slot number is on upper bits
-//            {
-//                case TimerPWM_Slot1:
-//
-//                    timer->MCR &= ~(1<<SBIT_MR1I);     // disbaled Int on MR1 Match
-//                    outputUsed[chan] &= ~TimerPWM_Slot1;
-//
-//                    break;
-//
-//                case TimerPWM_Slot2:
-//                    timer->MCR &= ~(1<<SBIT_MR2I);     // disbaled Int on MR2 Match
-//                    outputUsed[chan] &= ~TimerPWM_Slot2;
-//                    break;
-//
-//                case TimerPWM_Slot3:
-//                    timer->MCR &= ~(1<<SBIT_MR3I);     // disbaled Int on MR3 Match
-//                    outputUsed[chan] &= ~TimerPWM_Slot3;
-//                    break;
-//            }
-//
-//            pinMode(pin, OUTPUT_LOW );
-//        }
-    }
-    else
-    {
-        switch(TimerPWMPinsArray[pin] & 0xF0) // slot number is on upper bits
-        {
-            case TimerPWM_Slot1:
-                TimerPWMs[timerChannel].timer->MR1 = offTime; //The LOW time in us
+        case TimerPWM_Slot1:
+            if((outputUsed[timerChannel] & TimerPWM_Slot1) && TimerPWMs[timerChannel].timer->MR1 == onTime)
+            {
+                //already running
+            }
+            else
+            {
+                TimerPWMs[timerChannel].timer->MR1 = onTime; //The LOW time in us
                 TimerPWMs[timerChannel].timer->MCR |= (1<<SBIT_MR1I);     //  Int on MR1 Match
                 outputUsed[timerChannel] |= TimerPWM_Slot1;
-                break;
-                
-            case TimerPWM_Slot2:
-                TimerPWMs[timerChannel].timer->MR2 = offTime; //The LOW time in us
+            }
+            break;
+            
+        case TimerPWM_Slot2:
+            if((outputUsed[timerChannel] & TimerPWM_Slot2) && TimerPWMs[timerChannel].timer->MR2 == onTime)
+            {
+                //already running
+            }
+            else
+            {
+                TimerPWMs[timerChannel].timer->MR2 = onTime; //The LOW time in us
                 TimerPWMs[timerChannel].timer->MCR |= (1<<SBIT_MR2I);     //  Int on MR2 Match
                 outputUsed[timerChannel] |= TimerPWM_Slot2;
-                break;
+            }
+            break;
 
-            case TimerPWM_Slot3:
-                TimerPWMs[timerChannel].timer->MR3 = offTime; //The LOW time in us
+        case TimerPWM_Slot3:
+            if((outputUsed[timerChannel] & TimerPWM_Slot3) && TimerPWMs[timerChannel].timer->MR3 == onTime)
+            {
+                //already running
+            }
+            else
+            {
+                TimerPWMs[timerChannel].timer->MR3 = onTime; //The LOW time in us
                 TimerPWMs[timerChannel].timer->MCR |= (1<<SBIT_MR3I);     //  Int on MR3 Match
                 outputUsed[timerChannel] |= TimerPWM_Slot3;
-                break;
-        }
-
-
-
+            }
+            break;
     }
-
-//    if(outputUsed[chan] == 0)
-//    {
-//        timer->TCR  &= ~(1 <<SBIT_CNTEN); //Stop Timer
-//        timer->TC  = 0x00;  // Restart the Timer Count
-//    }
-//    else
-//    {
-//        timer->TCR  = (1 <<SBIT_CNTEN); //Start Timer
-//    }
 
     return true;
 }
@@ -457,15 +423,28 @@ static inline void timerFunctionResetPeriod(uint8_t timerChannel)
     
     if( outputUsed[timerChannel] & TimerPWM_Slot1 ) // if output pin is enabled
     {
-        pinMode(TimerPWMs[timerChannel].timerPins[0], OUTPUT_LOW );
+        if(TimerPWMs[timerChannel].timer->MR1 > 0){
+            pinMode(TimerPWMs[timerChannel].timerPins[0], OUTPUT_HIGH ); //go HIGH if we have a OnTime Set
+        } else {
+            pinMode(TimerPWMs[timerChannel].timerPins[0], OUTPUT_LOW ); //else keep next cycle off
+        }
     }
     if( outputUsed[timerChannel] & TimerPWM_Slot2 ) // if output pin is enabled
     {
-        pinMode(TimerPWMs[timerChannel].timerPins[1], OUTPUT_LOW );
+        if(TimerPWMs[timerChannel].timer->MR2 > 0){
+            pinMode(TimerPWMs[timerChannel].timerPins[1], OUTPUT_HIGH );
+        } else {
+            pinMode(TimerPWMs[timerChannel].timerPins[1], OUTPUT_LOW );
+        }
     }
     if( outputUsed[timerChannel] & TimerPWM_Slot3 ) // if output pin is enabled
     {
-        pinMode(TimerPWMs[timerChannel].timerPins[2], OUTPUT_LOW );
+        if(TimerPWMs[timerChannel].timer->MR3 > 0){
+
+            pinMode(TimerPWMs[timerChannel].timerPins[2], OUTPUT_HIGH );
+        } else {
+            pinMode(TimerPWMs[timerChannel].timerPins[2], OUTPUT_LOW );
+        }
     }
 
 }
@@ -476,21 +455,13 @@ static inline void timerFunction(uint8_t timerChannel)
     LPC_TIM_TypeDef *timer = TimerPWMs[timerChannel].timer;
     
     uint32_t regval = timer->IR;
-    //find which Match Register triggered the interrupt
-    if (regval & (1 << SBIT_MRI0_IFM)) //Interrupt flag for match channel 0 (
-    {
-        // TC will be reset... set all connected pins high for start of the cycle
-        timer->IR |= (1<<SBIT_MRI0_IFM); //clear interrupt on MR0 (setting bit will clear int)
-        timerFunctionResetPeriod(timerChannel); //start the cycle LOW, MR1-3 will set the "off" time.
-        
-    }
 
     if (regval & (1 << SBIT_MRI1_IFM)) //Interrupt flag for match channel 1.
     {
         timer->IR |= (1<<SBIT_MRI1_IFM); //clear interrupt on MR1 (setting bit will clear int)
         if(outputUsed[timerChannel] & TimerPWM_Slot1)
         {
-            pinMode(TimerPWMs[timerChannel].timerPins[0], OUTPUT_HIGH );
+            pinMode(TimerPWMs[timerChannel].timerPins[0], OUTPUT_LOW );
         }
     }
 
@@ -499,7 +470,7 @@ static inline void timerFunction(uint8_t timerChannel)
         timer->IR |= (1<<SBIT_MRI2_IFM); //clear interrupt on MR2 (setting bit will clear int)
         if(outputUsed[timerChannel] & TimerPWM_Slot2)
         {
-            pinMode(TimerPWMs[timerChannel].timerPins[1], OUTPUT_HIGH );
+            pinMode(TimerPWMs[timerChannel].timerPins[1], OUTPUT_LOW );
         }
     }
 
@@ -508,9 +479,19 @@ static inline void timerFunction(uint8_t timerChannel)
         timer->IR |= (1<<SBIT_MRI3_IFM); //clear interrupt on MR3 (setting bit will clear int)
         if(outputUsed[timerChannel] & TimerPWM_Slot3)
         {
-            pinMode(TimerPWMs[timerChannel].timerPins[2], OUTPUT_HIGH );
+            pinMode(TimerPWMs[timerChannel].timerPins[2], OUTPUT_LOW );
         }
     }
+    
+    //find which Match Register triggered the interrupt
+    if (regval & (1 << SBIT_MRI0_IFM)) //Interrupt flag for match channel 0 (
+    {
+        // TC will be reset... set all connected pins high for start of the cycle
+        timer->IR |= (1<<SBIT_MRI0_IFM); //clear interrupt on MR0 (setting bit will clear int)
+        timerFunctionResetPeriod(timerChannel); //start the cycle HIGH, MR1-3 will set the "on" times for each channel.
+        return;
+    }
+
 }
 
 // Interrupt Handlers for Timers 1-3
@@ -526,6 +507,7 @@ extern "C" void TIMER3_IRQHandler(void)
 {
     timerFunction(2);
 }
+
 
 
 
@@ -552,7 +534,7 @@ void AnalogOut(Pin pin, float ulValue, uint16_t freq)
 		}
 	}
 	else*/
-    
+
     if (TimerPWMPinsArray[pin] != 0)
     {
         //pin is defined as PWM on Timer
@@ -563,6 +545,7 @@ void AnalogOut(Pin pin, float ulValue, uint16_t freq)
     }
     else if ((attr & PIN_ATTR_PWM) != 0)
 	{
+
 		if (AnalogWritePwm(pinDesc, ulValue, freq, pin))
 		{
 			return;
