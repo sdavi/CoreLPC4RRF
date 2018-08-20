@@ -54,7 +54,7 @@ OUTPUT_NAME=firmware
 $(info Saving Binary to $(OUTPUT_NAME))
 
 #list 1768 based boards here otherwise 1769 will be assumed
-LPC1768_BOARDS = REARM MBED MKS_SBASE
+LPC1768_BOARDS = REARM MBED MKSBASE
 
 #SmoothieBoard, Azteeg 1769
 #MBED and ReArm is 1768
