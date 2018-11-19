@@ -4,6 +4,7 @@
 
 #include "Stream.h"
 #include "USBDevice/USBSerial/USBSerial.h"
+#include "USBDevice/USBSerial/CircBuffer.h"
 
 
 #if defined(ENABLE_DFU)
@@ -25,7 +26,8 @@ private:
 
     
 public:
-    SerialUSB();
+    //SerialUSB();
+    SerialUSB(CircBuffer<uint8_t> *rxBuffer, CircBuffer<uint8_t> *txBuffer);
 
     void begin(uint32_t baud);
     void end();
@@ -41,6 +43,10 @@ public:
 
     size_t canWrite() const;    
 
+    void setInterruptPriority(uint32_t priority);
+    uint32_t getInterruptPriority();
+
+    
     operator bool() const;
     
     

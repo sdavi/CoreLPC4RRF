@@ -32,8 +32,10 @@ protected:
 
 class USBSerial: public USBCDC, public USBSerial_Receiver{
 public:
-    USBSerial(USB *);
-
+    //USBSerial(USB *);
+    USBSerial(USB *, CircBuffer<uint8_t> *rxCircBuff, CircBuffer<uint8_t> *txCircBuff);
+    
+    
     int _putc(int c);
     int _getc();
     int puts(const char *);
@@ -49,8 +51,8 @@ public:
     
     uint16_t writeBlock(const uint8_t * buf, uint16_t size);
 
-    CircBuffer<uint8_t> rxbuf;
-    CircBuffer<uint8_t> txbuf;
+    CircBuffer<uint8_t> *rxbuf;
+    CircBuffer<uint8_t> *txbuf;
 
     //void on_module_loaded(void);
     void on_main_loop(void *);

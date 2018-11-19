@@ -69,17 +69,8 @@ extern uint32_t SystemCoreClock;
 
 #define configAPPLICATION_ALLOCATED_HEAP        ( 1 )
 
-//SD:: now using Heap5 and configured to use all remaining space in AHBRam
-//#if __LPC17xx__
-//    #if defined(LPC_NETWORKING)
-//        #define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 10168+3460  ) )
-//    #else
-//        //No Networking has more space
-//        #define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 10168+3492+6300  ) )
-//    #endif
-//#else
-//    #define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 1024) )
-//#endif
+//SD:: now using Heap5 
+//#define configTOTAL_HEAP_SIZE                    ( ( size_t ) ( 1024) )
 
 #define configMAX_TASK_NAME_LEN					( 10 )
 #define configUSE_TRACE_FACILITY				1
@@ -117,7 +108,7 @@ FreeRTOS/Source/tasks.c for limitations. */
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 
 /* Software timer definitions. */
-#define configUSE_TIMERS				1
+#define configUSE_TIMERS				0
 #define configTIMER_TASK_PRIORITY		( 2 )
 #define configTIMER_QUEUE_LENGTH		5
 #if __LPC17xx__
@@ -138,9 +129,10 @@ to exclude the API function. */
 #define INCLUDE_vTaskDelayUntil			1
 #define INCLUDE_vTaskDelay				1
 #define INCLUDE_eTaskGetState			1
-#define INCLUDE_xTimerPendFunctionCall	1
+#define INCLUDE_xTimerPendFunctionCall	0
 #define INCLUDE_uxTaskGetStackHighWaterMark	1
 #define INCLUDE_xQueueGetMutexHolder	1
+#define INCLUDE_xTaskGetSchedulerState    1
 
 /* Cortex-M specific definitions. */
 #ifdef __NVIC_PRIO_BITS

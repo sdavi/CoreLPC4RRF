@@ -275,7 +275,7 @@ typedef enum
 
 
 void yield(void) __attribute__ ((weak));
-int sysTickHook(void) __attribute__ ((weak)); //SD:added to be compatible with RRF
+void sysTickHook(void) __attribute__ ((weak)); //SD:added to be compatible with RRF
 
 
 /***************************************************************************************************

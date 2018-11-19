@@ -62,7 +62,7 @@ bool DFU::USBEvent_Request(CONTROL_TRANSFER &control)
             
             //use the watchdog to trigger a CPU reset (we disable the int as we want the watchdog
             // flag to be set on reset so the Firmware can detect we are in DFU Mode)
-            wdt_restart(); // feed watchdog
+            wdt_restart(WDT); // feed watchdog
 
             LPC_WDT->WDMOD = (1<<WDEN_SBIT) | (1<<WDRESET_SBIT); //Enable Watchdog and reset CPU on watchdog timeout
             NVIC_DisableIRQ(WDT_IRQn);

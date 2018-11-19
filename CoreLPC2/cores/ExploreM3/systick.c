@@ -225,7 +225,6 @@ uint64_t millis64( void ){
 
 
 //extern void TimeTick_Increment(void);                // in wiring.c
-extern int sysTickHook(void);
 
 
 
@@ -255,11 +254,9 @@ void SysTick_Handler(void)
     
     
     
-    if (sysTickHook())
-        return;
-    
-    
-    wdt_restart();                            // kick the watchdog
+    sysTickHook();
+
+    wdt_restart(WDT);                            // kick the watchdog
 
 }
 

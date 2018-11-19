@@ -45,10 +45,10 @@ void wdt_init(uint32_t s_counter){
     NVIC_EnableIRQ(WDT_IRQn);
     NVIC_SetPriority(WDT_IRQn, 1);
 
-    wdt_restart(); //feed the watchdog
+    wdt_restart(WDT); //feed the watchdog
 }
 
-void wdt_restart()
+void wdt_restart(uint8_t wdt) //compat with RRF wdt not used, but maintain compat with RRF
 {
     //Feed the hungry hungry watchdog
     //0xAA followed by 0x55 to WDFEED reloads the Watchdog timer with the value contained in WDTC
@@ -59,7 +59,7 @@ void wdt_restart()
     cpu_irq_restore(flags);
 }
 
-
+    
 #ifdef __cplusplus
 }
 #endif

@@ -94,3 +94,19 @@ size_t HardwareSerial::write(unsigned char ch) {
 void HardwareSerial::flush(void) {
   //As the ring buffer is not used nothing is there to flush, Just included for compilation.
 }
+
+
+
+
+//compat with RRF
+void HardwareSerial::setInterruptPriority(uint32_t priority)
+{
+    NVIC_SetPriority(this->usart_device->irq_NUM, priority);
+    
+}
+
+uint32_t HardwareSerial::getInterruptPriority()
+{
+    return NVIC_GetPriority(this->usart_device->irq_NUM);
+}
+

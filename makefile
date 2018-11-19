@@ -1,16 +1,3 @@
-## Cross-compilation commands 
-CC      = arm-none-eabi-gcc
-CXX     = arm-none-eabi-g++
-LD      = arm-none-eabi-gcc
-AR      = arm-none-eabi-ar
-AS      = arm-none-eabi-as
-OBJCOPY = arm-none-eabi-objcopy
-OBJDUMP = arm-none-eabi-objdump
-SIZE    = arm-none-eabi-size
-
-
-
-
 PROCESSOR = LPC17xx
 
 #BOARD = AZTEEGX5MINI
@@ -35,6 +22,19 @@ USE_DFU = true
 
 #Comment out to show compilation commands (verbose)
 V=@
+
+
+## Cross-compilation commands 
+CC      = arm-none-eabi-gcc
+CXX     = arm-none-eabi-g++
+LD      = arm-none-eabi-gcc
+#LD      = arm-none-eabi-g++
+AR      = arm-none-eabi-ar
+AS      = arm-none-eabi-as
+OBJCOPY = arm-none-eabi-objcopy
+OBJDUMP = arm-none-eabi-objdump
+SIZE    = arm-none-eabi-size
+
 
 
 #Sources Locations
@@ -128,12 +128,12 @@ ifeq ($(COMBINE_AHBRAM), true)
 endif
 
 CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline
-CXXFLAGS = $(FLAGS) -std=gnu++14  -fno-threadsafe-statics -fno-rtti -fno-exceptions
+CXXFLAGS = $(FLAGS) -std=gnu++14  -fno-threadsafe-statics -fno-exceptions -fno-rtti
 
 #RRF c++ flags
 RRF_CXXFLAGS  = -DVARIANT_MCK=$(VARIANT_MCK) -D__$(PROCESSOR)__ -D__$(BOARD)__ -D_XOPEN_SOURCE -Wall -c -std=gnu++14 -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections 
 RRF_CXXFLAGS += -DCORE_M3
-RRF_CXXFLAGS += -fno-threadsafe-statics -fno-rtti -fno-exceptions -nostdlib -Wdouble-promotion -fsingle-precision-constant
+RRF_CXXFLAGS += -fno-threadsafe-statics -fno-exceptions -nostdlib -Wdouble-promotion -fsingle-precision-constant -fno-rtti
 RRF_CXXFLAGS += -MMD -MP -march=armv7-m
 RRF_CXXFLAGS += $(DEBUG_FLAGS)
 RRF_CXXFLAGS += -DRTOS -DFREERTOS_USED
@@ -235,19 +235,16 @@ CORE_INCLUDES   += -I$(RTOSPLUS_TCP_INCLUDE) -I$(RTOSPLUS_TCP_INCLUDE)
 
 #RepRapFirmware Sources  
 RRF_SRC_DIRS  = FilamentMonitors GCodes Heating Movement Movement/BedProbing Movement/Kinematics 
-RRF_SRC_DIRS += Storage Tools Libraries/General Libraries/Math Libraries/sha1 Libraries/Fatfs Libraries/Fatfs/port/lpc
+RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries/sha1
 RRF_SRC_DIRS += Heating/Sensors Fans
 RRF_SRC_DIRS += LPC LPC/MCP4461
 #biuld in LCD Support? only when networking is false
-ifeq ($(NETWORKING), false)
-	#RRF_SRC_DIRS += Display Display/ST7920
-endif
-
 #networking support?
 ifeq ($(NETWORKING), true)
 	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet
 else
 	RRF_SRC_DIRS += LPC/NoNetwork
+	RRF_SRC_DIRS += Display Display/ST7920
 endif
 
 #Find the c and cpp source files
@@ -262,6 +259,20 @@ RRF_INCLUDES = $(addprefix -I, $(RRF_SRC))
 RRF_INCLUDES += -I$(RRF_SRC_BASE)/Libraries/
 
 #end RRF
+
+#RRF Libraries
+RRF_LIBRARY_SRC_BASE = RRFLibraries/src
+RRF_LIBRARY_SRC_DIRS = General Math RTOSIface
+
+#  Find the c and cpp source files
+RRF_LIBRARY_SRC = $(RRF_LIBRARY_SRC_BASE) $(addprefix $(RRF_LIBRARY_SRC_BASE)/, $(RRF_LIBRARY_SRC_DIRS))
+
+RRF_OBJ_SRC_C      += $(foreach src, $(RRF_LIBRARY_SRC), $(wildcard $(src)/*.c) ) 
+RRF_OBJ_SRC_CXX   += $(foreach src, $(RRF_LIBRARY_SRC), $(wildcard $(src)/*.cpp) )
+
+RRF_INCLUDES += $(addprefix -I, $(RRF_LIBRARY_SRC))
+#end RRF Libraries
+
 
 
 #all Includes (RRF + Core)

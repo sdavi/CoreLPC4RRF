@@ -22,16 +22,14 @@
 
 #include "USBSerial.h"
 
-//#include "libs/Kernel.h"
-//#include "libs/SerialMessage.h"
-//#include "StreamOutputPool.h"
 
 // extern void setled(int, bool);
 #define setled(a, b) do {} while (0)
 
 #define iprintf(...) do { } while (0)
 
-USBSerial::USBSerial(USB *u): USBCDC(u), rxbuf(256 + 8), txbuf(128 + 8)
+USBSerial::USBSerial(USB *u, CircBuffer<uint8_t> *rxCircBuff, CircBuffer<uint8_t> *txCircBuff):USBCDC(u)
+//USBSerial::USBSerial(USB *u): USBCDC(u), rxbuf(256 + 8), txbuf(128 + 8)
 {
     usb = u;
     nl_in_rx = 0;
@@ -40,11 +38,14 @@ USBSerial::USBSerial(USB *u): USBCDC(u), rxbuf(256 + 8), txbuf(128 + 8)
     halt_flag = false;
     query_flag = false;
     last_char_was_dollar = false;
+    
+    rxbuf = rxCircBuff;
+    txbuf = txCircBuff;
 }
 
 size_t USBSerial::canWrite()
 {
-    uint16_t numFree = txbuf.free();
+    uint16_t numFree = txbuf->free();
     return (attached) ? numFree : 0;
 }
 
@@ -56,7 +57,7 @@ bool USBSerial::isConnected(){
 
 void USBSerial::ensure_tx_space(int space)
 {
-    while (txbuf.free() < space) {
+    while (txbuf->free() < space) {
         usb->endpointSetInterrupt(CDC_BulkIn.bEndpointAddress, true);
         usb->usbisr();
     }
@@ -67,7 +68,7 @@ int USBSerial::_putc(int c)
     if (!attached)
         return 1;
     ensure_tx_space(1);
-    txbuf.queue(c);
+    txbuf->queue(c);
 
     usb->endpointSetInterrupt(CDC_BulkIn.bEndpointAddress, true);
     return 1;
@@ -78,14 +79,14 @@ int USBSerial::_getc()
     if (!attached)
         return 0;
     uint8_t c = 0;
-    setled(4, 1); while (rxbuf.isEmpty()); setled(4, 0);
-    rxbuf.dequeue(&c);
-    if (rxbuf.free() == MAX_PACKET_SIZE_EPBULK) {
+    setled(4, 1); while (rxbuf->isEmpty()); setled(4, 0);
+    rxbuf->dequeue(&c);
+    if (rxbuf->free() == MAX_PACKET_SIZE_EPBULK) {
         usb->endpointSetInterrupt(CDC_BulkOut.bEndpointAddress, true);
         iprintf("rxbuf has room for another packet, interrupt enabled\n");
-    } else if ((rxbuf.free() < MAX_PACKET_SIZE_EPBULK) && (nl_in_rx == 0)) {
+    } else if ((rxbuf->free() < MAX_PACKET_SIZE_EPBULK) && (nl_in_rx == 0)) {
         // handle potential deadlock where a short line, and the beginning of a very long line are bundled in one usb packet
-        rxbuf.flush();
+        rxbuf->flush();
         flush_to_nl = true;
 
         usb->endpointSetInterrupt(CDC_BulkOut.bEndpointAddress, true);
@@ -105,8 +106,8 @@ int USBSerial::puts(const char *str)
     int i = 0;
     while (*str) {
         ensure_tx_space(1);
-        txbuf.queue(*str);
-        if ((txbuf.available() % 64) == 0)
+        txbuf->queue(*str);
+        if ((txbuf->available() % 64) == 0)
             usb->endpointSetInterrupt(CDC_BulkIn.bEndpointAddress, true);
         i++;
         str++;
@@ -119,12 +120,12 @@ uint16_t USBSerial::writeBlock(const uint8_t * buf, uint16_t size)
 {
     if (!attached)
         return size;
-    if (size > txbuf.free()) {
-        size = txbuf.free();
+    if (size > txbuf->free()) {
+        size = txbuf->free();
     }
     if (size > 0) {
         for (uint8_t i = 0; i < size; i++) {
-            txbuf.queue(buf[i]);
+            txbuf->queue(buf[i]);
         }
         usb->endpointSetInterrupt(CDC_BulkIn.bEndpointAddress, true);
     }
@@ -148,7 +149,7 @@ bool USBSerial::USBEvent_EPIn(uint8_t bEP, uint8_t bEPStatus)
 
     uint8_t b[MAX_PACKET_SIZE_EPBULK];
 
-    int l = txbuf.available();
+    int l = txbuf->available();
     if (l > 0) {
         // Use MAX_PACKET_SIZE_EPBULK-1 below instead of MAX_PACKET_SIZE_EPBULK
         // to work around a problem sending packets that are exactly MAX_PACKET_SIZE_EPBULK
@@ -157,10 +158,10 @@ bool USBSerial::USBEvent_EPIn(uint8_t bEP, uint8_t bEPStatus)
             l = MAX_PACKET_SIZE_EPBULK-1;
         int i;
         for (i = 0; i < l; i++) {
-            txbuf.dequeue(&b[i]);
+            txbuf->dequeue(&b[i]);
         }
         send(b, l);
-        if (txbuf.available() == 0)
+        if (txbuf->available() == 0)
             r = false;
     } else {
         r = false;
@@ -181,7 +182,7 @@ bool USBSerial::USBEvent_EPOut(uint8_t bEP, uint8_t bEPStatus)
     if (bEP != CDC_BulkOut.bEndpointAddress)
         return false;
 
-    if (rxbuf.free() < MAX_PACKET_SIZE_EPBULK) {
+    if (rxbuf->free() < MAX_PACKET_SIZE_EPBULK) {
 //         usb->endpointSetInterrupt(bEP, false);
         return false;
     }
@@ -196,7 +197,7 @@ bool USBSerial::USBEvent_EPOut(uint8_t bEP, uint8_t bEPStatus)
 
         // handle backspace and delete by deleting the last character in the buffer if there is one
         if(c[i] == 0x08 || c[i] == 0x7F) {
-            if(!rxbuf.isEmpty()) rxbuf.pop();
+            if(!rxbuf->isEmpty()) rxbuf->pop();
             continue;
         }
 
@@ -227,7 +228,7 @@ bool USBSerial::USBEvent_EPOut(uint8_t bEP, uint8_t bEPStatus)
         last_char_was_dollar = (c[i] == '$');
 
         if (flush_to_nl == false)
-            rxbuf.queue(c[i]);
+            rxbuf->queue(c[i]);
 
         // if (c[i] >= 32 && c[i] < 128)
         // {
@@ -243,23 +244,23 @@ bool USBSerial::USBEvent_EPOut(uint8_t bEP, uint8_t bEPStatus)
                 flush_to_nl = false;
             else
                 nl_in_rx++;
-        } else if (rxbuf.isFull() && (nl_in_rx == 0)) {
+        } else if (rxbuf->isFull() && (nl_in_rx == 0)) {
             // to avoid a deadlock with very long lines, we must dump the buffer
             // and continue flushing to the next newline
-            rxbuf.flush();
+            rxbuf->flush();
             flush_to_nl = true;
         }
     }
-    iprintf("\nQueued, %d empty\n", rxbuf.free());
+    iprintf("\nQueued, %d empty\n", rxbuf->free());
 
-    if (rxbuf.free() < MAX_PACKET_SIZE_EPBULK) {
+    if (rxbuf->free() < MAX_PACKET_SIZE_EPBULK) {
         // if buffer is full, stall endpoint, do not accept more data
         r = false;
 
         if (nl_in_rx == 0) {
             // we have to check for long line deadlock here too
             flush_to_nl = true;
-            rxbuf.flush();
+            rxbuf->flush();
 
             // and since our buffer is empty, we can accept more data
             r = true;
@@ -273,16 +274,16 @@ bool USBSerial::USBEvent_EPOut(uint8_t bEP, uint8_t bEPStatus)
 
 uint8_t USBSerial::available()
 {
-    return rxbuf.available();
+    return rxbuf->available();
 }
 
 bool USBSerial::ready()
 {
-    return rxbuf.available();
+    return rxbuf->available();
 }
 
 void USBSerial::flush(void){
-    while(attached && !txbuf.isEmpty()){}
+    while(attached && !txbuf->isEmpty()){}
 }
 
 /*
@@ -302,7 +303,7 @@ void USBSerial::on_idle(void *argument)
         } else {
             puts("HALTED, M999 or $X to exit HALT state\r\n");
         }
-        rxbuf.flush(); // flush the recieve buffer, hopefully upstream has stopped sending
+        rxbuf->flush(); // flush the recieve buffer, hopefully upstream has stopped sending
         nl_in_rx = 0;
     }
 
@@ -328,8 +329,8 @@ void USBSerial::on_main_loop(void *argument)
         } else {
             attached = false;
             //THEKERNEL->streams->remove_stream(this);
-            txbuf.flush();
-            rxbuf.flush();
+            txbuf->flush();
+            rxbuf->flush();
             nl_in_rx = 0;
         }
     }

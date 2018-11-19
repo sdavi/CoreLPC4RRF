@@ -20,23 +20,33 @@
 #define CIRCBUFFER_H
 
 #include <stdlib.h>
-//#include "sLPC17xx.h"
 #include "LPC17xx.h"
-//#include "platform_memory.h"
 #include "new.h"
 #include <FreeRTOS.h>
 
 template <class T>
 class CircBuffer {
 public:
-    CircBuffer(int length) {
-        write = 0;
-        read = 0;
-        size = length;
-        //buf = (uint8_t*) AHB0.alloc(size * sizeof(T));
-        buf = (uint8_t*) pvPortMalloc(size * sizeof(T));
-    };
+//    CircBuffer(int length) {
+//        write = 0;
+//        read = 0;
+//        size = length;
+//        //buf = (uint8_t*) AHB0.alloc(size * sizeof(T));
+//        buf = (uint8_t*) pvPortMalloc(size * sizeof(T));
+//    };
 
+    
+        CircBuffer(int length, T *buffPtr) {
+            write = 0;
+            read = 0;
+            size = length;
+            //buf = (uint8_t*) AHB0.alloc(size * sizeof(T));
+            //buf = (uint8_t*) pvPortMalloc(size * sizeof(T));
+            buf = buffPtr;
+        };
+
+    
+    
 	bool isFull() {
 		return ((write + 1) % size == read);
     };

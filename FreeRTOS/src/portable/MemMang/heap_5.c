@@ -122,6 +122,10 @@ fragmentation. */
 static size_t xFreeBytesRemaining = 0U;
 static size_t xMinimumEverFreeBytesRemaining = 0U;
 
+//sd: added to track size of combined heap
+static size_t xTotalHeapSizeAllocated = 0U;
+
+
 /* Gets set to the top bit of an size_t type.  When this bit in the xBlockSize
 member of an BlockLink_t structure is set then the block belongs to the
 application.  When the bit is free the block is still part of the free heap
@@ -330,6 +334,14 @@ size_t xPortGetMinimumEverFreeHeapSize( void )
 }
 /*-----------------------------------------------------------*/
 
+
+size_t xPortGetTotalHeapSize( void )
+{
+    return xTotalHeapSizeAllocated;
+}
+
+
+
 static void prvInsertBlockIntoFreeList( BlockLink_t *pxBlockToInsert )
 {
 BlockLink_t *pxIterator;
@@ -477,6 +489,10 @@ const HeapRegion_t *pxHeapRegion;
 	xMinimumEverFreeBytesRemaining = xTotalHeapSize;
 	xFreeBytesRemaining = xTotalHeapSize;
 
+    //SD::
+    xTotalHeapSizeAllocated = xTotalHeapSize;
+    
+    
 	/* Check something was actually defined before it is accessed. */
 	configASSERT( xTotalHeapSize );
 

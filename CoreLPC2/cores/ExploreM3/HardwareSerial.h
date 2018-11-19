@@ -78,15 +78,23 @@ public:
     /* Escape hatch into libmaple */
     /* FIXME [0.0.13] documentation */
     struct usart_dev* c_dev(void) { return this->usart_device; }
+    
+    
+    void setInterruptPriority(uint32_t priority);
+    uint32_t getInterruptPriority();
+
+    
 private:
     struct usart_dev *usart_device;
     uint8_t tx_pin;
     uint8_t rx_pin;
+    
   protected:
 
 };
 
 
+#define UARTClass HardwareSerial // compatibility with RRF
 
 extern HardwareSerial Serial0; 
 extern HardwareSerial Serial1; 
