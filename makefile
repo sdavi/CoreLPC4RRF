@@ -47,31 +47,11 @@ RTOS_INCLUDE = $(RTOS_SRC)/include/
 RTOS_SRC_PORTABLE = $(RTOS_SRC)/portable/GCC/ARM_CM3
 
 RTOSPLUS_SRC = FreeRTOS
-
 RTOS_CONFIG_INCLUDE = FreeRTOSConfig
+
 
 OUTPUT_NAME=firmware
 $(info Saving Binary to $(OUTPUT_NAME))
-
-#list 1768 based boards here otherwise 1769 will be assumed
-LPC1768_BOARDS = REARM MBED MKSBASE
-
-#SmoothieBoard, Azteeg 1769
-#MBED and ReArm is 1768
-
-#RRF uses VARIANT_MCK for a few calcs, and are constexpr so will pass here the speeds of the CPU instead of using SystemCoreClock
-
-#find the Clock Speed for the selected Board
-ifneq ($(filter $(BOARD),$(LPC1768_BOARDS)),)
-	VARIANT_MCK = 100000000
-else
-	#default to 120MHz
-	VARIANT_MCK = 120000000
-endif
-
-$(info $(BOARD) MCK set to $(VARIANT_MCK))
-
-
 
 ifeq ($(BOARD), AZTEEGX5MINI)
 	NETWORKING = false #AzteegX5Mini has no Networking, Ensure its disabled
@@ -87,7 +67,6 @@ else
 endif
 	
 
-COMBINE_AHBRAM = true
 
 #select correct linker script
 ifeq ($(BOARD), MBED)
@@ -108,7 +87,7 @@ MKDIR = mkdir -p
 
 
 #Flags common for Core in c and c++
-FLAGS  = -D__$(PROCESSOR)__ -D__$(BOARD)__ -DVARIANT_MCK=$(VARIANT_MCK)
+FLAGS  = -D__$(PROCESSOR)__ -D__$(BOARD)__ -DCORE_M3 -D_XOPEN_SOURCE
 #lpcopen Defines
 FLAGS += -DCORE_M3
 #RTOS + enable mods to RTOS+TCP for RRF
@@ -117,34 +96,23 @@ FLAGS += -DRTOS -DFREERTOS_USED -DRRF_RTOSPLUS_MOD
 FLAGS +=  -Wall -c -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections -march=armv7-m 
 FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant
 FLAGS += $(DEBUG_FLAGS)
+FLAGS += -MMD -MP 
 
 ifeq ($(NETWORKING), true)
         FLAGS += -DLPC_NETWORKING
 endif
 
 
-ifeq ($(COMBINE_AHBRAM), true)
-	FLAGS += -DCOMBINE_AHBRAM
-endif
-
 CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline
-CXXFLAGS = $(FLAGS) -std=gnu++14  -fno-threadsafe-statics -fno-exceptions -fno-rtti
-
+CXXFLAGS = $(FLAGS) -std=gnu++17  -fno-threadsafe-statics -fno-exceptions -fno-rtti
+#-std=gnu++14
 #RRF c++ flags
-RRF_CXXFLAGS  = -DVARIANT_MCK=$(VARIANT_MCK) -D__$(PROCESSOR)__ -D__$(BOARD)__ -D_XOPEN_SOURCE -Wall -c -std=gnu++14 -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections 
-RRF_CXXFLAGS += -DCORE_M3
-RRF_CXXFLAGS += -fno-threadsafe-statics -fno-exceptions -nostdlib -Wdouble-promotion -fsingle-precision-constant -fno-rtti
-RRF_CXXFLAGS += -MMD -MP -march=armv7-m
-RRF_CXXFLAGS += $(DEBUG_FLAGS)
-RRF_CXXFLAGS += -DRTOS -DFREERTOS_USED
+RRF_CXXFLAGS  = $(CXXFLAGS) 
 
-ifeq ($(COMBINE_AHBRAM), true)
-	RRF_CXXFLAGS += -DCOMBINE_AHBRAM
-endif
 
-ifeq ($(NETWORKING), true)
-	RRF_CXXFLAGS += -DLPC_NETWORKING
-endif
+#ifeq ($(NETWORKING), true)
+#	RRF_CXXFLAGS += -DLPC_NETWORKING
+#endif
 
 
 #Core libraries
@@ -183,7 +151,6 @@ CORE_INCLUDES  += -I$(CORE)/cores/lpcopen/board
 #Find all c and c++ files for Core
 CORE_OBJ_SRC_C	   += $(foreach src, $(CORE_SRC), $(wildcard $(src)/*.c $(src)/*/*.c $(src)/*/*/*.c $(src)/*/*/*/*.c $(src)/*/*/*/*/*.c) )
 CORE_OBJ_SRC_CXX   += $(foreach src, $(CORE_SRC), $(wildcard $(src)/*.cpp $(src)/*/*.cpp $(src)/*/*/*.cpp $(src)/*/*/*/*.cpp $(src)/*/*/*/*/*.cpp) )
-
 CORE_OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(CORE_OBJ_SRC_C)) $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(CORE_OBJ_SRC_CXX))
 
 
@@ -192,7 +159,6 @@ RTOS_CORE_SRC    += $(RTOS_SRC) $(RTOS_SRC_PORTABLE)
 RTOS_CORE_OBJ_SRC_C  += $(foreach src, $(RTOS_CORE_SRC), $(wildcard $(src)/*.c) )
 #RTOS Dynamic Memory Management
 RTOS_CORE_OBJ_SRC_C  += $(RTOS_SRC)/portable/MemMang/heap_5.c
-#RTOS_CORE_OBJ_SRC_C  += $(RTOS_SRC)/portable/MemMang/heap_4.c
 
 CORE_OBJS += $(patsubst %.c,$(BUILD_DIR)/%.o,$(RTOS_CORE_OBJ_SRC_C))
 
@@ -233,11 +199,12 @@ CORE_INCLUDES   += -I$(RTOSPLUS_TCP_INCLUDE) -I$(RTOSPLUS_TCP_INCLUDE)
 
 
 
-#RepRapFirmware Sources  
+#---RepRapFirmware---
 RRF_SRC_DIRS  = FilamentMonitors GCodes Heating Movement Movement/BedProbing Movement/Kinematics 
 RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries/sha1
-RRF_SRC_DIRS += Heating/Sensors Fans
+RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel
 RRF_SRC_DIRS += LPC LPC/MCP4461
+
 #biuld in LCD Support? only when networking is false
 #networking support?
 ifeq ($(NETWORKING), true)
@@ -260,16 +227,15 @@ RRF_INCLUDES += -I$(RRF_SRC_BASE)/Libraries/
 
 #end RRF
 
-#RRF Libraries
+
+#---RRF Libraries----
 RRF_LIBRARY_SRC_BASE = RRFLibraries/src
 RRF_LIBRARY_SRC_DIRS = General Math RTOSIface
 
 #  Find the c and cpp source files
 RRF_LIBRARY_SRC = $(RRF_LIBRARY_SRC_BASE) $(addprefix $(RRF_LIBRARY_SRC_BASE)/, $(RRF_LIBRARY_SRC_DIRS))
-
 RRF_OBJ_SRC_C      += $(foreach src, $(RRF_LIBRARY_SRC), $(wildcard $(src)/*.c) ) 
 RRF_OBJ_SRC_CXX   += $(foreach src, $(RRF_LIBRARY_SRC), $(wildcard $(src)/*.cpp) )
-
 RRF_INCLUDES += $(addprefix -I, $(RRF_LIBRARY_SRC))
 #end RRF Libraries
 
@@ -277,12 +243,6 @@ RRF_INCLUDES += $(addprefix -I, $(RRF_LIBRARY_SRC))
 
 #all Includes (RRF + Core)
 INCLUDES = $(CORE_INCLUDES) $(RRF_INCLUDES)
-
-
-
-
-#set Flags for RepRapFirmware Files.
-$(RRF_OBJS): CXXFLAGS = $(RRF_CXXFLAGS)
 
 
 default: all

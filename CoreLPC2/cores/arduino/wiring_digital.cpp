@@ -183,7 +183,7 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
              break;
              
          case SPECIAL:
-              #warning TODO:: Missing ConfigurePin setup for SPECIAL case;
+              
              //ConfigurePin(pinDesc);
              //pins default as GPIO  DigitalOut on startup
              break;
