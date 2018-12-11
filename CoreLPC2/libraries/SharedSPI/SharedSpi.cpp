@@ -167,7 +167,6 @@ void sspi_deselect_device(const struct sspi_device *device)
 
 }
 
-
 //send and receive len bytes from the selected SPI device (use spi_select_device before using).
 spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
 {
@@ -176,7 +175,6 @@ spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, si
     
     for (uint32_t i = 0; i < len; ++i)
 	{
-        
         
 		uint32_t dOut = (tx_data == nullptr) ? 0x000000FF : (uint32_t)*tx_data++;
 
@@ -189,7 +187,8 @@ spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, si
         selectedSSPDevice->DR = dOut; //put data into the Data Registor to transmit
         
         // Some devices are transmit-only e.g. 12864 display, so don't wait for received data if we don't need to
-        if (rx_data != nullptr)
+        //if (rx_data != nullptr)
+        //SD:: On LPC make sure we always read the DR after a write
         {
 
             // Wait for receive to be ready
@@ -200,9 +199,9 @@ spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, si
         
         
             uint8_t dIn = selectedSSPDevice->DR; //get received data from Data Registor
-            *rx_data++ = dIn;
+            if(rx_data != nullptr)*rx_data++ = dIn;
         }
-	}
+    }
     
     // If we didn't wait to receive, then we need to wait for transmit to finish and clear the receive buffer and
     if (rx_data == nullptr)

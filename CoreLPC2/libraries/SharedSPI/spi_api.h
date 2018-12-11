@@ -46,9 +46,9 @@ int  spi_slave_read   (spi_t *obj);
 void spi_slave_write  (spi_t *obj, int value);
 int  spi_busy         (spi_t *obj);
 
-//SD: added function. check if TX is empty: return true if timed out
+//SD: added function. check if TX FIFO is not full: return true if timed out
 static inline bool waitForTxEmpty_timeout(LPC_SSP_TypeDef *ssp, uint32_t timeout) {
-    while (!(ssp->SR & (1<<0)) ) // TFE = 1 if Empty
+    while (!(ssp->SR & (1<<1)) ) // TNF = 0 if full
     {
         if (!timeout--)
         {

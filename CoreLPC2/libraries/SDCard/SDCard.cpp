@@ -126,7 +126,6 @@ static const uint8_t OXFF = 0xFF;
 
 #define SD_COMMAND_TIMEOUT 5000
 
-//SDCard::SDCard(PinName mosi, PinName miso, PinName sclk, PinName cs) :
 SDCard::SDCard(uint8_t SSPSlot, Pin cs) {
 
       if(SSPSlot == 0 ){
@@ -142,7 +141,7 @@ SDCard::SDCard(uint8_t SSPSlot, Pin cs) {
     
       sspi_master_init(&_sspi_device, 8); //default to 8bits
       sspi_master_setup_device(&_sspi_device); //init the bus
-      
+
       busyflag = false;
       _sectors = 0;
 }
@@ -216,24 +215,17 @@ SDCard::CARD_TYPE SDCard::initialise_card() {
     if(_sspi_device.csPin == NoPin) return SDCARD_FAIL; // We dont have a CS pin defined, return FAIL
     
     // Set to 25kHz for initialisation, and clock card with cs = 1
-    //_spi.frequency(25000);
     _sspi_device.clockFrequency = 25000;
     sspi_master_setup_device(&_sspi_device); //update the freq
 
-    //digitalWrite(_sspi_device.csPin, HIGH);
     sspi_deselect_device(&_sspi_device);
     
-    //uint8_t buf = 0xFF;
     for(int i=0; i<24; i++) {
-        //_spi.write(0xFF);
-        //sspi_write_packet(&buf, 1);
         sspi_transceive_a_packet(0xFF);
     }
-    
     // send CMD0, should return with all zeros except IDLE STATE set (bit 0)
     if(_cmd(SDCMD_GO_IDLE_STATE, 0) != R1_IDLE_STATE) {
         //fprintf(stderr, "No disk, or could not put SD card in to SPI idle state\n");
-        
         return cardtype = SDCARD_FAIL;
     }
 
@@ -244,7 +236,7 @@ SDCard::CARD_TYPE SDCard::initialise_card() {
     } else if(r == (R1_IDLE_STATE | R1_ILLEGAL_COMMAND)) {
         return initialise_card_v1();
     } else {
-        //fprintf(stderr, "Not in idle state after sending CMD8 (not an SD card?)\n");    
+        //fprintf(stderr, "Not in idle state after sending CMD8 (not an SD card?)\n");
         return cardtype = SDCARD_FAIL;
     }
 }
@@ -302,7 +294,6 @@ int SDCard::disk_initialize()
         return 1;
     }
 
-    //_spi.frequency(2500000); // Set to 2.5MHz for data transfer
     //_sspi_device.clockFrequency = 2500000; // Set to 2.5MHz for data transfer
     //_sspi_device.clockFrequency = 4000000; // Set to 4.0MHz for data transfer
     _sspi_device.clockFrequency = 10000000; // SD:: updated to be at 10MHz
@@ -375,10 +366,11 @@ SDCard::CARD_TYPE SDCard::card_type()
 // PRIVATE FUNCTIONS
 
 int SDCard::_cmd(int cmd, uint32_t arg) {
-    //digitalWrite(_sspi_device.csPin, LOW);
+
     sspi_select_device(&_sspi_device);
 
-
+    sspi_transceive_a_packet(0xFF); //SD:: add another write as some cards need those extra cycles
+    
     // send a command
     sspi_transceive_a_packet(0x40 | cmd);
     sspi_transceive_a_packet(arg >> 24);
@@ -387,50 +379,24 @@ int SDCard::_cmd(int cmd, uint32_t arg) {
     sspi_transceive_a_packet(arg >> 0);
     sspi_transceive_a_packet(0x95);
     
-    //uint8_t buf[6];
-    //buf[0] = 0x40 | cmd;
-    //buf[1] = arg >> 24;
-    //buf[2] = arg >> 16;
-    //buf[3] = arg >> 8;
-    //buf[4] = arg >> 0;
-    //buf[5] = 0x95;
-    //sspi_write_packet(buf, 6);
-    
     // wait for the repsonse (response[7] == 0)
     for(int i=0; i<SD_COMMAND_TIMEOUT; i++) {
-
-        //int response = _spi.write(0xFF);
         int response = sspi_transceive_a_packet(0xFF);
-        //buf[0] = 0xFF;
-        //uint8_t response[1];
-        //response[0] = 0;
-        //sspi_transceive_packet(buf, response, 1);
-
         if(!(response & 0x80)) {
-            //digitalWrite(_sspi_device.csPin, HIGH);
             sspi_deselect_device(&_sspi_device);
-           
-            //_spi.write(0xFF);
-            //buf[0] = 0xFF;
-            //sspi_write_packet(buf, 1);
             sspi_transceive_a_packet(0xFF);
-            
             return response;
         }
     }
-    //digitalWrite(_sspi_device.csPin, HIGH);
     sspi_deselect_device(&_sspi_device);
-
-    //_spi.write(0xFF);
-    //buf[0] = 0xFF;
-    //sspi_write_packet(buf, 1);
     sspi_transceive_a_packet(0xFF);
-    
     return -1; // timeout
 }
 int SDCard::_cmdx(int cmd, uint32_t arg) {
-    //digitalWrite(_sspi_device.csPin, LOW);
+    
     sspi_select_device(&_sspi_device);
+
+    sspi_transceive_a_packet(0xFF); //SD:: add another write as some cards need those extra cycles
     
     // send a command
     sspi_transceive_a_packet(0x40 | cmd);
@@ -440,32 +406,14 @@ int SDCard::_cmdx(int cmd, uint32_t arg) {
     sspi_transceive_a_packet(arg >> 0);
     sspi_transceive_a_packet(0x95);
 
-    //uint8_t buf[6];
-    //buf[0] = 0x40 | cmd;
-    //buf[1] = arg >> 24;
-    //buf[2] = arg >> 16;
-    //buf[3] = arg >> 8;
-    //buf[4] = arg >> 0;
-    //buf[5] = 0x95;
-    //sspi_write_packet(buf, 6);
-    
     // wait for the repsonse (response[7] == 0)
     for(int i=0; i<SD_COMMAND_TIMEOUT; i++) {
-        //int response = _spi.write(0xFF);
         int response = sspi_transceive_a_packet(0xFF);
-        //buf[0] = 0xFF;
-        //uint8_t response[1];
-        //sspi_transceive_packet(buf, response, 1);
-
         if(!(response & 0x80)) {
             return response;
         }
     }
-    //digitalWrite(_sspi_device.csPin, HIGH);
     sspi_deselect_device(&_sspi_device);
-    //_spi.write(0xFF);
-    //buf[0] = 0xFF;
-    //sspi_write_packet(buf, 1);
     sspi_transceive_a_packet(0xFF);
 
     return -1; // timeout
@@ -473,8 +421,10 @@ int SDCard::_cmdx(int cmd, uint32_t arg) {
 
 
 int SDCard::_cmd58(uint32_t *ocr) {
-    //digitalWrite(_sspi_device.csPin, LOW);
+
     sspi_select_device(&_sspi_device);
+
+    sspi_transceive_a_packet(0xFF); //SD:: add another write as some cards need those extra cycles
     
     int arg = 0;
 
@@ -486,76 +436,36 @@ int SDCard::_cmd58(uint32_t *ocr) {
     sspi_transceive_a_packet(arg >> 0);
     sspi_transceive_a_packet(0x95);
 
-    //uint8_t buf[6], res[4];
-
-    //buf[0] = 0x40 | 58;
-    //buf[1] = arg >> 24;
-    //buf[2] = arg >> 16;
-    //buf[3] = arg >> 8;
-    //buf[4] = arg >> 0;
-    //buf[5] = 0x95;
-    //sspi_write_packet(buf, 6);
-    
-    
     // wait for the repsonse (response[7] == 0)
     for(int i=0; i<SD_COMMAND_TIMEOUT; i++) {
         
         //int response = _spi.write(0xFF);
         int response = sspi_transceive_a_packet(0xFF);
-        //buf[0] = 0xFF;
-        //uint8_t response[1];
-        //sspi_transceive_packet(buf, response, 1);
-        
         if(!(response & 0x80)) {
-            //*ocr = _spi.write(0xFF) << 24;
-            //*ocr |= _spi.write(0xFF) << 16;
-            //*ocr |= _spi.write(0xFF) << 8;
-            //*ocr |= _spi.write(0xFF) << 0;
             *ocr = sspi_transceive_a_packet(0xFF) << 24;
             *ocr |= sspi_transceive_a_packet(0xFF) << 16;
             *ocr |= sspi_transceive_a_packet(0xFF) << 8;
             *ocr |= sspi_transceive_a_packet(0xFF) << 0;
             
-            
-//            buf[0] = 0xFF;
-//            buf[1] = 0xFF;
-//            buf[2] = 0xFF;
-//            buf[3] = 0xFF;
-//            sspi_transceive_packet(buf, res, 4);
-//            *ocr =  res[0] << 24;
-//            *ocr |= res[1] << 16;
-//            *ocr |= res[2] << 8;
-//            *ocr |= res[3] << 0;
-
-            
-            
-//            printf("OCR = 0x%08X\n", ocr);
-            //digitalWrite(_sspi_device.csPin, HIGH);
-            
             sspi_deselect_device(&_sspi_device);
-            //_spi.write(0xFF);
-            //buf[0] = 0xFF;
-            //sspi_write_packet(buf, 1);
             sspi_transceive_a_packet(0xFF);
             
             return response;
         }
     }
-    //digitalWrite(_sspi_device.csPin, HIGH);
     sspi_deselect_device(&_sspi_device);
 
-    //_spi.write(0xFF);
-    //buf[0] = 0xFF;
-    //sspi_write_packet(buf, 1);
     sspi_transceive_a_packet(0xFF);
 
     return -1; // timeout
 }
 
 int SDCard::_cmd8() {
-    //digitalWrite(_sspi_device.csPin, LOW);
+
     sspi_select_device(&_sspi_device);
 
+    sspi_transceive_a_packet(0xFF); //SD:: add another write as some cards need those extra cycles
+    
     // send a command
     sspi_transceive_a_packet(0x40 | SDCMD_SEND_IF_COND); // CMD8
     sspi_transceive_a_packet(0x00);     // reserved
@@ -563,160 +473,75 @@ int SDCard::_cmd8() {
     sspi_transceive_a_packet(0x01);     // 3.3v
     sspi_transceive_a_packet(0xAA);     // check pattern
     sspi_transceive_a_packet(0x87);     // crc
-
-    //uint8_t buf[6];
-    
-    //buf[0] = 0x40 | SDCMD_SEND_IF_COND; // CMD8
-    //buf[1] = 0x00;     // reserved
-    //buf[2] = 0x00;     // reserved
-    //buf[3] = 0x01;     // 3.3v
-    //buf[4] = 0xAA;     // check pattern
-    //buf[5] = 0x87;     // crc
-    //sspi_write_packet(buf, 6);
-    
     
     // wait for the repsonse (response[7] == 0)
     for(int i=0; i<SD_COMMAND_TIMEOUT * 1000; i++) {
         char response[5];
-        //response[0] = _spi.write(0xFF);
         response[0] = sspi_transceive_a_packet(0xFF);
-
-        //buf[0] = 0xFF;
-        //uint8_t resp[5];
-        //sspi_transceive_packet(buf, resp, 1);
-        
         if(!(response[0] & 0x80)) {
                 for(int j=1; j<5; j++) {
                     response[j] = sspi_transceive_a_packet(0xFF);
                 }
-                //buf[0] = 0xFF;
-                //buf[1] = 0xFF;
-                //buf[2] = 0xFF;
-                //buf[3] = 0xFF;
-                //sspi_write_packet(buf, 4);
-            
-            
-                //digitalWrite(_sspi_device.csPin, HIGH);
                 sspi_deselect_device(&_sspi_device);
-            
-                //_spi.write(0xFF);
-                //buf[0] = 0xFF;
-                //sspi_write_packet(buf, 1);
                 sspi_transceive_a_packet(0xFF);
-            
                 return response[0];
         }
     }
-    //digitalWrite(_sspi_device.csPin, HIGH);
     sspi_deselect_device(&_sspi_device);
-
-    //_spi.write(0xFF);
-    //buf[0] = 0xFF;
-    //sspi_write_packet(buf, 1);
     sspi_transceive_a_packet(0xFF);
-
+    
     return -1; // timeout
 }
 
 int SDCard::_read(uint8_t *buffer, int length) {
-    //digitalWrite(_sspi_device.csPin, LOW);
     sspi_select_device(&_sspi_device);
-
-    
-    //int response;
-//    uint8_t buf[2], response[1];
-//    buf[0] = 0xFF;
-//    buf[1] = 0xFF;
 
     // read until start byte (0xFF)
     while(sspi_transceive_a_packet(0xFF) != 0xFE);
     
-//    do {
-//        sspi_transceive_packet(buf, response, 1);
-//    } while(response[0] != 0xFE);
-    
 
         // read data
     for(int i=0; i<length; i++) {
-    //    buffer[i] = _spi.write(0xFF);
         buffer[i] = sspi_transceive_a_packet(0xFF);
-//        sspi_transceive_packet(buf, response, 1);
-//        buffer[i] = response[0];
     }
-    
     
     sspi_transceive_a_packet(0xFF); // checksum
     sspi_transceive_a_packet(0xFF);
-    //sspi_write_packet(buf, 2);
 
-    //digitalWrite(_sspi_device.csPin, HIGH);
     sspi_deselect_device(&_sspi_device);
     
-    //_spi.write(0xFF);
-    //sspi_write_packet(buf, 1);
     sspi_transceive_a_packet(0xFF);
     
     return 0;
 }
 
 int SDCard::_write(const uint8_t *buffer, int length) {
-    //digitalWrite(_sspi_device.csPin, LOW);
     sspi_select_device(&_sspi_device);
 
-    //uint8_t buf[2];
     
     // indicate start of block
-    //_spi.write(0xFE);
     sspi_transceive_a_packet(0xFE);
 
-    //buf[0] = 0xFE;
-    //sspi_write_packet(buf, 1);
-    
     // write the data
     for(int i=0; i<length; i++) {
-    //    _spi.write(buffer[i]);
         sspi_transceive_a_packet(buffer[i]);
-
-        //buf[0] = buffer[i];
-        //sspi_write_packet(buf, 1);
-
     }
     
     // write the checksum
     sspi_transceive_a_packet(0xFF);
     sspi_transceive_a_packet(0xFF);
-    //buf[0] = 0xFF;
-    //buf[1] = 0xFF;
-    //sspi_write_packet(buf, 2);
     
-
     // check the repsonse token
     if((sspi_transceive_a_packet(0xFF) & 0x1F) != 0x05) {
-
-//    uint8_t response[1];
-//    sspi_transceive_packet(buf, response, 1);
-//    if((response[0] & 0x1F) != 0x05) {
-        //digitalWrite(_sspi_device.csPin, HIGH);
         sspi_deselect_device(&_sspi_device);
-        
-        //sspi_write_packet(buf, 1);
         sspi_transceive_a_packet(0xFF);
-
         return 1;
     }
 
     // wait for write to finish
     while(sspi_transceive_a_packet(0xFF) == 0);
-//    do {
-//        sspi_transceive_packet(buf, response, 1);
-//    } while(response[0] == 0);
-
-
-    //digitalWrite(_sspi_device.csPin, HIGH);
     sspi_deselect_device(&_sspi_device);
-    
     sspi_transceive_a_packet(0xFF);
-    //sspi_write_packet(buf, 1);
 
     return 0;
 }
