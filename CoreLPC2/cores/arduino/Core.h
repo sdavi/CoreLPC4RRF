@@ -12,7 +12,6 @@
 //#include "bit_constants.h"
 #include "gpio.h"
 #include "adc.h"
-#include "board.h"
 #include "systick.h"
 #include "exti.h"
 #include "timer.h"
@@ -40,7 +39,7 @@ extern void init( void );
 typedef gpioPins_et Pin;
 static const Pin NoPin = P_NC; //which =0xff
 
-
+#include "board.h"
 #include "wiring_digital.h"
 //#include "wiring_analog.h"
 #include "wirish_time.h"

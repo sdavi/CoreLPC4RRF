@@ -30,27 +30,33 @@
  * @brief Wirish serial port implementation.
  */
 
+#include "lpc_types.h"
 #include "HardwareSerial.h"
-#include <inttypes.h>
 #include "usart.h"
-//#include "uart.h"
+#include "interrupt_lpc.h"
 
-
-HardwareSerial::HardwareSerial(usart_dev *usart_device) 
+HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint8_t *rxBuffer, uint16_t rxRingBufferSize, uint8_t *txBuffer, uint16_t txRingBufferSize)
 {
     this->usart_device = usart_device;
+    
+    //Setup RingBuffers
+    RingBuffer_Init(&this->rxRingBuffer, rxBuffer, 1, rxRingBufferSize);
+    RingBuffer_Init(&this->txRingBuffer, txBuffer, 1, txRingBufferSize);
+    
+
+    
 }
 
 void HardwareSerial::begin(uint32_t baud)
 {
      
-        if (baud > this->usart_device->max_baud)
-         {
-           return;
-         }
+    if (baud > this->usart_device->max_baud)
+    {
+       return;
+    }
 
-   this->usart_device->baud_rate = baud; 
-    usart_init(this->usart_device);        
+//    this->usart_device->baud_rate = baud;
+    usart_init(this->usart_device, baud);
 	
 }
 
@@ -58,43 +64,103 @@ void HardwareSerial::end(void) {
    
 }
 
-void HardwareSerial::Send(uint8_t ch) {
-
-    usart_putc(this->usart_device, ch);
-}
-
-int HardwareSerial::read(void) { 
-    return usart_getc(this->usart_device);
-}
-
-int HardwareSerial::available(void) {
-    return ((unsigned int)usart_rx_available(this->usart_device));
+int HardwareSerial::read(void) {
+    //read from the Ring Buffer
+    int data;
+    if(RingBuffer_Pop(&this->rxRingBuffer, &data))
+    {
+        return data;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 int HardwareSerial::peek(void)
 {
-    return usart_peek(this->usart_device);
+
+    int data;
+    if(RingBuffer_Peek(&this->rxRingBuffer, &data))
+    {
+        return -1;
+    }
+    else
+    {
+        return data;
+    }
+
+}
+int HardwareSerial::available(void) {
+    irqflags_t flags = cpu_irq_save();
+    int avail = RingBuffer_GetCount(&this->rxRingBuffer);
+    cpu_irq_restore(flags);
+    return avail;
 }
 
 int HardwareSerial::availableForWrite(void)
 {
-/* Currently there isn't an output ring buffer, chars are sent straight to the hardware. 
- * so just return 1, meaning that 1 char can be written.
- * This will be slower than a ring buffer implementation.
- */
-  return 1;
+///* Currently there isn't an output ring buffer, chars are sent straight to the hardware.
+// * so just return 1, meaning that 1 char can be written.
+// * This will be slower than a ring buffer implementation.
+// */
+  //return 1;
+    
+    //return number for free items in the txRingBuffer
+    irqflags_t flags = cpu_irq_save();
+    int avail = RingBuffer_GetFree(&this->txRingBuffer);
+    cpu_irq_restore(flags);
+    return avail;
+
+}
+size_t HardwareSerial::canWrite()
+{
+//    return _tx_buffer->roomLeft();        // we may also be able to write 1 more byte direct to the UART, but this is close enough
+//    return 1;
+    irqflags_t flags = cpu_irq_save();
+    int avail = RingBuffer_GetFree(&this->txRingBuffer);
+    cpu_irq_restore(flags);
+    return avail;
+
 }
 
-size_t HardwareSerial::write(unsigned char ch) {
+size_t HardwareSerial::write(const uint8_t ch) {
+    
+    Chip_UART_SendRB(this->usart_device->channel->UARTx, &this->txRingBuffer, &ch, 1);
+    //Chip_UART_SendBlocking(this->usart_device->channel->UARTx, &ch, 1);
+    
 
-    usart_putc(this->usart_device, ch);
-	return 1;
+    return 1;
+}
+
+
+size_t HardwareSerial::write(const uint8_t *buffer, size_t size)
+{
+    size_t ret = size;
+    while (size != 0)
+    {
+        size_t written = Chip_UART_SendRB(this->usart_device->channel->UARTx, &this->txRingBuffer, buffer, size);
+        //size_t written = Chip_UART_SendBlocking(this->usart_device->channel->UARTx, buffer, size);
+        buffer += written;
+        size -= written;
+    }
+    return ret;
+
 }
 
 void HardwareSerial::flush(void) {
   //As the ring buffer is not used nothing is there to flush, Just included for compilation.
+    while(RingBuffer_GetFree(&this->txRingBuffer) > 0); //wait for the ring buffer to empty
+    
+    //TODO:: should wait for the fifo to empty too
+    
 }
 
+void HardwareSerial::IRQHandler(){
+    //call the LPCOpen Interrupt Handler
+    Chip_UART_IRQRBHandler(LPCOPEN_LPC_UART0, &this->rxRingBuffer, &this->txRingBuffer);
+
+}
 
 
 

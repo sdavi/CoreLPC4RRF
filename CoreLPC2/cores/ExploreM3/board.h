@@ -33,39 +33,23 @@
  * on these definitions.
  */
  
- #ifdef __cplusplus
-extern "C" {
-#endif
 
 #ifndef _BOARD_EXPLORE_M3_H_
 #define _BOARD_EXPLORE_M3_H_
 
+#include "Core.h"
+    
 #include "stdutils.h"
 #include "gpio.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define BOARD_MAX_GPIO_PINS  42
 #define C_MaxAdcChannels_U8  8u
 
-
-#define EXPLORE_M3_RESET_STRING "r$T^^3"
-extern const uint8_t PIN_MAP[BOARD_MAX_GPIO_PINS];
-
-
-//rearm doesnt have LEDS1-4
-#if defined(__SMOOTHIEBOARD__) || defined(__AZTEEGX5MINI__)
-#define LED1 P1_18
-#define LED2 P1_19
-#define LED3 P1_20
-#define LED4 P1_21
-#endif
-    
-//Smoothieboard doesnt have the Play LED installed, so lets use LED1.
-#if defined(__SMOOTHIEBOARD__)
-# define LED_PLAY LED1
-#else
-# define LED_PLAY P4_28
-#endif
-    
 
 /************************************
              ADC pins
@@ -91,23 +75,26 @@ static unsigned const int A7 = P0_2;
 
 
 //External SPI
-#define SPI0_MOSI  P0_18
-#define SPI0_MISO  P0_17
-#define SPI0_SCK   P0_15
-//#define SPI0_SSEL  P0_16
-    
-    
+static const Pin SPI0_MOSI = P0_18;
+static const Pin SPI0_MISO = P0_17;
+static const Pin SPI0_SCK  = P0_15;
+//static const Pin SPI0_SSEL = P0_16;
+
+
 //Internal SDCard
-#define SPI1_MOSI  P0_9
-#define SPI1_MISO  P0_8
-#define SPI1_SCK   P0_7
-//#define SPI1_SSEL  P0_6
+static const Pin SPI1_MOSI = P0_9;
+static const Pin SPI1_MISO = P0_8;
+static const Pin SPI1_SCK  = P0_7;
+//static const Pin SPI1_SSEL = P0_6
 
     
-
-#endif
 
 
 #ifdef __cplusplus
 }
 #endif
+
+
+
+#endif
+

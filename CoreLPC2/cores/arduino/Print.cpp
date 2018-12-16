@@ -17,7 +17,6 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  
  Modified 23 November 2006 by David A. Mellis
- Modified 03 August 2015 by Chuck Todd
  */
 
 #include <stdlib.h>
@@ -25,39 +24,23 @@
 #include <string.h>
 #include <math.h>
 #include "Core.h"
-#include <inttypes.h>
-#include "Print.h"
-#include <stdarg.h>
 
-#define PrintfEnable  0
+#include "Print.h"
+
 // Public Methods //////////////////////////////////////////////////////////////
 
 /* default implementation: may be overridden */
 size_t Print::write(const uint8_t *buffer, size_t size)
 {
-	
   size_t n = 0;
   while (size--) {
-    if (write(*buffer++)) n++;
-    else break;
+    n += write(*buffer++);
   }
   return n;
 }
 
-/*size_t Print::print(const __FlashStringHelper *ifsh)
-{
-  return print(reinterpret_cast<const char *>(ifsh));
-}
-
-size_t Print::print(const String &s)
-{
-  return write(s.c_str(), s.length());
-}*/
-
 size_t Print::print(const char str[])
 {
-	
-	//while(1);
   return write(str);
 }
 
@@ -108,14 +91,6 @@ size_t Print::print(double n, int digits)
   return printFloat(n, digits);
 }
 
-/*
-size_t Print::println(const __FlashStringHelper *ifsh)
-{
-  size_t n = print(ifsh);
-  n += println();
-  return n;
-}
-*/
 size_t Print::print(const Printable& x)
 {
   return x.printTo(*this);
@@ -123,16 +98,11 @@ size_t Print::print(const Printable& x)
 
 size_t Print::println(void)
 {
-  return write("\r\n");
-}
-/*
-size_t Print::println(const String &s)
-{
-  size_t n = print(s);
-  n += println();
+  size_t n = print('\r');
+  n += print('\n');
   return n;
 }
-*/
+
 size_t Print::println(const char c[])
 {
   size_t n = print(c);
@@ -223,8 +193,8 @@ size_t Print::printFloat(double number, uint8_t digits)
   
   if (std::isnan(number)) return print("nan");
   if (std::isinf(number)) return print("inf");
-  if (number > (double) 4294967040.0) return print ("ovf");  // constant determined empirically
-  if (number < (double)-4294967040.0) return print ("ovf");  // constant determined empirically
+  if (number > (double)4294967040.0) return print ("ovf");  // constant determined empirically
+  if (number <-(double)4294967040.0) return print ("ovf");  // constant determined empirically
   
   // Handle negative numbers
   if (number < (double)0.0)
@@ -236,7 +206,9 @@ size_t Print::printFloat(double number, uint8_t digits)
   // Round correctly so that print(1.999, 2) prints as "2.00"
   double rounding = 0.5;
   for (uint8_t i=0; i<digits; ++i)
+  {
     rounding /= (double)10.0;
+  }
   
   number += rounding;
 
@@ -253,7 +225,7 @@ size_t Print::printFloat(double number, uint8_t digits)
   // Extract digits from the remainder one at a time
   while (digits-- > 0)
   {
-    remainder *= (double) 10.0;
+    remainder *= (double)10.0;
     int toPrint = int(remainder);
     n += print(toPrint);
     remainder -= toPrint; 
@@ -261,121 +233,3 @@ size_t Print::printFloat(double number, uint8_t digits)
   
   return n;
 }
-
-
-#if (PrintfEnable == 1) 
-size_t Print::printf(const char *argList, ...)
-{
-    const char *ptr;
-    double floatNum_f32;
-    va_list argp;
-    sint16_t num_s16;
-    sint32_t num_s32;
-    uint16_t num_u16;
-    uint32_t num_u32;
-    char *str;
-    char  ch;
-    uint8_t numOfDigits;
-
-    va_start(argp, argList);
-
-    /* Loop through the list to extract all the input arguments */
-    for(ptr = argList; *ptr != '\0'; ptr++)
-    {
-
-        ch= *ptr;
-        if(ch == '%')         /*Check for '%' as there will be format specifier after it */
-        {
-            ptr++;
-            ch = *ptr;
-            if((ch>=0x30) && (ch<=0x39))
-            {
-                numOfDigits = 0;
-                while((ch>=0x30) && (ch<=0x39))
-                {
-                    numOfDigits = (numOfDigits * 10) + (ch-0x30);
-                    ptr++;
-                    ch = *ptr;
-                }
-            }
-            else
-            {
-                numOfDigits = 0xff;
-            }                
-
-
-            switch(ch)       /* Decode the type of the argument */
-            {
-
-            case 'C':
-            case 'c':     /* Argument type is of char, hence read char data from the argp */
-                ch = va_arg(argp, int);
-                print(ch);
-                break;
-
-
-
-            case 'd':    /* Argument type is of signed integer, hence read 16bit data from the argp */
-            case 'D':
-                num_s32 = va_arg(argp, int);
-                print(num_s32, 10);
-                break;  
-
-
-            case 'u':
-            case 'U':    /* Argument type is of integer, hence read 32bit unsigend data */
-                num_u32 = va_arg(argp, uint32_t);
-                print(num_u32, 10);               
-                break;            
-
-
-
-
-            case 'x':
-            case 'X':  /* Argument type is of hex, hence hexadecimal data from the argp */
-                num_u32 = va_arg(argp, uint32_t);
-                print(num_u32, 16);                 
-                break;
-
-
-            case 'b':
-            case 'B':  /* Argument type is of binary,Read int and convert to binary */
-                num_u32 = va_arg(argp, uint32_t); 
-                print(num_u32, 2);                 
-                break;
-
-
-
-            case 'F':
-            case 'f': /* Argument type is of float, hence read double data from the argp */
-                floatNum_f32 = va_arg(argp, double);              
-                printFloat(floatNum_f32,10);
-                break;
-
-
-
-            case 'S':
-            case 's': /* Argument type is of string, hence get the pointer to sting passed */
-                str = va_arg(argp, char *);
-                print(str);                
-                break;
-
-
-
-            case '%':
-                print('%');
-                break;
-            }
-        }
-        else
-        {
-            /* As '%' is not detected transmit the char passed */
-            print(ch);
-        }
-    }
-
-    va_end(argp);
-}
-
-
-#endif    

@@ -21,17 +21,23 @@ extern "C" void AppMain();
 
 
 //Create the Buffers for USB
-const uint16_t rxBufSize = 256+8;
-const uint16_t txBufSize = 128+8;
+const uint16_t rxBufSize = 256;
+const uint16_t txBufSize = 128;
 //make sure the buffers for USB are in AHB RAM
-__attribute__ ((used,section("AHBSRAM0"))) uint8_t circularBufferTxMemory[txBufSize];
-__attribute__ ((used,section("AHBSRAM0"))) uint8_t circularBufferRxMemory[rxBufSize];
+__attribute__ ((used,section("AHBSRAM0"))) uint8_t circularBufferTxMemory[txBufSize+8] __attribute__ ( ( aligned( 8 ) ) );;
+__attribute__ ((used,section("AHBSRAM0"))) uint8_t circularBufferRxMemory[rxBufSize+8] __attribute__ ( ( aligned( 8 ) ) );;
 
 //create the buffers - ok here as we can only have 1 USB object anyway
 CircBuffer<uint8_t> rxbuf(rxBufSize, circularBufferRxMemory);
 CircBuffer<uint8_t> txbuf(txBufSize, circularBufferTxMemory);
-
 SerialUSB Serial(&rxbuf, &txbuf); // our wrapper object to provide Serial over USB
+
+//Setup the UART, ringbuffer memory in AHB RAM
+__attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory[txBufSize] __attribute__ ( ( aligned( 8 ) ) );;
+__attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory[rxBufSize] __attribute__ ( ( aligned( 8 ) ) );;
+HardwareSerial Serial0(USART0, uartRxMemory, rxBufSize, uartTxMemory, txBufSize);
+
+
 
 #include <FreeRTOS.h>
 #include "task.h"
@@ -40,7 +46,6 @@ SerialUSB Serial(&rxbuf, &txbuf); // our wrapper object to provide Serial over U
 
 
 //RTOS Heap (size set in FreeRTOS config header) when using Heap4
-//__attribute__ ((used,section("AHBSRAM0"))) uint8_t ucHeap[configTOTAL_HEAP_SIZE];
 uint8_t ucHeap[27584+800]; // leave some extra room in main memory for stack to grow to hold software reset data...
 
 extern "C" void Board_Init(void);
@@ -74,8 +79,9 @@ int main( void )
     
     init(); // Defined in variant.cpp
 
-    SysTick_Init(); // also inits the LEDs for systick/vApplicationTickHook
-       
+    SysTick_Init(); 
+    
+    
     AppMain();
 
     return 0;

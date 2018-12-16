@@ -40,66 +40,47 @@
 #include "usart.h"
 #include "Stream.h"
 
-
-
-
-
- 
-struct usart_dev;
-
-
-
-
 class HardwareSerial : public Stream {
 
 public:
-    HardwareSerial(struct usart_dev *usart_device);
+    HardwareSerial(const struct usart_dev *usart_device, uint8_t *rxBuffer, uint16_t rxRingBufferSize, uint8_t *txBuffer, uint16_t txRingBufferSize);
+
 
     /* Set up/tear down */
     void begin(uint32_t baud);
     void end();
-    void Send(uint8_t ch);
-    virtual int available(void);
-    virtual int peek(void);
-    virtual int read(void);
+    int available(void);
     int availableForWrite(void);
-    size_t canWrite(){return (size_t)availableForWrite();};
-
-    virtual void flush(void);
-    virtual size_t write(uint8_t);
-    inline size_t write(unsigned long n) { return write((uint8_t)n); }
-    inline size_t write(long n) { return write((uint8_t)n); }
-    inline size_t write(unsigned int n) { return write((uint8_t)n); }
-    inline size_t write(int n) { return write((uint8_t)n); }
+    int peek(void);
+    int read(void);
+    void flush(void);
+    size_t write(const uint8_t *buffer, size_t size) override;
+    size_t write(uint8_t) override;
     using Print::write;
-	
+    size_t canWrite();
+
 	operator bool() { return true; }
 
-    /* Escape hatch into libmaple */
-    /* FIXME [0.0.13] documentation */
-    struct usart_dev* c_dev(void) { return this->usart_device; }
-    
+    void IRQHandler();
     
     void setInterruptPriority(uint32_t priority);
     uint32_t getInterruptPriority();
 
-    
 private:
-    struct usart_dev *usart_device;
-    uint8_t tx_pin;
-    uint8_t rx_pin;
-    
-  protected:
+    const struct usart_dev *usart_device;
+    RINGBUFF_T txRingBuffer;
+    RINGBUFF_T rxRingBuffer;
 
+  protected:
 };
 
 
 #define UARTClass HardwareSerial // compatibility with RRF
 
 extern HardwareSerial Serial0; 
-extern HardwareSerial Serial1; 
-extern HardwareSerial Serial2; 
-extern HardwareSerial Serial3;   
+//extern HardwareSerial Serial1;
+//extern HardwareSerial Serial2;
+//extern HardwareSerial Serial3;
 
 
 

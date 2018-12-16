@@ -44,13 +44,13 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 /**************************************************************************************************
                       EINTconfiguration table(Do not alter uncless required)
 ***************************************************************************************************/
-eintConfig_t EintConfigTable[EINT_MAX] = 
-{  /* userFunPtr  IRQ Name   EINT Pin */
-        { NULL,      EINT0_IRQn,  P2_10, },
-        { NULL,      EINT1_IRQn,  P2_11, },
-        { NULL,      EINT2_IRQn,  P2_12, },
-        { NULL,      EINT3_IRQn,  P2_13, },
-};
+//eintConfig_t EintConfigTable[EINT_MAX] =
+//{  /* userFunPtr  IRQ Name   EINT Pin */
+//        { NULL,      EINT0_IRQn,  P2_10, },
+//        { NULL,      EINT1_IRQn,  P2_11, },
+//        { NULL,      EINT2_IRQn,  P2_12, },
+//        { NULL,      EINT3_IRQn,  P2_13, },
+//};
 /*************************************************************************************************/
 
 
@@ -260,15 +260,15 @@ void detachInterrupt(uint32_t pin){
 }
 
 /** \brief  Get IPSR Register
- 
+
  This function returns the content of the IPSR Register.
- 
+
  \return               IPSR Register value
  */
 __attribute__( ( always_inline ) ) static inline uint32_t __get_IPSR(void)
 {
     uint32_t result;
-    
+
     __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
     return(result);
 }
@@ -299,35 +299,35 @@ bool inInterrupt()
        If the user CallBack Function is configured then it will be called. 
 
 *****************************************************************************************************/
-extern "C" void EINT0_IRQHandler(void)
-{
-    util_BitSet(LPC_SC->EXTINT, EINT0);  /* Clear Interrupt Flag */
-    if(EintConfigTable[EINT0].userFunction != NULL)
-    {
-        EintConfigTable[EINT0].userFunction();
-    }
-}
-
-
-extern "C" void EINT1_IRQHandler(void)
-{
-    util_BitSet(LPC_SC->EXTINT, EINT1);  /* Clear Interrupt Flag */
-    if(EintConfigTable[EINT1].userFunction != NULL)
-    {
-        EintConfigTable[EINT1].userFunction();
-    }
-}
-
-
-extern "C" void EINT2_IRQHandler(void)
-{
-    util_BitSet(LPC_SC->EXTINT, EINT2);  /* Clear Interrupt Flag */
-    if(EintConfigTable[EINT2].userFunction != NULL)
-    {
-        EintConfigTable[EINT2].userFunction();
-    }
-}
-
+//extern "C" void EINT0_IRQHandler(void)
+//{
+//    util_BitSet(LPC_SC->EXTINT, EINT0);  /* Clear Interrupt Flag */
+//    if(EintConfigTable[EINT0].userFunction != NULL)
+//    {
+//        EintConfigTable[EINT0].userFunction();
+//    }
+//}
+//
+//
+//extern "C" void EINT1_IRQHandler(void)
+//{
+//    util_BitSet(LPC_SC->EXTINT, EINT1);  /* Clear Interrupt Flag */
+//    if(EintConfigTable[EINT1].userFunction != NULL)
+//    {
+//        EintConfigTable[EINT1].userFunction();
+//    }
+//}
+//
+//
+//extern "C" void EINT2_IRQHandler(void)
+//{
+//    util_BitSet(LPC_SC->EXTINT, EINT2);  /* Clear Interrupt Flag */
+//    if(EintConfigTable[EINT2].userFunction != NULL)
+//    {
+//        EintConfigTable[EINT2].userFunction();
+//    }
+//}
+//
 
 extern "C" void EINT3_IRQHandler(void)
 {

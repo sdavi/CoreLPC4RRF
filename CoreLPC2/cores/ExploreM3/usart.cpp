@@ -1,35 +1,39 @@
 
-#include "uart.h"
+#include "lpc17xx.h"
+
+#include "ring_buffer.h"
+#include "uart_17xx_40xx.h"
+
 #include "usart.h"
 #include "gpio.h"
 #include "stdutils.h"
-#include "lpc17xx.h"
 #include <inttypes.h>
-#include "HardwareSerial.h"
 #include "Core.h"
 
 
-//SD:: only using UART0
-
-extern usart_channel_map USART_BASE[4]; //Defined in UART.c file
-
-
-
-
-void usart0_IRQHandler(void);
-void usart1_IRQHandler(void);
-void usart2_IRQHandler(void);
-void usart3_IRQHandler(void);
+static const usart_channel_map USART_BASE[4]=
+{  /* TxPin RxPin UART_PinFun   PCON Bit Associated UART Structure    */
+    { P0_2,  P0_3,    PINSEL_FUNC_1,  3     ,(LPC_USART_T *)LPC_UART0_BASE}, /* Configure P0_2,P0_3 for UART0 function */
+    { P0_15, P0_16,   PINSEL_FUNC_1,  4     ,(LPC_USART_T *)LPC_UART1_BASE}, /* Configure P2_0,P2_1 for UART1 function */
+    { P0_10, P0_11,   PINSEL_FUNC_1,  24    ,(LPC_USART_T *)LPC_UART2_BASE}, /* Configure P0_10,P0_11 for UART2 function */
+    { P0_0,  P0_1,    PINSEL_FUNC_2,  25    ,(LPC_USART_T *)LPC_UART3_BASE}  /* Configure P4_28,P4_29 for UART3 function */
+};
 
 
-static usart_dev usart0 = {
+static const usart_dev usart0 = {
     .channel     = &USART_BASE[0],
-    .baud_rate = 0,
     .max_baud = 4500000UL,
     .irq_NUM = UART0_IRQn,
-    .userFunction = usart0_IRQHandler,
 };
-usart_dev *USART0 = &usart0;
+const usart_dev *USART0 = &usart0;
+
+
+//UART Interrupt Handler
+extern "C" void UART0_IRQHandler(void)
+{
+    Serial0.IRQHandler();
+}
+
 
 
 
@@ -73,13 +77,13 @@ usart_dev *USART3 = &usart3;
  
 
 //Serial_baud from MBED
-void serial_baud(LPC_UART_TypeDef *obj, int baudrate) {
+void serial_baud(LPC_USART_T *obj, int baudrate) {
 
     // set pclk to /1
-    if( obj == (LPC_UART_TypeDef *)LPC_UART0_BASE){ LPC_SC->PCLKSEL0 &= ~(0x3 <<  6); LPC_SC->PCLKSEL0 |= (0x1 <<  6);}
-    else if( obj == (LPC_UART_TypeDef *)LPC_UART1_BASE){ LPC_SC->PCLKSEL0 &= ~(0x3 <<  8); LPC_SC->PCLKSEL0 |= (0x1 <<  8); }
-    else if( obj == (LPC_UART_TypeDef *)LPC_UART2_BASE){ LPC_SC->PCLKSEL1 &= ~(0x3 << 16); LPC_SC->PCLKSEL1 |= (0x1 << 16); }
-    else if( obj == (LPC_UART_TypeDef *)LPC_UART3_BASE){ LPC_SC->PCLKSEL1 &= ~(0x3 << 18); LPC_SC->PCLKSEL1 |= (0x1 << 18); }
+    if( obj == LPCOPEN_LPC_UART0) { LPC_SC->PCLKSEL0 &= ~(0x3 <<  6); LPC_SC->PCLKSEL0 |= (0x1 <<  6);}
+    else if( obj == LPCOPEN_LPC_UART1){ LPC_SC->PCLKSEL0 &= ~(0x3 <<  8); LPC_SC->PCLKSEL0 |= (0x1 <<  8); }
+    else if( obj == LPCOPEN_LPC_UART2){ LPC_SC->PCLKSEL1 &= ~(0x3 << 16); LPC_SC->PCLKSEL1 |= (0x1 << 16); }
+    else if( obj == LPCOPEN_LPC_UART0){ LPC_SC->PCLKSEL1 &= ~(0x3 << 18); LPC_SC->PCLKSEL1 |= (0x1 << 18); }
     else {
         //error("serial_baud");
         return;
@@ -173,7 +177,7 @@ typedef enum {
     ParityForced0 = 4
 } SerialParity;
 
-void serial_format(LPC_UART_TypeDef *obj, int data_bits, SerialParity parity, int stop_bits) {
+void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int stop_bits) {
     // 5 data bits = 0 ... 8 data bits = 3
     if (data_bits < 5 || data_bits > 8) {
         //error("Invalid number of bits (%d) in serial format, should be 5..8", data_bits);
@@ -213,257 +217,54 @@ void serial_format(LPC_UART_TypeDef *obj, int data_bits, SerialParity parity, in
 
 
 
-void usart_init(usart_dev *dev) {
-    uint32_t usartPclk,pclk,RegValue;
-    
-    
+void usart_init(const usart_dev *dev, uint32_t baud_rate) {
+
     GPIO_PinFunction(dev->channel->TxPin,dev->channel->PinFunSel);
     GPIO_PinFunction(dev->channel->RxPin,dev->channel->PinFunSel);
     util_BitSet(LPC_SC->PCONP,dev->channel->pconBit);
     
-    /* Enable FIFO and reset Rx/Tx FIFO buffers */
-    dev->channel->UARTx->FCR = (1<<SBIT_FIFO) | (1<<SBIT_RxFIFO) | (1<<SBIT_TxFIFO);
+    /* Enable FIFOs by default, reset them */
+    Chip_UART_SetupFIFOS(dev->channel->UARTx, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS));
+
+    /* Disable Tx */
+    Chip_UART_TXDisable(dev->channel->UARTx);
     
+    /* Disable interrupts */
+    dev->channel->UARTx->IER = 0;
+    /* Set LCR to default state */
+    dev->channel->UARTx->LCR = 0;
+    /* Set ACR to default state */
+    dev->channel->UARTx->ACR = 0;
+    /* Set RS485 control to default state */
+    dev->channel->UARTx->RS485CTRL = 0;
+    /* Set RS485 delay timer to default state */
+    dev->channel->UARTx->RS485DLY = 0;
+    /* Set RS485 addr match to default state */
+    dev->channel->UARTx->RS485ADRMATCH = 0;
+    
+    /* Clear MCR */
+    if (dev->channel->UARTx == LPCOPEN_LPC_UART1) {
+        /* Set Modem Control to default state */
+        dev->channel->UARTx->MCR = 0;
+        /*Dummy Reading to Clear Status */
+        uint32_t tmp = dev->channel->UARTx->MSR;
+        (void) tmp;
+
+    }
 
     //SD: updated use mbed function to set baud + format
-    serial_baud(dev->channel->UARTx, dev->baud_rate);
+    serial_baud(dev->channel->UARTx, baud_rate);
     serial_format(dev->channel->UARTx,8, ParityNone, 1);
     
     
-    dev->channel->UARTx->IER = 0x01; // Enable Rx  interrupt
+    /* Reset and enable FIFOs, FIFO trigger level 1 (1 chars) */
+    Chip_UART_SetupFIFOS(dev->channel->UARTx, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS | UART_FCR_TRG_LEV1));
+    
+    Chip_UART_TXEnable(dev->channel->UARTx);
+
+    /* Enable receive data and line status interrupt */
+    Chip_UART_IntEnable(dev->channel->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
+    
+
     NVIC_EnableIRQ(dev->irq_NUM);
 }
-
-
-
-void usart_enable(usart_dev *dev) {
-
-}
-
-
-void usart_disable(usart_dev *dev) {
-
-}
-
-
-
-uint32_t usart_tx(usart_dev *dev, const uint8_t *buf, uint32_t len) {
-    usart_channel_map *regs = dev->channel;
-    uint32_t txed = 0;
-    while ((util_IsBitCleared(regs->UARTx->LSR,SBIT_THRE)) && (txed < len)) {
-        regs->UARTx->THR = buf[txed++];
-    }
-    return txed;
-}
-
-
- 
- 
-
-/**
- * @return Number of bytes received
- */
- 
-unsigned int usart_rx_available(usart_dev *dev) 
-{
-    return ((dev->rx_buf_head -dev->rx_buf_tail) & USART_BUF_SIZE_MASK );
-}
-
-char usart_getc(usart_dev *dev)
-{
-    char ch;
-
- 
-   if (dev->rx_buf_head == dev->rx_buf_tail) 
-   {
-    ch = -1;
-    }
-    else 
-    {
-       ch = dev->rx_buf[dev->rx_buf_tail];
-       dev->rx_buf_tail = (dev->rx_buf_tail + 1) & USART_BUF_SIZE_MASK;
-    }
-   
-   return ch;
-} 
-
-int usart_peek(usart_dev *dev)
-{
-  if (dev->rx_buf_head == dev->rx_buf_tail) 
-  {
-    return -1;
-  } 
-  else 
-  {
-    return dev->rx_buf[dev->rx_buf_tail];
-  }
-}
-
-uint32_t usart_rx(usart_dev *dev, uint8_t *buf, uint32_t len) {
-    uint32_t rxed = 0;
-  
-
- 
-  while (rxed < len) {
-        *buf++ = usart_getc(dev);
-        rxed++;
-    }   
-
-    return rxed;
-}
-
-
-
-void usart_putc(usart_dev *dev, char ch){
-
-      while (util_IsBitCleared(dev->channel->UARTx->LSR,SBIT_THRE));
-     dev->channel->UARTx->THR = ch;
-
-} 
-
-void usart_putudec(usart_dev *dev, uint32_t val) {
-    char digits[12];
-    int i = 0;
-
-    do {
-        digits[i++] = val % 10 + '0';
-        val /= 10;
-    } while (val > 0);
-
-    while (--i >= 0) {
-        usart_putc(dev, digits[i]);
-    }
-}
-
-
-
-/***************************************************************************************************
-                            USART IRQ call backs
-****************************************************************************************************
-  Actual UART ISRs are in uart.c file.
-                                 
-****************************************************************************************************/
-#define IIR_RDA		0x04
-#define IIR_THRE	0x02
-#define LSR_THRE    0x10
-#define LSR_RDR     0x01
-
-void usart0_IRQHandler(void)
-{
-  uint32_t iir_reg,lsr_reg;
-  uint8_t uart_data, temp_head;
-  
-
- 
-  iir_reg = LPC_UART0->IIR & 0x0f;
-
-  lsr_reg = LPC_UART0->LSR; 
-  
-  if(iir_reg == IIR_RDA)
-  {
-      if(lsr_reg & LSR_RDR)
-      {
-      uart_data = LPC_UART0->RBR;
-      temp_head = (USART0->rx_buf_head + 1) & USART_BUF_SIZE_MASK;
-      
-      if(temp_head != USART0->rx_buf_tail )
-      {
-          USART0->rx_buf[USART0->rx_buf_tail] = uart_data;
-          USART0->rx_buf_head = temp_head;
-      }
-      }     
-  }  
-}
-
-
- 
-/*
-void usart1_IRQHandler(void)
-{
-   uint32_t iir_reg,lsr_reg;
-  uint8_t uart_data, temp_head;
-	
- 
-  iir_reg = LPC_UART1->IIR & 0x0f;
-
-  lsr_reg = LPC_UART1->LSR; 
-  
-  if(iir_reg == IIR_RDA)
-  {
-      if(lsr_reg & LSR_RDR)
-      {
-      uart_data = LPC_UART1->RBR;
-      temp_head = (USART1->rx_buf_head + 1) & USART_BUF_SIZE_MASK;
-      
-      if(temp_head != USART1->rx_buf_tail )
-      {
-          USART1->rx_buf[USART1->rx_buf_tail] = uart_data;
-          USART1->rx_buf_head = temp_head;
-      }
-      }     
-  } 
-}
-
-
-void usart2_IRQHandler(void)
-{
-   uint32_t iir_reg,lsr_reg;
-  uint8_t uart_data, temp_head;
-	
- 
-  iir_reg = LPC_UART2->IIR & 0x0f;
-
-  lsr_reg = LPC_UART2->LSR; 
-  
-  if(iir_reg == IIR_RDA)
-  {
-      if(lsr_reg & LSR_RDR)
-      {
-      uart_data = LPC_UART2->RBR;
-      temp_head = (USART2->rx_buf_head + 1) & USART_BUF_SIZE_MASK;
-      
-      if(temp_head != USART2->rx_buf_tail )
-      {
-          USART2->rx_buf[USART2->rx_buf_tail] = uart_data;
-          USART2->rx_buf_head = temp_head;
-      }
-      }     
-  } 
-}
-
-
-void usart3_IRQHandler(void)
-{
-  uint32_t iir_reg,lsr_reg;
-  uint8_t uart_data, temp_head;
-	
- 
-  iir_reg = LPC_UART3->IIR & 0x0f;
-
-  lsr_reg = LPC_UART3->LSR; 
-  
-  if(iir_reg == IIR_RDA)
-  {
-      if(lsr_reg & LSR_RDR)
-      {
-      uart_data = LPC_UART3->RBR;
-      temp_head = (USART3->rx_buf_head + 1) & USART_BUF_SIZE_MASK;
-      
-      if(temp_head != USART3->rx_buf_tail )
-      {
-          USART3->rx_buf[USART3->rx_buf_tail] = uart_data;
-          USART3->rx_buf_head = temp_head;
-      }
-      }     
-  } 
-}
- */
-/*************************************************************************************************
-                                    END of  ISR's 
-*************************************************************************************************/
-
-
-HardwareSerial Serial0(USART0);
-//HardwareSerial Serial1(USART1);
-//HardwareSerial Serial2(USART2);
-//HardwareSerial Serial3(USART3);

@@ -41,7 +41,7 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 
 static volatile uint32_t V_SysTickMiliSecCount_U32 = 0;
 static volatile uint64_t V_SysTickMiliSecCount_U64 = 0;
-sysTickCallBackFunPtr sysTickCallBack = NULL;
+//sysTickCallBackFunPtr sysTickCallBack = NULL;
 
 
 /***************************************************************************************************
@@ -61,24 +61,10 @@ sysTickCallBackFunPtr sysTickCallBack = NULL;
          SysTick_Start() fuctions needs to be called to start the timer.                                  
 ****************************************************************************************************/
 
-//Debugging LED to show up systick is running
-#define SYSTICKLED
-
-
-
-#ifdef SYSTICKLED
-volatile uint16_t sysLED = 0;
-volatile bool sysLEDOn = false;
-#endif
 
 void SysTick_Init(void)
 {   
     SYSTICK_RELOAD = COUNT_PER_MS;
-    
-#ifdef SYSTICKLED
-    GPIO_PinFunction(LED_PLAY, PINSEL_FUNC_0); //Configure Pin for GPIO
-    GPIO_PinDirection(LED_PLAY, OUTPUT);
-#endif
     
 }
 
@@ -237,23 +223,7 @@ void SysTick_Handler(void)
 {
     V_SysTickMiliSecCount_U32++;
     V_SysTickMiliSecCount_U64++;
-    
-        
-#ifdef SYSTICKLED
 
-    if(sysLED > 500){ //every 500 ms
-        GPIO_PinWrite(LED_PLAY, sysLEDOn);
-        
-        sysLED = 0;
-        if(sysLEDOn==1) sysLEDOn=0;
-        else sysLEDOn = 1;
-    } else {
-        sysLED++;
-    }
-#endif
-    
-    
-    
     sysTickHook();
 
     wdt_restart(WDT);                            // kick the watchdog
