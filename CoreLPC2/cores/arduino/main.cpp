@@ -6,13 +6,10 @@
 #include "lpc17xx.h"
 #include "stdutils.h"
 
-#include "USBDevice/USB.h"
-#include "USBDevice/USBSerial/USBSerial.h"
-#include "usb_serial.h"
-
 #include <FreeRTOS.h>
 
-#include "USBDevice/USBSerial/CircBuffer.h"
+#include "USBDevice/USB.h"
+#include "usb_serial.h"
 
 
 extern "C" void UrgentInit();
@@ -32,21 +29,29 @@ CircBuffer<uint8_t> rxbuf(rxBufSize, circularBufferRxMemory);
 CircBuffer<uint8_t> txbuf(txBufSize, circularBufferTxMemory);
 SerialUSB Serial(&rxbuf, &txbuf); // our wrapper object to provide Serial over USB
 
-//Setup the UART, ringbuffer memory in AHB RAM
+//Setup the UART, ringbuffer memory in AHB RAM (same sizes as USB buffers)
 __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory[txBufSize] __attribute__ ( ( aligned( 8 ) ) );;
 __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory[rxBufSize] __attribute__ ( ( aligned( 8 ) ) );;
 HardwareSerial Serial0(USART0, uartRxMemory, rxBufSize, uartTxMemory, txBufSize);
 
 
 
-#include <FreeRTOS.h>
-#include "task.h"
+//How much memory to reserve when allocating the heap space.
+//Stack size + extra 256 for SoftwareReset data + any other code that uses malloc
+const uint32_t reserveMemory = 400+256;
 
-#include "board.h"
+
+__attribute__ ((used)) uint8_t *ucHeap;
 
 
-//RTOS Heap (size set in FreeRTOS config header) when using Heap4
-uint8_t ucHeap[27584+800]; // leave some extra room in main memory for stack to grow to hold software reset data...
+// these are defined in the linker script
+extern "C" uint32_t _estack;
+extern uint8_t __AHB0_block_start;
+extern uint8_t __AHB0_dyn_start;
+extern uint8_t __AHB0_end;
+
+extern "C" char *sbrk(int i);
+
 
 extern "C" void Board_Init(void);
 int main( void )
@@ -56,31 +61,37 @@ int main( void )
     
     UrgentInit();
 
-    
-    extern uint8_t __AHB0_block_start;
-    extern uint8_t __AHB0_dyn_start;
-    extern uint8_t __AHB0_end;
-    
     // zero the data sections in AHB0 SRAM
     memset(&__AHB0_block_start, 0, &__AHB0_dyn_start - &__AHB0_block_start);
 
-    //FreeRTOS Heap5 management
-    uint32_t ahb0_free = (uint32_t)&__AHB0_end - (uint32_t)&__AHB0_dyn_start ;
+    //Determine the size of memory we can allocate in Main RAM
+    const char * const ramend = (const char *)&_estack;
+    const char * const heapend = sbrk(0);
+    const uint32_t freeRam = (ramend - heapend) - reserveMemory;
+    ucHeap = (uint8_t *) malloc(freeRam); //allocate the memory so any other code using malloc etc wont corrupt our heapregion
+    
+    //Determine the size of memory we can use in AHB RAM
+    uint32_t ahb0_free = (uint32_t)&__AHB0_end - (uint32_t)&__AHB0_dyn_start ; //Free AHB RAM (we dont need to allocate as there is no dynamic memory being allocated in this location)
+
+    
+    //Setup the FreeRTOS Heap5 management
+    //Heap5 allows us to span heap memory across non-contigious blocks of memory.
     const HeapRegion_t xHeapRegions[] =
     {
-        { ( uint8_t * ) ucHeap, sizeof(ucHeap) }, //ucHeap will be placed in main memory
+        { ( uint8_t * ) ucHeap, freeRam }, //ucHeap will be placed in main memory
         { ( uint8_t * ) &__AHB0_dyn_start, ahb0_free }, //fill the rest of AHBRAM
         { NULL, 0 } /* Terminates the array. */
     };
     /* Pass the array into vPortDefineHeapRegions(). */
     vPortDefineHeapRegions( xHeapRegions );
     
+    //now init all static constructors etc ... 
     __libc_init_array();
+ 
     
     init(); // Defined in variant.cpp
 
     SysTick_Init(); 
-    
     
     AppMain();
 

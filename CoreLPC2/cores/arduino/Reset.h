@@ -25,6 +25,16 @@ extern "C" {
 
 void Reset();
 //void EraseAndReset();
+    
+#define RSID_POR      (1<<0)  //Power On Reset
+#define RSID_EXTR     (1<<1)  //Assetion of RESET signal
+#define RSID_WDTR     (1<<2)  // Watchdog Timeout Reset
+#define RSID_BODR     (1<<3)  // Brown Out Detect Reset
+#define RSID_SYSRESET (1<<4)  // System softare Reset
+#define RSID_LOCKUP   (1<<5)  // CPU Lockup
+
+
+    
 
 #ifdef __cplusplus
 }
