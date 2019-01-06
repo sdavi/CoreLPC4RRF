@@ -334,8 +334,7 @@ static BaseType_t xHasInitialised = pdFALSE;
 		#endif
 
         
-        //Chip_ENET_EnableRXFilter(LPC_ETHERNET, ENET_RXFILTERCTRL_APE | ENET_RXFILTERCTRL_ABE); //Accept broadcast and perfect match
-        Chip_ENET_EnableRXFilter(LPC_ETHERNET, ENET_RXFILTERCTRL_APE); // accept perfect match
+        Chip_ENET_EnableRXFilter(LPC_ETHERNET, ENET_RXFILTERCTRL_APE | ENET_RXFILTERCTRL_ABE); //Accept broadcast and perfect match
         
         //If Hardware initialised correctly, initialise descriptors etc
 		if( xReturn == pdPASS )

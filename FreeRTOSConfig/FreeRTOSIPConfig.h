@@ -42,6 +42,7 @@
 #define configNUM_TX_DESCRIPTORS  (3)
 #define NETWORK_IRQHandler ENET_IRQHandler
 
+
 /* Advanced only: in order to access 32-bit fields in the IP packets with
  * 32-bit memory instructions, all packets will be stored 32-bit-aligned, plus 16-bits.
  * This has to do with the contents of the IP-packets: all 32-bit fields are
@@ -254,7 +255,7 @@ message is sent to a remote IP address that does not already appear in the ARP
 cache then the UDP message is replaced by a ARP message that solicits the
 required MAC address information.  ipconfigARP_CACHE_ENTRIES defines the maximum
 number of entries that can exist in the ARP table at any one time. */
-#define ipconfigARP_CACHE_ENTRIES		3//6
+#define ipconfigARP_CACHE_ENTRIES		6
 
 /* ARP requests that do not result in an ARP response will be re-transmitted a
 maximum of ipconfigMAX_ARP_RETRANSMISSIONS times before the ARP request is
