@@ -44,6 +44,10 @@ public:
     SDCard(uint8_t SSPSlot, Pin cs);
     ~SDCard() {};
 
+    void ReInit(Pin cs, uint32_t frequency);
+
+    
+    
     typedef enum {
         SDCARD_FAIL,
         SDCARD_V1,

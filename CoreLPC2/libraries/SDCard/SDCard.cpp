@@ -146,6 +146,24 @@ SDCard::SDCard(uint8_t SSPSlot, Pin cs) {
       _sectors = 0;
 }
 
+void SDCard::ReInit(Pin cs, uint32_t frequency)
+{
+    
+    _sspi_device.csPin = cs;
+    _sspi_device.csPolarity = false; // active low chip select
+    _sspi_device.clockFrequency = frequency;
+    _sspi_device.bitsPerTransferControl = 8;
+    _sspi_device.spiMode = SPI_MODE_0;
+    
+    sspi_master_init(&_sspi_device, 8); //default to 8bits
+    sspi_master_setup_device(&_sspi_device); //init the bus
+    
+    busyflag = false;
+    _sectors = 0;
+    
+}
+
+
 #define R1_IDLE_STATE           (1 << 0)
 #define R1_ERASE_RESET          (1 << 1)
 #define R1_ILLEGAL_COMMAND      (1 << 2)

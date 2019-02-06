@@ -31,17 +31,23 @@ extern void AnalogOutInit();
  */
 extern void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000);
 extern void GetTimerInfo( uint16_t freqs[4] );
+extern void ConfigureTimerForPWM(uint8_t timerChannel, uint16_t frequency);
 
 
 
 //Timer PWM
-#define TimerPWM_1 0x01
-#define TimerPWM_2 0x02
-#define TimerPWM_3 0x04
+#define TimerPWM_Slot1 (0x01)
+#define TimerPWM_Slot2 (0x02)
+#define TimerPWM_Slot3 (0x04)
 
-#define TimerPWM_Slot1 (0x01 << 4)
-#define TimerPWM_Slot2 (0x02 << 4)
-#define TimerPWM_Slot3 (0x04 << 4)
+
+static const size_t MaxTimerEntries = 3; //MR0 for the Frequency and MR1-3 for the Timer PWM
+
+extern uint32_t pinsOnATimer[5]; // 5 Ports
+extern Pin Timer1PWMPins[MaxTimerEntries];
+extern Pin Timer2PWMPins[MaxTimerEntries];
+extern Pin Timer3PWMPins[MaxTimerEntries];
+
 
 
 

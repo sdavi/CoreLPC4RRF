@@ -32,7 +32,6 @@ struct sspi_device {
 	uint8_t bitsPerTransferControl;
 	uint8_t spiMode;
 	uint32_t clockFrequency;
-    //LPC_SSP_TypeDef* SSPDevice;
     SSPChannel sspChannel;
 };
 

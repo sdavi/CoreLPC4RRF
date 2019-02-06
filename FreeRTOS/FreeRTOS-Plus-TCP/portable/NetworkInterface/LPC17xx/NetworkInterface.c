@@ -1126,20 +1126,20 @@ const TickType_t xBlockTime = pdMS_TO_TICKS( 5000ul );
             
         }
 
-        #if( ipconfigCHECK_IP_QUEUE_SPACE != 0 )
-        {
-        static UBaseType_t uxLastMinQueueSpace = 0;
-
-            uxCurrentCount = uxGetMinimumIPQueueSpace();
-            if( uxLastMinQueueSpace != uxCurrentCount )
-            {
-                /* The logging produced below may be helpful
-                while tuning +TCP: see how many buffers are in use. */
-                uxLastMinQueueSpace = uxCurrentCount;
-                FreeRTOS_debug_printf( ( "Queue space: lowest %lu\n", uxCurrentCount ) );
-            }
-        }
-        #endif /* ipconfigCHECK_IP_QUEUE_SPACE */
+//        #if( ipconfigCHECK_IP_QUEUE_SPACE != 0 )
+//        {
+//        static UBaseType_t uxLastMinQueueSpace = 0;
+//
+//            uxCurrentCount = uxGetMinimumIPQueueSpace();
+//            if( uxLastMinQueueSpace != uxCurrentCount )
+//            {
+//                /* The logging produced below may be helpful
+//                while tuning +TCP: see how many buffers are in use. */
+//                uxLastMinQueueSpace = uxCurrentCount;
+//                FreeRTOS_debug_printf( ( "Queue space: lowest %lu\n", uxCurrentCount ) );
+//            }
+//        }
+//        #endif /* ipconfigCHECK_IP_QUEUE_SPACE */
 
         ulTaskNotifyTake( pdTRUE, xBlockTime );
 

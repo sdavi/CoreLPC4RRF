@@ -254,14 +254,10 @@ static uint8_t  timerInitialised = 0;
 
 
 
-//Externs Defined in pins_lpc in RRF
-extern const Pin Timer1PWMPins[3];
-extern const Pin Timer2PWMPins[3];
-extern const Pin Timer3PWMPins[3];
-extern const uint16_t Timer1PWMFrequency;
-extern const uint16_t Timer2PWMFrequency;
-extern const uint16_t Timer3PWMFrequency;
-extern const uint8_t TimerPWMPinsArray[MaxPinNumber]; //defined in pins_lpc lookup array to see which pins we defined can use TimerPWM
+
+Pin Timer1PWMPins[MaxTimerEntries] = {NoPin, NoPin, NoPin};
+Pin Timer2PWMPins[MaxTimerEntries] = {NoPin, NoPin, NoPin};
+Pin Timer3PWMPins[MaxTimerEntries] = {NoPin, NoPin, NoPin};
 
 
 struct TimerPwmStruct{
@@ -271,11 +267,34 @@ struct TimerPwmStruct{
 };
 
 
-static const TimerPwmStruct TimerPWMs[numTimerChannels] = {
-    {LPC_TIM1, Timer1PWMPins, Timer1PWMFrequency}, //chan 0
-    {LPC_TIM2, Timer2PWMPins, Timer2PWMFrequency}, //chan 1
-    {LPC_TIM3, Timer3PWMPins, Timer3PWMFrequency}  //chan 2
+static TimerPwmStruct TimerPWMs[numTimerChannels] = {
+    {LPC_TIM1, Timer1PWMPins, 10}, //chan 0
+    {LPC_TIM2, Timer2PWMPins, 50}, //chan 1
+    {LPC_TIM3, Timer3PWMPins, 250} //chan 2
 };
+
+
+uint32_t pinsOnATimer[5] = {0}; // 5 Ports
+
+void ConfigureTimerForPWM(uint8_t timerChannel, uint16_t frequency){
+    
+    if(timerChannel >=0 && timerChannel < numTimerChannels )
+    {
+        //save the Frequency
+        TimerPWMs[timerChannel].frequency = frequency;
+        
+        //Update the pinsOnATimer array to indicate which pins are configured for Timer Usage
+        for(size_t i=0; i<MaxTimerEntries; i++){
+            Pin pin = TimerPWMs[timerChannel].timerPins[i];
+            if(pin != NoPin){
+                const uint8_t port = (pin >> 5);
+                if(port <= 4){
+                    pinsOnATimer[port] |= 1 << (pin & 0x1f);
+                }
+            }
+        }
+    }
+}
 
 
 //Initialse a timer
@@ -329,47 +348,39 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
     if(freq == 0) return false;
     
     uint8_t timerChannel = 0;
-    
+    uint8_t slot = 0;
 
-    switch(TimerPWMPinsArray[pin] & 0x0F) //timer number is on lower bits
+    //find the pin (this pin has already been checked if it's on a timer)
+    for(size_t i=0; i<numTimerChannels; i++)
     {
-        case TimerPWM_1:
-            timerChannel = 0;
-            break;
-        case TimerPWM_2:
-            timerChannel = 1;
-            break;
-        case TimerPWM_3:
-            timerChannel = 2;
-            break;
-        default:
-            return false;
+        for(size_t j=0; j<MaxTimerEntries; j++)
+        {
+            if(TimerPWMs[i].timerPins[j] == pin)
+            {
+                timerChannel = i;
+                slot = (1 << (j+1)); //Timer slot bitmask. TimerPWM_Slot1 -> TimerPWM_Slot3
+                goto found;
+            }
+        }
     }
+found:
     
-
-    if(TimerPWMs[timerChannel].frequency != freq) return false; // requested a timer pin but not at the freq the timer is set for
+    //Default now will be to run at the timer frequency and not reject it.
+    //if(TimerPWMs[timerChannel].frequency != freq) return false; // requested a timer pin but not at the freq the timer is set for
+    
+    
     if(TimerPWMs[timerChannel].timer == nullptr ) return false;
 
-    //once timers are turned on, we dont turn off again
-
-
+    //once timers are turned on, we dont turn off again. We only turn them on when first requested.
     if( !(timerInitialised & (1 << timerChannel))  ){
         initTimer(timerChannel);
     }
 
-//    if(freq != timerFrequency[chan] ){
-//        initTimer(timer, freq);
-//        timerFrequency[chan] = freq;
-//
-//    }
-
-
-    
     uint32_t onTime = (uint32_t)((float)(1000000/freq) * ulValue);
     if(onTime >= TimerPWMs[timerChannel].timer->MR0) onTime = TimerPWMs[timerChannel].timer->MR0+1; // set above MR0
         
  
-    switch(TimerPWMPinsArray[pin] & 0xF0) // slot number is on upper bits
+    switch(slot) // slot number is on upper bits
     {
         case TimerPWM_Slot1:
             if((outputUsed[timerChannel] & TimerPWM_Slot1) && TimerPWMs[timerChannel].timer->MR1 == onTime)
@@ -535,7 +546,12 @@ void AnalogOut(Pin pin, float ulValue, uint16_t freq)
 	}
 	else*/
 
-    if (TimerPWMPinsArray[pin] != 0)
+    const uint8_t port = (pin >> 5);
+    const uint32_t portPinPosition = 1 << (pin & 0x1f);
+
+    
+    //if (TimerPWMPinsArray[pin] != 0)
+    if(port <= 4 && (pinsOnATimer[port] & portPinPosition))
     {
         //pin is defined as PWM on Timer
         if (AnalogWriteTimer(ulValue, freq, pin))

@@ -38,8 +38,8 @@
 
 
 /*SD:: LPC17xx Driver defines*/
-#define configNUM_RX_DESCRIPTORS  (4)
-#define configNUM_TX_DESCRIPTORS  (3)
+#define configNUM_RX_DESCRIPTORS  (3)// was 4
+#define configNUM_TX_DESCRIPTORS  (2) // was 3
 #define NETWORK_IRQHandler ENET_IRQHandler
 
 
@@ -47,8 +47,7 @@
  * 32-bit memory instructions, all packets will be stored 32-bit-aligned, plus 16-bits.
  * This has to do with the contents of the IP-packets: all 32-bit fields are
  * 32-bit-aligned, plus 16-bit(!) */
-//#define ipconfigPACKET_FILLER_SIZE               ( 2 )   // 2 bytes for 32bit alignment
-#define ipconfigBUFFER_PADDING                  ( 4+2 )
+#define ipconfigPACKET_FILLER_SIZE               ( 2 )   // 2 bytes for 32bit alignment
 
 //Enable Zero Copy in the LPC17xx driver 
 #define ipconfigZERO_COPY_RX_DRIVER  ( 1 )
@@ -195,7 +194,7 @@ configMAX_PRIORITIES is a standard FreeRTOS configuration parameter defined in
 FreeRTOSConfig.h, not FreeRTOSIPConfig.h. Consideration needs to be given as to
 the priority assigned to the task executing the IP stack relative to the
 priority assigned to tasks that use the IP stack. */
-#define ipconfigIP_TASK_PRIORITY			( configMAX_PRIORITIES - 2 )
+#define ipconfigIP_TASK_PRIORITY			2 //TODO:: this should use value in RTOSIFace  //( configMAX_PRIORITIES - 2 )
 
 
 
@@ -351,6 +350,11 @@ disconnecting stage will timeout after a period of non-activity. */
 #define ipconfigTCP_KEEP_ALIVE_INTERVAL		( 20 ) /* in seconds */
 
 #define portINLINE __inline
+
+
+
+//Debugging
+#define ipconfigCHECK_IP_QUEUE_SPACE ( 1 )
 
 
 
