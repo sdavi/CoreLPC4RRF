@@ -237,7 +237,6 @@ static volatile uint32_t ulISREvents;
 static uint32_t ulPHYLinkStatus = 0;
 
 /* Tx descriptors and index. */
-//static ENET_ENHTXDESC_T xDMATxDescriptors[ configNUM_TX_DESCRIPTORS ];
 //SD:TX Descriptors and Statuses
 //SD:: Manual states that base address of Descriptors are to be 4 byte aligned. Base address of statuses are to be 8 byte aigned
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_TXDESC_T xDMATxDescriptors[ configNUM_TX_DESCRIPTORS ] __attribute__ ( ( aligned( 4 ) ) );
@@ -249,7 +248,6 @@ static volatile uint32_t ulNextFreeTxDescriptor;
 static uint32_t ulTxDescriptorToClear;
 
 /* Rx descriptors and index. */
-//static ENET_ENHRXDESC_T xDMARxDescriptors[ configNUM_RX_DESCRIPTORS ];
 //SD:RX Descriptors and Statuses are seperated
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_RXDESC_T xDMARxDescriptors[ configNUM_RX_DESCRIPTORS ] __attribute__ ( ( aligned( 4 ) ) );
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_RXSTAT_T xDMARxStatuses[ configNUM_RX_DESCRIPTORS ] __attribute__ ( ( aligned( 8 ) ) );
@@ -611,7 +609,7 @@ BaseType_t x;
             /* Allocate a buffer to the Tx descriptor.  This is the most basic
             way of creating a driver as the data is then copied into the
             buffer. */
-            xDMATxDescriptors[x].Packet = (uint32_t) pvPortMalloc( ipTOTAL_ETHERNET_FRAME_SIZE+ipBUFFER_PADDING );
+            xDMATxDescriptors[x].Packet = (uint32_t) pvPortMalloc( BUFFER_SIZE );
 
             /* Use an assert to check the allocation as +TCP applications will
             often not use a malloc() failed hook as the TCP stack will recover
@@ -650,7 +648,7 @@ BaseType_t x;
 
         #if( ipconfigZERO_COPY_RX_DRIVER != 0 )
         {
-            pxNetworkBuffer = pxGetNetworkBufferWithDescriptor( ipTOTAL_ETHERNET_FRAME_SIZE+ipBUFFER_PADDING, 0 );
+            pxNetworkBuffer = pxGetNetworkBufferWithDescriptor( BUFFER_SIZE, 0 );
 
             /* During start-up there should be enough Network Buffers available, so it is safe to use configASSERT().
             In case this assert fails, please check: configNUM_RX_DESCRIPTORS,
@@ -665,7 +663,7 @@ BaseType_t x;
         {
             /* All DMA descriptors are populated with permanent memory blocks.
             Their contents will be copy to Network Buffers. */
-            xDMARxDescriptors[x].Packet = (uint32_t) pvPortMalloc( ipTOTAL_ETHERNET_FRAME_SIZE+ipBUFFER_PADDING );;
+            xDMARxDescriptors[x].Packet = (uint32_t) pvPortMalloc( BUFFER_SIZE );;
         }
         #endif /* ipconfigZERO_COPY_RX_DRIVER */
 
@@ -726,6 +724,13 @@ BaseType_t xReturn;
 /*-----------------------------------------------------------*/
 
 
+///Debugging
+uint32_t numRXIntOverrunErrors = 0; //hardware producted overrun error
+uint32_t numRXPacketErrors = 0; //Packet in error, CRC/len/etc mismatch etc
+uint32_t numDroppedPacketsDueToNoBuffer = 0;
+
+
+
 
 configPLACE_IN_SECTION_RAM
 static BaseType_t prvNetworkInterfaceInput()
@@ -737,7 +742,7 @@ const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS( 250 );
     
     //leave some buffers spare to TX
     //const UBaseType_t uxMinimumBuffersRemaining = 3UL;
-    const UBaseType_t uxMinimumBuffersRemaining = configNUM_TX_DESCRIPTORS;
+    const UBaseType_t uxMinimumBuffersRemaining = configNUM_TX_DESCRIPTORS - 1;
     
     
     
@@ -758,6 +763,8 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
         //Chip_ENET_ResetRXLogic(LPC_ETHERNET);
         Chip_ENET_ClearIntStatus(LPC_ETHERNET, ENET_INT_RXOVERRUN);
 
+        numRXIntOverrunErrors++;
+        
         //TODO:: Handle RX Error
         //TODO:: What to do where there is Overrun error???
         //TODO:: example in lwip deletes all queues descriptors and resets RX.
@@ -789,9 +796,10 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
             if(ulStatus & ENET_RINFO_OVERRUN ) FreeRTOS_debug_printf( ( "OVERRUN_Err " ) );
             if(ulStatus & ENET_RINFO_ERR ) FreeRTOS_debug_printf( ( "INFO_Err " ) );
             
-            /* There is some reception error. */
-
-            //TODO::
+            /* There is some reception error. Drop. */
+            numRXPacketErrors++;
+            
+            
         }
         else
         {
@@ -809,17 +817,14 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
                 }
 
             #if( ipconfigZERO_COPY_RX_DRIVER != 0 )
-                //FreeRTOS_debug_printf( ( "prvNetworkInterfaceInput: minBuffs: %d, minBufRemain %d\n", uxGetNumberOfFreeNetworkBuffers(),uxMinimumBuffersRemaining  ));
-
                 if( uxGetNumberOfFreeNetworkBuffers() > uxMinimumBuffersRemaining )
                 {
-                    pxNewDescriptor = pxGetNetworkBufferWithDescriptor( ipTOTAL_ETHERNET_FRAME_SIZE+ipBUFFER_PADDING, xDescriptorWaitTime );
+                    pxNewDescriptor = pxGetNetworkBufferWithDescriptor( BUFFER_SIZE, xDescriptorWaitTime );
                 }
                 else
                 {
                     /* Too risky to allocate a new Network Buffer. */
                     pxNewDescriptor = NULL;
-
                 }
                 if( pxNewDescriptor != NULL )
             #else
@@ -891,7 +896,8 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
                 else
                 {
 
-                        //
+                    // could not allocate a buffer, dropping packet
+                    numDroppedPacketsDueToNoBuffer++;
                 }
             } else {
                 //frame dropped, wasnt for us
@@ -917,12 +923,9 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
         {
             ulNextRxDescriptorToProcess = 0;
         }
-        
-
-        
     }
     else{
-       // FreeRTOS_debug_printf( ( "Eth RX Empty - minBuffs: %d\n", uxGetNumberOfFreeNetworkBuffers()  ));
+
     }
 
 	return xResult;
@@ -1096,8 +1099,8 @@ static void prvEMACHandlerTask( void *pvParameters )
 {
 TimeOut_t xPhyTime;
 TickType_t xPhyRemTime;
-UBaseType_t uxLastMinBufferCount = 0;
-UBaseType_t uxCurrentCount;
+//UBaseType_t uxLastMinBufferCount = 0;
+//UBaseType_t uxCurrentCount;
 BaseType_t xResult = 0;
 uint32_t ulStatus;
 const TickType_t xBlockTime = pdMS_TO_TICKS( 5000ul );
@@ -1113,19 +1116,20 @@ const TickType_t xBlockTime = pdMS_TO_TICKS( 5000ul );
 
     for( ;; )
     {
-        
-        uxCurrentCount = uxGetMinimumFreeNetworkBuffers();
-        if( uxLastMinBufferCount != uxCurrentCount )
-        {
-            /* The logging produced below may be helpful
-            while tuning +TCP: see how many buffers are in use. */
-            uxLastMinBufferCount = uxCurrentCount;
 
-            //SD::ensure EMAC Task Stack is large enough to use printf here
-            FreeRTOS_debug_printf( ( "Network buffers: %lu lowest %lu\n", uxGetNumberOfFreeNetworkBuffers(), uxCurrentCount ) );
-            
-        }
-
+        //can now view lowest from M122 now
+//        uxCurrentCount = uxGetMinimumFreeNetworkBuffers();
+//        if( uxLastMinBufferCount != uxCurrentCount )
+//        {
+//            /* The logging produced below may be helpful
+//            while tuning +TCP: see how many buffers are in use. */
+//            uxLastMinBufferCount = uxCurrentCount;
+//
+//            //SD::ensure EMAC Task Stack is large enough to use printf here
+//            FreeRTOS_debug_printf( ( "Network buffers: %lu lowest %lu\n", uxGetNumberOfFreeNetworkBuffers(), uxCurrentCount ) );
+//
+//        }
+//
 //        #if( ipconfigCHECK_IP_QUEUE_SPACE != 0 )
 //        {
 //        static UBaseType_t uxLastMinQueueSpace = 0;

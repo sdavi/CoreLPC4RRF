@@ -37,6 +37,21 @@
 #define FREERTOS_IP_CONFIG_H
 
 
+#include "StaticNetworkMemoryAllocator.h"
+
+
+//SD:: Added functions for allocation static block of memory for TCP Buffers
+//SD:: See StaticNetworkMemoryAllocator.c
+
+//Malloc for large TCP Buffers
+#define pvPortMallocLarge( x )      staticMallocLarge( x )
+#define vPortFreeLarge( ptr )       staticFreeLarge( ptr )
+//Malloc for Socket (using default dynamic for now)
+#define pvPortMallocSocket( x )     pvPortMalloc( x )
+#define vPortFreeSocket( ptr )      vPortFree(ptr)
+
+
+
 /*SD:: LPC17xx Driver defines*/
 #define configNUM_RX_DESCRIPTORS  (3)// was 4
 #define configNUM_TX_DESCRIPTORS  (2) // was 3
@@ -66,41 +81,25 @@
 #define ipconfigUSE_DHCP_HOOK           ( 1 )
 #define ipconfigDHCP_REGISTER_HOSTNAME  ( 1 )
 
-//SD::: SDCard Access is slow on SPI, so we can save some extra ram by dropping MTU, MSS etc
-//SD::  witout losing any extra upload speed
-
 /* The MTU is the maximum number of bytes the payload of a network frame can
  contain.  For normal Ethernet V2 frames the maximum MTU is 1500.  Setting a
  lower value can save RAM, depending on the buffer management scheme used.  If
  ipconfigCAN_FRAGMENT_OUTGOING_PACKETS is 1 then (ipconfigNETWORK_MTU - 28) must
  be divisible by 8. */
-//#define ipconfigNETWORK_MTU        1200
-//SD::
 #define ipconfigCAN_FRAGMENT_OUTGOING_PACKETS    ( 0 )
 #define ipconfigNETWORK_MTU                      ( 608 ) // 586 Minimum to use DHCP
 
 
-//MTU
-//-14  Ethernet header size
-//-20  IP protocol header size
-//-20  TCP protocol header size
-//-12  TCP options bytes
-
-//#define ipconfigTCP_MSS       ( ipconfigNETWORK_MTU-14-20-20-12 )
-
 /* Include support for LLMNR: Link-local Multicast Name Resolution
  (non-Microsoft) */
-//SD:: Disable LLMNR
 #define ipconfigUSE_LLMNR                    ( 0 )
 
 /* Include support for NBNS: NetBIOS Name Service (Microsoft) */
-//SD:: Disable NBNS
 #define ipconfigUSE_NBNS                    ( 0 )
 
 /* Set ipconfigUSE_DNS to 1 to include a basic DNS client/resolver.  DNS is used
  through the FreeRTOS_gethostbyname() API function. */
-//SD:: Disbale DNS
-#define ipconfigUSE_DNS            0
+#define ipconfigUSE_DNS                      0
 
 /* The size, in words (not bytes), of the stack allocated to the FreeRTOS+TCP
  task.  This setting is less important when the FreeRTOS Win32 simulator is used
@@ -120,21 +119,18 @@
 
 /* Each TCP socket has a circular buffers for Rx and Tx, which have a fixed
  maximum size.  Define the size of Rx buffer for TCP sockets. */
-//#define ipconfigTCP_RX_BUFFER_LENGTH            ( 1000 )
-//SD::
-#define ipconfigTCP_RX_BUFFER_LENGTH            ( 2 * ipconfigTCP_MSS  )
+#define ipconfigTCPSOCKET_NUMBER_RX_BUFFERS     (1)
+#define ipconfigTCP_RX_BUFFER_LENGTH            ( ipconfigTCPSOCKET_NUMBER_RX_BUFFERS * ipconfigTCP_MSS  )
 
 /* Define the size of Tx buffer for TCP sockets. */
-//#define ipconfigTCP_TX_BUFFER_LENGTH            ( 1000 )
-//SD::
-#define ipconfigTCP_TX_BUFFER_LENGTH            ( 2 * ipconfigTCP_MSS )
+#define ipconfigTCPSOCKET_NUMBER_TX_BUFFERS     (1)
+#define ipconfigTCP_TX_BUFFER_LENGTH            ( ipconfigTCPSOCKET_NUMBER_TX_BUFFERS * ipconfigTCP_MSS )
 
 /* Define the size of the pool of TCP window descriptors.  On the average, each
  TCP socket will use up to 2 x 6 descriptors, meaning that it can have 2 x 6
  outstanding packets (for Rx and Tx).  When using up to 10 TP sockets
  simultaneously, one could define TCP_WIN_SEG_COUNT as 120. */
 #define ipconfigTCP_WIN_SEG_COUNT        48
-
 
 /* Set to 1 to print out debug messages.  If ipconfigHAS_DEBUG_PRINTF is set to
 1 then FreeRTOS_debug_printf should be defined to the function used to print
