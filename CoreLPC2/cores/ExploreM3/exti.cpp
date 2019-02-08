@@ -250,7 +250,7 @@ extern "C" void EINT3_IRQHandler(void)
         LPC_GPIOINT->IO0IntClr |= (1 << pos0); // clear the status
         
         //Find the slot for this pin
-        const Pin pin= (Pin)(1 << pos0);// port 0, this is just the pin number
+        const Pin pin= (Pin)(pos0);// port 0, this is just the pin number
         size_t slot = MaxExtIntEntries;
         for(size_t i=0; i<MaxExtIntEntries; i++)
         {
@@ -275,7 +275,7 @@ extern "C" void EINT3_IRQHandler(void)
         LPC_GPIOINT->IO2IntClr |= (1 << pos2); // clear the status
 
         //Find the slot for this pin
-        const Pin pin = (Pin) ((2 << 5) | (1 << pos2));// pin on port 2
+        const Pin pin = (Pin) ((2 << 5) | (pos2));// pin on port 2
         size_t slot = MaxExtIntEntries;
         for(size_t i=0; i<MaxExtIntEntries; i++)
         {
