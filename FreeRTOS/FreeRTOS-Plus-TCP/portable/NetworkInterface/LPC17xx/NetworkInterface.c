@@ -126,9 +126,8 @@ TaskHandle_t RRfInitialiseEMACTask(TaskFunction_t pxTaskCode); // defined in RTO
     (   ENET_RINFO_CRC_ERR | \
         ENET_RINFO_SYM_ERR | \
         ENET_RINFO_LEN_ERR | \
-        ENET_RINFO_ALIGN_ERR )
-
-
+        ENET_RINFO_ALIGN_ERR | \
+        ENET_RINFO_OVERRUN )
 
 
 /* Define the EMAC status bits that should trigger an interrupt. */
@@ -404,24 +403,33 @@ static BaseType_t xHasInitialised = pdFALSE;
 }
 /*-----------------------------------------------------------*/
 
-//#define niBUFFER_1_PACKET_SIZE        ENET_ETH_MAX_FLEN   //LPC Max Frame size
 #define BUFFER_SIZE ( ipTOTAL_ETHERNET_FRAME_SIZE + ipBUFFER_PADDING )
-//#define BUFFER_SIZE_ROUNDED_UP ( ( BUFFER_SIZE + 7 ) & ~0x07UL ) // if need buffers to end on 8 byte boundary
-static __attribute__ ((used,section("AHBSRAM0"))) uint8_t ucBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ][ BUFFER_SIZE ] __attribute__ ( ( aligned( 32 ) ) );
+static __attribute__ ((used,section("AHBSRAM0"))) uint8_t ucBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS * BUFFER_SIZE ] __attribute__ ( ( aligned( 32 ) ) );
 
-/* Next provide the vNetworkInterfaceAllocateRAMToBuffers() function, which
- simply fills in the pucEthernetBuffer member of each descriptor. */
-void vNetworkInterfaceAllocateRAMToBuffers(NetworkBufferDescriptor_t pxNetworkBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ] )
+#if defined(COLLECT_NETDRIVER_ERROR_STATS)
+//Check address is 32-bit aligned for DMA on LPC
+static uint8_t PtrAlignedForDMA(uint8_t *address){
+    if( ((uint32_t)address & 0x3) == 0) return true;
+    return false;
+}
+volatile uint8_t numNetworkUnalignedNetworkBuffers = 0;
+#endif
+
+
+void vNetworkInterfaceAllocateRAMToBuffers( NetworkBufferDescriptor_t pxNetworkBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ] )
 {
-BaseType_t x;
-    
-    for( x = 0; x < ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS; x++ )
+    uint8_t *ucRAMBuffer = ucBuffers;
+    uint32_t ul;
+
+    for( ul = 0; ul < ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS; ul++ )
     {
-        /* pucEthernetBuffer is set to point ipBUFFER_PADDING bytes in from the beginning of the allocated buffer. */
-        pxNetworkBuffers[ x ].pucEthernetBuffer = &( ucBuffers[ x ][ ipBUFFER_PADDING ] );
-        
-        /* The following line is also required, but will not be required in future versions. */
-        *( ( uint32_t * ) &ucBuffers[ x ][ 0 ] ) = ( uint32_t ) &( pxNetworkBuffers[ x ] );
+        pxNetworkBuffers[ ul ].pucEthernetBuffer = (ucRAMBuffer + ipBUFFER_PADDING);
+#if defined(COLLECT_NETDRIVER_ERROR_STATS)
+        //Debugging (Check pucEthernetBuffer is 32bit aligned for DMA.
+        if(!PtrAlignedForDMA( pxNetworkBuffers[ ul ].pucEthernetBuffer )) numNetworkUnalignedNetworkBuffers ++;
+#endif
+        *( ( unsigned * ) ucRAMBuffer ) = ( unsigned ) ( &( pxNetworkBuffers[ ul ] ) );
+        ucRAMBuffer += BUFFER_SIZE;
     }
 }
 
@@ -439,8 +447,7 @@ size_t uxCount = ( ( size_t ) configNUM_TX_DESCRIPTORS ) - uxSemaphoreGetCount( 
 
     /* This function is called after a TX-completion interrupt.
     It will release each Network Buffer used in xNetworkInterfaceOutput().
-    'uxCount' represents the number of descriptors given to DMA for transmission.
-    After sending a packet, the DMA will clear the 'TDES_OWN' bit. */
+    'uxCount' represents the number of descriptors given to DMA for transmission.*/
     
     
     while( uxCount > ( size_t ) 0u )
@@ -450,7 +457,6 @@ size_t uxCount = ( ( size_t ) configNUM_TX_DESCRIPTORS ) - uxSemaphoreGetCount( 
         {
             break;
         }
-
 
         #if( ipconfigZERO_COPY_TX_DRIVER != 0 )
         {
@@ -725,11 +731,17 @@ BaseType_t xReturn;
 
 
 ///Debugging
-uint32_t numRXIntOverrunErrors = 0; //hardware producted overrun error
-uint32_t numRXPacketErrors = 0; //Packet in error, CRC/len/etc mismatch etc
-uint32_t numDroppedPacketsDueToNoBuffer = 0;
+#if defined(COLLECT_NETDRIVER_ERROR_STATS)
+    volatile uint32_t numNetworkRXIntOverrunErrors = 0; //hardware producted overrun error
+    uint32_t numNetworkDroppedPacketsDueToNoBuffer = 0;
 
+    uint32_t numNetworkCRCErrors = 0; //ENET_RINFO_CRC_ERR
+    uint32_t numNetworkSYMErrors = 0; //ENET_RINFO_SYM_ERR
+    uint32_t numNetworkLENErrors = 0; //ENET_RINFO_LEN_ERR
+    uint32_t numNetworkALIGNErrors = 0; //ENET_RINFO_ALIGN_ERR
+    uint32_t numNetworkOVERRUNErrors = 0; //ENET_RINFO_OVERRUN
 
+#endif
 
 
 configPLACE_IN_SECTION_RAM
@@ -742,7 +754,7 @@ const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS( 250 );
     
     //leave some buffers spare to TX
     //const UBaseType_t uxMinimumBuffersRemaining = 3UL;
-    const UBaseType_t uxMinimumBuffersRemaining = configNUM_TX_DESCRIPTORS - 1;
+    const UBaseType_t uxMinimumBuffersRemaining = configNUM_TX_DESCRIPTORS;
     
     
     
@@ -752,26 +764,6 @@ NetworkBufferDescriptor_t *pxDescriptor;
 	NetworkBufferDescriptor_t *pxNewDescriptor;
 #endif /* ipconfigZERO_COPY_RX_DRIVER */
 IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
-
-    //FreeRTOS_debug_printf( ( "\prvNetworkInterfaceInput()\n" ) );
-    if (Chip_ENET_GetIntStatus(LPC_ETHERNET) & ENET_INT_RXOVERRUN) {
-        FreeRTOS_debug_printf( ( "\prvNetworkInterfaceInput() - RX OVERRUN ERROR\n" ) );
-
-        //Chip_ENET_RXDisable(LPC_ETHERNET); /* Temporarily disable RX */
-        
-        /* Reset the RX side */
-        //Chip_ENET_ResetRXLogic(LPC_ETHERNET);
-        Chip_ENET_ClearIntStatus(LPC_ETHERNET, ENET_INT_RXOVERRUN);
-
-        numRXIntOverrunErrors++;
-        
-        //TODO:: Handle RX Error
-        //TODO:: What to do where there is Overrun error???
-        //TODO:: example in lwip deletes all queues descriptors and resets RX.
-        
-        //Chip_ENET_RXEnable(LPC_ETHERNET);
-    }
-    
 
     uint16_t produceIdx = Chip_ENET_GetRXProduceIndex(LPC_ETHERNET);
     //uint16_t consumeIndex = Chip_ENET_GetRXConsumeIndex(LPC_ETHERNET);
@@ -783,23 +775,20 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
 
         ulStatus = xDMARxStatuses[ ulNextRxDescriptorToProcess ].StatusInfo; //get status about packet
 
+#if defined(COLLECT_NETDRIVER_ERROR_STATS)
+        
+        if(ulStatus & ENET_RINFO_CRC_ERR ) numNetworkCRCErrors++;
+        if(ulStatus & ENET_RINFO_SYM_ERR ) numNetworkSYMErrors++;
+        if(ulStatus & ENET_RINFO_LEN_ERR ) numNetworkLENErrors++;
+        if(ulStatus & ENET_RINFO_ALIGN_ERR ) numNetworkALIGNErrors++;
+        if(ulStatus & ENET_RINFO_OVERRUN ) numNetworkOVERRUNErrors++;
+#endif
+
+        
         /* Check packet for errors */
         if( ( ulStatus & nwRX_STATUS_ERROR_BITS ) != 0 )
         {
-            
-            FreeRTOS_debug_printf( ( "prvNetworkInterfaceInput(): Errors Set: " ) );
-            if(ulStatus & ENET_RINFO_CRC_ERR ) FreeRTOS_debug_printf( ( "CRC_Err " ) );
-            if(ulStatus & ENET_RINFO_SYM_ERR ) FreeRTOS_debug_printf( ( "SYM_Err " ) );
-            if(ulStatus & ENET_RINFO_LEN_ERR ) FreeRTOS_debug_printf( ( "LEN_Err " ) );
-            if(ulStatus & ENET_RINFO_RANGE_ERR ) FreeRTOS_debug_printf( ( "RANGE_Err " ) );
-            if(ulStatus & ENET_RINFO_ALIGN_ERR ) FreeRTOS_debug_printf( ( "ALIGN_Err " ) );
-            if(ulStatus & ENET_RINFO_OVERRUN ) FreeRTOS_debug_printf( ( "OVERRUN_Err " ) );
-            if(ulStatus & ENET_RINFO_ERR ) FreeRTOS_debug_printf( ( "INFO_Err " ) );
-            
-            /* There is some reception error. Drop. */
-            numRXPacketErrors++;
-            
-            
+            /* There is some reception error. Will be dropped. */
         }
         else
         {
@@ -895,9 +884,10 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
                 }
                 else
                 {
-
                     // could not allocate a buffer, dropping packet
-                    numDroppedPacketsDueToNoBuffer++;
+# if defined(COLLECT_NETDRIVER_ERROR_STATS)
+                    numNetworkDroppedPacketsDueToNoBuffer++;
+#endif
                 }
             } else {
                 //frame dropped, wasnt for us
@@ -935,10 +925,10 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
 configPLACE_IN_SECTION_RAM
 void NETWORK_IRQHandler( void )
 {
-BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-uint32_t ulDMAStatus;
-const uint32_t ulRxInterruptMask = ENET_INT_RXDONE | ENET_INT_RXOVERRUN | ENET_INT_RXERROR ;  // Receive related interrupt
-const uint32_t ulTxInterruptMask = ENET_INT_TXDONE | ENET_INT_TXUNDERRUN | ENET_INT_TXERROR;  // Transmit related interrupt
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    uint32_t ulDMAStatus;
+    const uint32_t ulRxInterruptMask = ENET_INT_RXDONE | ENET_INT_RXERROR | ENET_INT_RXOVERRUN;   // Receive related interrupt
+    const uint32_t ulTxInterruptMask = ENET_INT_TXDONE | ENET_INT_TXERROR | ENET_INT_TXUNDERRUN; // Transmit related interrupt
 
 
     configASSERT( xRxHanderTask );
@@ -946,6 +936,17 @@ const uint32_t ulTxInterruptMask = ENET_INT_TXDONE | ENET_INT_TXUNDERRUN | ENET_
     /* Get pending interrupts */
     ulDMAStatus = Chip_ENET_GetIntStatus(LPC_ETHERNET);
 
+    
+    if (ulDMAStatus & ENET_INT_RXOVERRUN) {
+        Chip_ENET_RXDisable(LPC_ETHERNET); /* Temporarily disable RX */
+        Chip_ENET_ResetRXLogic(LPC_ETHERNET); /* Reset the RX side */
+        Chip_ENET_RXEnable(LPC_ETHERNET);
+# if defined(COLLECT_NETDRIVER_ERROR_STATS)
+        numNetworkRXIntOverrunErrors++;
+#endif
+    }
+
+    
     /* RX group interrupt(s). */
     if( ( ulDMAStatus & ulRxInterruptMask ) != 0x00 )
     {
@@ -994,23 +995,19 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 			/* Set interface speed and duplex. */
 			if( ( ulPhyStatus & PHY_LINK_SPEED100 ) != 0x00 )
 			{
-                //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Setting Link Speed: 100Mbps\n" ) );
                 Chip_ENET_Set100Mbps( LPC_ETHERNET );
 			}
 			else
 			{
-                //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Setting Link Speed: 10Mbps\n" ) );
                 Chip_ENET_Set10Mbps( LPC_ETHERNET );
 			}
 
 			if( ( ulPhyStatus & PHY_LINK_FULLDUPLX ) != 0x00 )
 			{
-                //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Setting Duplex: Full\n" ) );
                 Chip_ENET_SetFullDuplex( LPC_ETHERNET );
 			}
 			else
 			{
-                //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Setting Duplex: Half\n" ) );
                 Chip_ENET_SetHalfDuplex( LPC_ETHERNET );
 			}
 
@@ -1018,8 +1015,6 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 			break;
         } else {
             
-            //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Link Not Connected!\n" ) );
-
         }
 	} while( ( xTaskGetTickCount() - xTimeOnEntering ) < xAutoNegotiateDelay );
 
@@ -1077,7 +1072,6 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 //}
 /*-----------------------------------------------------------*/
 
-          //TODO:: implement for 17xx
 //static void prvAddMACAddress( const uint8_t* ucMacAddress )
 //{
 //BaseType_t xIndex;

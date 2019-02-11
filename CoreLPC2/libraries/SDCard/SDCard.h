@@ -68,6 +68,8 @@ public:
     CARD_TYPE card_type(void);
 
     bool busy();
+    
+    uint32_t interface_speed(){return frequency;};
 
 protected:
 
@@ -89,6 +91,8 @@ protected:
     volatile bool busyflag;
 
     CARD_TYPE cardtype;
+    
+    uint32_t frequency;
 };
 
 #endif

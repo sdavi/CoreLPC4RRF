@@ -212,6 +212,8 @@ RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries
 RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel
 RRF_SRC_DIRS += LPC LPC/MCP4461
 
+RRF_SRC_DIRS += Display Display/ST7920
+
 #build in LCD Support? only when networking is false
 #networking support?
 ifeq ($(ESP_NETWORKING), true)
@@ -220,7 +222,6 @@ else ifeq ($(NETWORKING), true)
 	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet
 else
 	RRF_SRC_DIRS += LPC/NoNetwork
-	RRF_SRC_DIRS += Display Display/ST7920
 endif
 
 #Find the c and cpp source files

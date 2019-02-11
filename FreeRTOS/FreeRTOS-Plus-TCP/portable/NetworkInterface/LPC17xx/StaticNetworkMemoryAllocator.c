@@ -49,9 +49,13 @@ static struct dataBlock_t tcpData[MemBlocks] = {0};
 
 
 
+
+
 //very simple Memory Allocator, allocates a block
 void *staticMallocLarge( size_t xWantedSize )
 {
+    if(xWantedSize > TCPDataSizeRequested) return NULL;
+    
     void * ret = NULL;
     vTaskSuspendAll();
     {

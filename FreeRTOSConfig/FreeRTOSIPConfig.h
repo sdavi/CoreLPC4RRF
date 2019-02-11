@@ -40,20 +40,19 @@
 #include "StaticNetworkMemoryAllocator.h"
 
 
+//SD: Enable this to enable Networking Driver to collect stats on all the errors
+#define COLLECT_NETDRIVER_ERROR_STATS 1
+
 //SD:: Added functions for allocation static block of memory for TCP Buffers
 //SD:: See StaticNetworkMemoryAllocator.c
-
-//Malloc for large TCP Buffers
+//Malloc/free defines for large TCP Buffers 
 #define pvPortMallocLarge( x )      staticMallocLarge( x )
 #define vPortFreeLarge( ptr )       staticFreeLarge( ptr )
-//Malloc for Socket (using default dynamic for now)
-#define pvPortMallocSocket( x )     pvPortMalloc( x )
-#define vPortFreeSocket( ptr )      vPortFree(ptr)
 
 
 
 /*SD:: LPC17xx Driver defines*/
-#define configNUM_RX_DESCRIPTORS  (3)// was 4
+#define configNUM_RX_DESCRIPTORS  (2)// was 4
 #define configNUM_TX_DESCRIPTORS  (2) // was 3
 #define NETWORK_IRQHandler ENET_IRQHandler
 
@@ -62,20 +61,21 @@
  * 32-bit memory instructions, all packets will be stored 32-bit-aligned, plus 16-bits.
  * This has to do with the contents of the IP-packets: all 32-bit fields are
  * 32-bit-aligned, plus 16-bit(!) */
-#define ipconfigPACKET_FILLER_SIZE               ( 2 )   // 2 bytes for 32bit alignment
+#define ipconfigPACKET_FILLER_SIZE   ( 2 )   // 2 bytes for 32bit alignment
+#define ipconfigBUFFER_PADDING       ( 32 )
+#define ipconfigTCP_MSS              (512) //SD:: Make this the size of the write buffer to the SDCard
 
 //Enable Zero Copy in the LPC17xx driver 
 #define ipconfigZERO_COPY_RX_DRIVER  ( 1 )
 #define ipconfigZERO_COPY_TX_DRIVER  ( 1 )
 
 /* USE_TCP: Use TCP and all its features */
-#define ipconfigUSE_TCP                ( 1 )
+#define ipconfigUSE_TCP              ( 1 )
 
 /* USE_WIN: Let TCP use windowing mechanism. */
-
-//#define ipconfigUSE_TCP_WIN            ( 1 )
+//#define ipconfigUSE_TCP_WIN        ( 1 )
 //SD:: disable sliding window to save ram
-#define ipconfigUSE_TCP_WIN            ( 0 )
+#define ipconfigUSE_TCP_WIN          ( 0 )
 
 //SD:: Enable the DHCP Hook so we can control if DHCP starts ot not using the RRF config settings, otherwise it will always start if DHCP is set to 1
 #define ipconfigUSE_DHCP_HOOK           ( 1 )
@@ -87,7 +87,7 @@
  ipconfigCAN_FRAGMENT_OUTGOING_PACKETS is 1 then (ipconfigNETWORK_MTU - 28) must
  be divisible by 8. */
 #define ipconfigCAN_FRAGMENT_OUTGOING_PACKETS    ( 0 )
-#define ipconfigNETWORK_MTU                      ( 608 ) // 586 Minimum to use DHCP
+#define ipconfigNETWORK_MTU                      ( 586 ) // 586 Minimum to use DHCP
 
 
 /* Include support for LLMNR: Link-local Multicast Name Resolution
@@ -114,7 +114,6 @@
  are available to the IP stack.  The total number of network buffers is limited
  to ensure the total amount of RAM that can be consumed by the IP stack is capped
  to a pre-determinable value. */
-//#define ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS        5
 #define ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS configNUM_RX_DESCRIPTORS + configNUM_TX_DESCRIPTORS + 1
 
 /* Each TCP socket has a circular buffers for Rx and Tx, which have a fixed
