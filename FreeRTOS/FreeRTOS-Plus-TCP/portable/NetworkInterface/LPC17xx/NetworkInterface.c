@@ -683,7 +683,7 @@ BaseType_t x;
         allocation failures. */
         configASSERT( xDMARxDescriptors[x].Packet );
 
-        xDMARxDescriptors[x].Control = ENET_RCTRL_SIZE(ENET_ETH_MAX_FLEN) | ENET_RCTRL_INT; //size and trigger interrupt when done
+        xDMARxDescriptors[x].Control = ENET_RCTRL_SIZE(ipTOTAL_ETHERNET_FRAME_SIZE) | ENET_RCTRL_INT; //size and trigger interrupt when done
         xDMARxStatuses[x].StatusInfo = 0xFFFFFFFF;
         xDMARxStatuses[x].StatusHashCRC = 0xFFFFFFFF;
 
