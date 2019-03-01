@@ -403,33 +403,38 @@ static BaseType_t xHasInitialised = pdFALSE;
 }
 /*-----------------------------------------------------------*/
 
+//#define BUFFER_SIZE ( ipTOTAL_ETHERNET_FRAME_SIZE + ipBUFFER_PADDING )
+//static __attribute__ ((used,section("AHBSRAM0"))) uint8_t ucBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS * BUFFER_SIZE ] __attribute__ ( ( aligned( 32 ) ) );
+//
+//void vNetworkInterfaceAllocateRAMToBuffers( NetworkBufferDescriptor_t pxNetworkBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ] )
+//{
+//    uint8_t *ucRAMBuffer = ucBuffers;
+//    uint32_t ul;
+//
+//    for( ul = 0; ul < ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS; ul++ )
+//    {
+//        pxNetworkBuffers[ ul ].pucEthernetBuffer = (ucRAMBuffer + ipBUFFER_PADDING);
+//        *( ( unsigned * ) ucRAMBuffer ) = ( unsigned ) ( &( pxNetworkBuffers[ ul ] ) );
+//        ucRAMBuffer += BUFFER_SIZE;
+//    }
+//}
+
 #define BUFFER_SIZE ( ipTOTAL_ETHERNET_FRAME_SIZE + ipBUFFER_PADDING )
-static __attribute__ ((used,section("AHBSRAM0"))) uint8_t ucBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS * BUFFER_SIZE ] __attribute__ ( ( aligned( 32 ) ) );
+static __attribute__ ((used,section("AHBSRAM0"))) uint8_t ucBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ][ BUFFER_SIZE ] __attribute__ ( ( aligned( 32 ) ) );
 
-#if defined(COLLECT_NETDRIVER_ERROR_STATS)
-//Check address is 32-bit aligned for DMA on LPC
-static uint8_t PtrAlignedForDMA(uint8_t *address){
-    if( ((uint32_t)address & 0x3) == 0) return true;
-    return false;
-}
-volatile uint8_t numNetworkUnalignedNetworkBuffers = 0;
-#endif
-
-
-void vNetworkInterfaceAllocateRAMToBuffers( NetworkBufferDescriptor_t pxNetworkBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ] )
+/* Next provide the vNetworkInterfaceAllocateRAMToBuffers() function, which
+ simply fills in the pucEthernetBuffer member of each descriptor. */
+void vNetworkInterfaceAllocateRAMToBuffers(NetworkBufferDescriptor_t pxNetworkBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ] )
 {
-    uint8_t *ucRAMBuffer = ucBuffers;
-    uint32_t ul;
-
-    for( ul = 0; ul < ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS; ul++ )
+    BaseType_t x;
+    
+    for( x = 0; x < ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS; x++ )
     {
-        pxNetworkBuffers[ ul ].pucEthernetBuffer = (ucRAMBuffer + ipBUFFER_PADDING);
-#if defined(COLLECT_NETDRIVER_ERROR_STATS)
-        //Debugging (Check pucEthernetBuffer is 32bit aligned for DMA.
-        if(!PtrAlignedForDMA( pxNetworkBuffers[ ul ].pucEthernetBuffer )) numNetworkUnalignedNetworkBuffers ++;
-#endif
-        *( ( unsigned * ) ucRAMBuffer ) = ( unsigned ) ( &( pxNetworkBuffers[ ul ] ) );
-        ucRAMBuffer += BUFFER_SIZE;
+        /* pucEthernetBuffer is set to point ipBUFFER_PADDING bytes in from the beginning of the allocated buffer. */
+        pxNetworkBuffers[ x ].pucEthernetBuffer = &( ucBuffers[ x ][ ipBUFFER_PADDING ] );
+        
+        /* The following line is also required, but will not be required in future versions. */
+        *( ( uint32_t * ) &ucBuffers[ x ][ 0 ] ) = ( uint32_t ) &( pxNetworkBuffers[ x ] );
     }
 }
 
