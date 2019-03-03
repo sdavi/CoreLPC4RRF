@@ -128,6 +128,9 @@ static const uint8_t OXFF = 0xFF;
 
 SDCard::SDCard(uint8_t SSPSlot, Pin cs) {
 
+      frequency = 10000000; //default frequency to run at
+
+    
       if(SSPSlot == 0 ){
           _sspi_device.sspChannel = SSP0;
       } else if(SSPSlot == 1) {
@@ -135,16 +138,36 @@ SDCard::SDCard(uint8_t SSPSlot, Pin cs) {
       }
       _sspi_device.csPin = cs;
       _sspi_device.csPolarity = false; // active low chip select
-      _sspi_device.clockFrequency = 1000000;
+      _sspi_device.clockFrequency = 25000; //initial init freq
       _sspi_device.bitsPerTransferControl = 8;
       _sspi_device.spiMode = SPI_MODE_0;
     
       sspi_master_init(&_sspi_device, 8); //default to 8bits
       sspi_master_setup_device(&_sspi_device); //init the bus
 
+    
+    
       busyflag = false;
       _sectors = 0;
 }
+
+void SDCard::ReInit(Pin cs, uint32_t freq)
+{
+    frequency = freq; //remember the freq
+    _sspi_device.csPin = cs;
+    _sspi_device.csPolarity = false; // active low chip select
+    _sspi_device.clockFrequency = freq;
+    _sspi_device.bitsPerTransferControl = 8;
+    _sspi_device.spiMode = SPI_MODE_0;
+    
+    sspi_master_init(&_sspi_device, 8); //default to 8bits
+    sspi_master_setup_device(&_sspi_device); //init the bus
+    
+    busyflag = false;
+    _sectors = 0;
+    
+}
+
 
 #define R1_IDLE_STATE           (1 << 0)
 #define R1_ERASE_RESET          (1 << 1)
@@ -294,9 +317,7 @@ int SDCard::disk_initialize()
         return 1;
     }
 
-    //_sspi_device.clockFrequency = 2500000; // Set to 2.5MHz for data transfer
-    //_sspi_device.clockFrequency = 4000000; // Set to 4.0MHz for data transfer
-    _sspi_device.clockFrequency = 10000000; // SD:: updated to be at 10MHz
+    _sspi_device.clockFrequency = frequency;
     sspi_master_setup_device(&_sspi_device); //update the freq
 
     busyflag = false;

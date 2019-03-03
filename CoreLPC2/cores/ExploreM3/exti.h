@@ -37,13 +37,15 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #ifndef _EXT_INTERRUPTS_H_
 #define _EXT_INTERRUPTS_H_
 
+
 #ifdef __cplusplus
 //extern "C" {
 //#endif
 
-
+#include "Core.h"
 #include "lpc17xx.h"
 #include "stdutils.h"
+#include "stdlib.h"
 
 
 
@@ -97,17 +99,26 @@ union CallbackParameter
     
 
 //SD:: Updated to match RRF CoreNG
-bool attachInterrupt(uint32_t pin, void (*callback)(CallbackParameter), enum InterruptMode mode, void *param);
-void detachInterrupt(uint32_t pin);
+bool attachInterrupt(Pin pin, void (*callback)(CallbackParameter), enum InterruptMode mode, void *param);
+void detachInterrupt(Pin pin);
     
 bool inInterrupt();
+
+
+
+constexpr size_t MaxExtIntEntries = 3;
+extern Pin ExternalInterruptPins[MaxExtIntEntries];
+
+
 #endif //__cplusplus
 
 
-#define ExtInt_Slot1 (1)
-#define ExtInt_Slot2 (2)
-#define ExtInt_Slot3 (3)
+//#define ExtInt_Slot1 (1)
+//#define ExtInt_Slot2 (2)
+//#define ExtInt_Slot3 (3)
 
-#define MaxExtInterrupts 3
+//#define MaxExtInterrupts 3
+
+
 
 #endif

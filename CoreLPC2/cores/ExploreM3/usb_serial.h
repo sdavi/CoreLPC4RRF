@@ -6,6 +6,8 @@
 #include "USBDevice/USBSerial/USBSerial.h"
 #include "USBDevice/USBSerial/CircBuffer.h"
 
+#include "gpio.h"
+
 
 #if defined(ENABLE_DFU)
 # include "DFU/DFU.h"

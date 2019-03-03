@@ -126,9 +126,8 @@ TaskHandle_t RRfInitialiseEMACTask(TaskFunction_t pxTaskCode); // defined in RTO
     (   ENET_RINFO_CRC_ERR | \
         ENET_RINFO_SYM_ERR | \
         ENET_RINFO_LEN_ERR | \
-        ENET_RINFO_ALIGN_ERR )
-
-
+        ENET_RINFO_ALIGN_ERR | \
+        ENET_RINFO_OVERRUN )
 
 
 /* Define the EMAC status bits that should trigger an interrupt. */
@@ -237,7 +236,6 @@ static volatile uint32_t ulISREvents;
 static uint32_t ulPHYLinkStatus = 0;
 
 /* Tx descriptors and index. */
-//static ENET_ENHTXDESC_T xDMATxDescriptors[ configNUM_TX_DESCRIPTORS ];
 //SD:TX Descriptors and Statuses
 //SD:: Manual states that base address of Descriptors are to be 4 byte aligned. Base address of statuses are to be 8 byte aigned
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_TXDESC_T xDMATxDescriptors[ configNUM_TX_DESCRIPTORS ] __attribute__ ( ( aligned( 4 ) ) );
@@ -249,7 +247,6 @@ static volatile uint32_t ulNextFreeTxDescriptor;
 static uint32_t ulTxDescriptorToClear;
 
 /* Rx descriptors and index. */
-//static ENET_ENHRXDESC_T xDMARxDescriptors[ configNUM_RX_DESCRIPTORS ];
 //SD:RX Descriptors and Statuses are seperated
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_RXDESC_T xDMARxDescriptors[ configNUM_RX_DESCRIPTORS ] __attribute__ ( ( aligned( 4 ) ) );
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_RXSTAT_T xDMARxStatuses[ configNUM_RX_DESCRIPTORS ] __attribute__ ( ( aligned( 8 ) ) );
@@ -285,13 +282,9 @@ static BaseType_t xHasInitialised = pdFALSE;
 	{
 		xHasInitialised = pdTRUE;
 
-        FreeRTOS_debug_printf( ( "xNetworkInterfaceInitialise: **First Init**" ) );
-
-        
 		/* The interrupt will be turned on when a link is established. */
-		NVIC_DisableIRQ( /*ETHERNET_IRQn*/ENET_IRQn );
+		NVIC_DisableIRQ( ENET_IRQn );
 
-        FreeRTOS_debug_printf( ( "\nxNetworkInterfaceInitialise(): Init ENET Hardware\n" ) );
         #if( configUSE_RMII == 1 )
             Chip_ENET_Init(LPC_ETHERNET, true);
         #else
@@ -303,8 +296,6 @@ static BaseType_t xHasInitialised = pdFALSE;
         LPC_ETHERNET->MAC.MAXF = ipTOTAL_ETHERNET_FRAME_SIZE;
         //LPC_ETHERNET->MAC.MAXF = ENET_ETH_MAX_FLEN;
 
-        FreeRTOS_debug_printf( ( "\nxNetworkInterfaceInitialise(): Init MII\n" ) );
-
         /* Setup MII clock rate and PHY address */
         Chip_ENET_SetupMII(LPC_ETHERNET, Chip_ENET_FindMIIDiv(LPC_ETHERNET, 2500000), 1);
 
@@ -313,8 +304,6 @@ static BaseType_t xHasInitialised = pdFALSE;
 
 		#if( configUSE_RMII == 1 )
 		{
-            //FreeRTOS_debug_printf( ( "\nxNetworkInterfaceInitialise(): Init Phy (RMII)\n" ) );
-
 			if( lpc_phy_init( pdTRUE, prvDelay ) != SUCCESS )
 			{
 				xReturn = pdFAIL;
@@ -347,13 +336,8 @@ static BaseType_t xHasInitialised = pdFALSE;
 				configASSERT( xTXDescriptorSemaphore );
 			}
 
-			
             /* Auto-negotiate was already started.  Wait for it to complete. */
-            //FreeRTOS_debug_printf( ( "\nxNetworkInterfaceInitialise(): About to call SetLinkSpeed\n" ) );
             xReturn = prvSetLinkSpeed();
-            FreeRTOS_debug_printf( ( "\nxNetworkInterfaceInitialise(): link: %d\n", (int)xReturn ) );
-
-            
             
             /* Initialise the descriptors. */
             prvSetupTxDescriptors();
@@ -367,21 +351,17 @@ static BaseType_t xHasInitialised = pdFALSE;
             Chip_ENET_EnableInt(LPC_ETHERNET, nwDMA_INTERRUPT_MASK);
 
             /* Enable interrupts in the NVIC now the task is created. */
-            NVIC_SetPriority( /*ETHERNET_IRQn*/ENET_IRQn, configMAC_INTERRUPT_PRIORITY );
-            NVIC_EnableIRQ( /*ETHERNET_IRQn*/ENET_IRQn );
+            NVIC_SetPriority( ENET_IRQn, configMAC_INTERRUPT_PRIORITY );
+            NVIC_EnableIRQ( ENET_IRQn );
 
             
 			/* Guard against the task being created more than once and the
 			descriptors being initialised more than once. */
 			if( xRxHanderTask == NULL )
 			{
-                //also, we need to check which Task will ultimately create this, Guessing its IP Task which
-                // we need to change to Main Task or protect the task list in RRF Manager
-                
 				//xReturn = xTaskCreate( prvEMACHandlerTask, "EMAC", nwRX_TASK_STACK_SIZE, NULL, configMAX_PRIORITIES - 1, &xRxHanderTask );
                 xRxHanderTask = RRfInitialiseEMACTask(prvEMACHandlerTask);
                 configASSERT( xRxHanderTask != NULL ); // ensure the Task was created
-                //FreeRTOS_debug_printf( ( "\nxNetworkInterfaceInitialise(): Created EMAC Task\n" ) );
 			}
 		}
 	}
@@ -406,16 +386,14 @@ static BaseType_t xHasInitialised = pdFALSE;
 }
 /*-----------------------------------------------------------*/
 
-//#define niBUFFER_1_PACKET_SIZE        ENET_ETH_MAX_FLEN   //LPC Max Frame size
 #define BUFFER_SIZE ( ipTOTAL_ETHERNET_FRAME_SIZE + ipBUFFER_PADDING )
-//#define BUFFER_SIZE_ROUNDED_UP ( ( BUFFER_SIZE + 7 ) & ~0x07UL ) // if need buffers to end on 8 byte boundary
-static __attribute__ ((used,section("AHBSRAM0"))) uint8_t ucBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ][ BUFFER_SIZE ] __attribute__ ( ( aligned( 32 ) ) );
+static __attribute__ ((used,section("AHBSRAM0"))) uint8_t ucBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ][ BUFFER_SIZE ] __attribute__ ( ( aligned( 4 ) ) );
 
 /* Next provide the vNetworkInterfaceAllocateRAMToBuffers() function, which
  simply fills in the pucEthernetBuffer member of each descriptor. */
 void vNetworkInterfaceAllocateRAMToBuffers(NetworkBufferDescriptor_t pxNetworkBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ] )
 {
-BaseType_t x;
+    BaseType_t x;
     
     for( x = 0; x < ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS; x++ )
     {
@@ -441,8 +419,7 @@ size_t uxCount = ( ( size_t ) configNUM_TX_DESCRIPTORS ) - uxSemaphoreGetCount( 
 
     /* This function is called after a TX-completion interrupt.
     It will release each Network Buffer used in xNetworkInterfaceOutput().
-    'uxCount' represents the number of descriptors given to DMA for transmission.
-    After sending a packet, the DMA will clear the 'TDES_OWN' bit. */
+    'uxCount' represents the number of descriptors given to DMA for transmission.*/
     
     
     while( uxCount > ( size_t ) 0u )
@@ -452,7 +429,6 @@ size_t uxCount = ( ( size_t ) configNUM_TX_DESCRIPTORS ) - uxSemaphoreGetCount( 
         {
             break;
         }
-
 
         #if( ipconfigZERO_COPY_TX_DRIVER != 0 )
         {
@@ -611,7 +587,7 @@ BaseType_t x;
             /* Allocate a buffer to the Tx descriptor.  This is the most basic
             way of creating a driver as the data is then copied into the
             buffer. */
-            xDMATxDescriptors[x].Packet = (uint32_t) pvPortMalloc( ipTOTAL_ETHERNET_FRAME_SIZE+ipBUFFER_PADDING );
+            xDMATxDescriptors[x].Packet = (uint32_t) pvPortMalloc( BUFFER_SIZE );
 
             /* Use an assert to check the allocation as +TCP applications will
             often not use a malloc() failed hook as the TCP stack will recover
@@ -650,7 +626,7 @@ BaseType_t x;
 
         #if( ipconfigZERO_COPY_RX_DRIVER != 0 )
         {
-            pxNetworkBuffer = pxGetNetworkBufferWithDescriptor( ipTOTAL_ETHERNET_FRAME_SIZE+ipBUFFER_PADDING, 0 );
+            pxNetworkBuffer = pxGetNetworkBufferWithDescriptor( BUFFER_SIZE, 0 );
 
             /* During start-up there should be enough Network Buffers available, so it is safe to use configASSERT().
             In case this assert fails, please check: configNUM_RX_DESCRIPTORS,
@@ -665,7 +641,7 @@ BaseType_t x;
         {
             /* All DMA descriptors are populated with permanent memory blocks.
             Their contents will be copy to Network Buffers. */
-            xDMARxDescriptors[x].Packet = (uint32_t) pvPortMalloc( ipTOTAL_ETHERNET_FRAME_SIZE+ipBUFFER_PADDING );;
+            xDMARxDescriptors[x].Packet = (uint32_t) pvPortMalloc( BUFFER_SIZE );;
         }
         #endif /* ipconfigZERO_COPY_RX_DRIVER */
 
@@ -674,7 +650,7 @@ BaseType_t x;
         allocation failures. */
         configASSERT( xDMARxDescriptors[x].Packet );
 
-        xDMARxDescriptors[x].Control = ENET_RCTRL_SIZE(ENET_ETH_MAX_FLEN) | ENET_RCTRL_INT; //size and trigger interrupt when done
+        xDMARxDescriptors[x].Control = ENET_RCTRL_SIZE(ipTOTAL_ETHERNET_FRAME_SIZE) | ENET_RCTRL_INT; //size and trigger interrupt when done
         xDMARxStatuses[x].StatusInfo = 0xFFFFFFFF;
         xDMARxStatuses[x].StatusHashCRC = 0xFFFFFFFF;
 
@@ -726,100 +702,80 @@ BaseType_t xReturn;
 /*-----------------------------------------------------------*/
 
 
+///Debugging
+#if defined(COLLECT_NETDRIVER_ERROR_STATS)
+    volatile uint32_t numNetworkRXIntOverrunErrors = 0; //hardware producted overrun error
+    uint32_t numNetworkDroppedPacketsDueToNoBuffer = 0;
+
+    uint32_t numNetworkCRCErrors = 0; //ENET_RINFO_CRC_ERR
+    uint32_t numNetworkSYMErrors = 0; //ENET_RINFO_SYM_ERR
+    uint32_t numNetworkLENErrors = 0; //ENET_RINFO_LEN_ERR
+    uint32_t numNetworkALIGNErrors = 0; //ENET_RINFO_ALIGN_ERR
+    uint32_t numNetworkOVERRUNErrors = 0; //ENET_RINFO_OVERRUN
+
+#endif
+
 
 configPLACE_IN_SECTION_RAM
 static BaseType_t prvNetworkInterfaceInput()
 {
-BaseType_t xResult = pdFALSE;
-uint32_t ulStatus;
-eFrameProcessingResult_t eResult;
-const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS( 250 );
-    
-    //leave some buffers spare to TX
+    BaseType_t xResult = pdFALSE;
+    uint32_t ulStatus;
+    eFrameProcessingResult_t eResult;
+    const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS( 250 );
     //const UBaseType_t uxMinimumBuffersRemaining = 3UL;
     const UBaseType_t uxMinimumBuffersRemaining = configNUM_TX_DESCRIPTORS;
-    
-    
-    
-uint16_t usLength;
-NetworkBufferDescriptor_t *pxDescriptor;
+
+    uint16_t usLength;
+    NetworkBufferDescriptor_t *pxDescriptor;
 #if( ipconfigZERO_COPY_RX_DRIVER != 0 )
-	NetworkBufferDescriptor_t *pxNewDescriptor;
+    NetworkBufferDescriptor_t *pxNewDescriptor;
 #endif /* ipconfigZERO_COPY_RX_DRIVER */
-IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
-
-    //FreeRTOS_debug_printf( ( "\prvNetworkInterfaceInput()\n" ) );
-    if (Chip_ENET_GetIntStatus(LPC_ETHERNET) & ENET_INT_RXOVERRUN) {
-        FreeRTOS_debug_printf( ( "\prvNetworkInterfaceInput() - RX OVERRUN ERROR\n" ) );
-
-        //Chip_ENET_RXDisable(LPC_ETHERNET); /* Temporarily disable RX */
-        
-        /* Reset the RX side */
-        //Chip_ENET_ResetRXLogic(LPC_ETHERNET);
-        Chip_ENET_ClearIntStatus(LPC_ETHERNET, ENET_INT_RXOVERRUN);
-
-        //TODO:: Handle RX Error
-        //TODO:: What to do where there is Overrun error???
-        //TODO:: example in lwip deletes all queues descriptors and resets RX.
-        
-        //Chip_ENET_RXEnable(LPC_ETHERNET);
-    }
-    
+    IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
 
     uint16_t produceIdx = Chip_ENET_GetRXProduceIndex(LPC_ETHERNET);
-    //uint16_t consumeIndex = Chip_ENET_GetRXConsumeIndex(LPC_ETHERNET);
 
     if (Chip_ENET_GetBufferStatus(LPC_ETHERNET, produceIdx, ulNextRxDescriptorToProcess, configNUM_RX_DESCRIPTORS) != ENET_BUFF_EMPTY)
     {
         //packet is waiting to be processed
-        //FreeRTOS_debug_printf( ( "prvNetworkInterfaceInput() - Packet received\n" ) );
-
         ulStatus = xDMARxStatuses[ ulNextRxDescriptorToProcess ].StatusInfo; //get status about packet
 
+#if defined(COLLECT_NETDRIVER_ERROR_STATS)
+        if(ulStatus & ENET_RINFO_CRC_ERR ) numNetworkCRCErrors++;
+        if(ulStatus & ENET_RINFO_SYM_ERR ) numNetworkSYMErrors++;
+        if(ulStatus & ENET_RINFO_LEN_ERR ) numNetworkLENErrors++;
+        if(ulStatus & ENET_RINFO_ALIGN_ERR ) numNetworkALIGNErrors++;
+        if(ulStatus & ENET_RINFO_OVERRUN ) numNetworkOVERRUNErrors++;
+#endif
+
+        
         /* Check packet for errors */
         if( ( ulStatus & nwRX_STATUS_ERROR_BITS ) != 0 )
         {
-            
-            FreeRTOS_debug_printf( ( "prvNetworkInterfaceInput(): Errors Set: " ) );
-            if(ulStatus & ENET_RINFO_CRC_ERR ) FreeRTOS_debug_printf( ( "CRC_Err " ) );
-            if(ulStatus & ENET_RINFO_SYM_ERR ) FreeRTOS_debug_printf( ( "SYM_Err " ) );
-            if(ulStatus & ENET_RINFO_LEN_ERR ) FreeRTOS_debug_printf( ( "LEN_Err " ) );
-            if(ulStatus & ENET_RINFO_RANGE_ERR ) FreeRTOS_debug_printf( ( "RANGE_Err " ) );
-            if(ulStatus & ENET_RINFO_ALIGN_ERR ) FreeRTOS_debug_printf( ( "ALIGN_Err " ) );
-            if(ulStatus & ENET_RINFO_OVERRUN ) FreeRTOS_debug_printf( ( "OVERRUN_Err " ) );
-            if(ulStatus & ENET_RINFO_ERR ) FreeRTOS_debug_printf( ( "INFO_Err " ) );
-            
-            /* There is some reception error. */
-
-            //TODO::
+            /* There is some reception error. Will be dropped. */
         }
         else
         {
             xResult++;
 
             eResult = ipCONSIDER_FRAME_FOR_PROCESSING( ( const uint8_t * const ) ( xDMARxDescriptors[ ulNextRxDescriptorToProcess ].Packet ) );
-            //FreeRTOS_debug_printf( ( "prvNetworkInterfaceInput: ConsiderFrameForProcessing: %s\n", (eResult==eProcessBuffer)?"True":"False") );
 
             if( eResult == eProcessBuffer )
             {
                 if( ( ulPHYLinkStatus & PHY_LINK_CONNECTED ) == 0 )
                 {
                     ulPHYLinkStatus |= PHY_LINK_CONNECTED;
-                    //FreeRTOS_debug_printf( ( "prvNetworkInterfaceInput: PHY LS now %d (message received)\n", ( ulPHYLinkStatus & PHY_LINK_CONNECTED ) != 0 ) );
                 }
 
             #if( ipconfigZERO_COPY_RX_DRIVER != 0 )
-                //FreeRTOS_debug_printf( ( "prvNetworkInterfaceInput: minBuffs: %d, minBufRemain %d\n", uxGetNumberOfFreeNetworkBuffers(),uxMinimumBuffersRemaining  ));
-
                 if( uxGetNumberOfFreeNetworkBuffers() > uxMinimumBuffersRemaining )
                 {
-                    pxNewDescriptor = pxGetNetworkBufferWithDescriptor( ipTOTAL_ETHERNET_FRAME_SIZE+ipBUFFER_PADDING, xDescriptorWaitTime );
+                    pxNewDescriptor = pxGetNetworkBufferWithDescriptor( BUFFER_SIZE, xDescriptorWaitTime );
                 }
                 else
                 {
                     /* Too risky to allocate a new Network Buffer. */
                     pxNewDescriptor = NULL;
-
                 }
                 if( pxNewDescriptor != NULL )
             #else
@@ -874,8 +830,6 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
                         /* Pass the data to the TCP/IP task for processing. */
                         xRxEvent.pvData = ( void * ) pxDescriptor;
                         
-                        
-                        
                         if( xSendEventStructToIPTask( &xRxEvent, xDescriptorWaitTime ) == pdFALSE )
                         {
                             /* Could not send the descriptor into the TCP/IP
@@ -890,8 +844,10 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
                 }
                 else
                 {
-
-                        //
+                    // could not allocate a buffer, dropping packet
+# if defined(COLLECT_NETDRIVER_ERROR_STATS)
+                    numNetworkDroppedPacketsDueToNoBuffer++;
+#endif
                 }
             } else {
                 //frame dropped, wasnt for us
@@ -917,12 +873,9 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
         {
             ulNextRxDescriptorToProcess = 0;
         }
-        
-
-        
     }
     else{
-       // FreeRTOS_debug_printf( ( "Eth RX Empty - minBuffs: %d\n", uxGetNumberOfFreeNetworkBuffers()  ));
+
     }
 
 	return xResult;
@@ -932,10 +885,10 @@ IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
 configPLACE_IN_SECTION_RAM
 void NETWORK_IRQHandler( void )
 {
-BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-uint32_t ulDMAStatus;
-const uint32_t ulRxInterruptMask = ENET_INT_RXDONE | ENET_INT_RXOVERRUN | ENET_INT_RXERROR ;  // Receive related interrupt
-const uint32_t ulTxInterruptMask = ENET_INT_TXDONE | ENET_INT_TXUNDERRUN | ENET_INT_TXERROR;  // Transmit related interrupt
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    uint32_t ulDMAStatus;
+    const uint32_t ulRxInterruptMask = ENET_INT_RXDONE | ENET_INT_RXERROR | ENET_INT_RXOVERRUN;   // Receive related interrupt
+    const uint32_t ulTxInterruptMask = ENET_INT_TXDONE | ENET_INT_TXERROR | ENET_INT_TXUNDERRUN; // Transmit related interrupt
 
 
     configASSERT( xRxHanderTask );
@@ -943,6 +896,18 @@ const uint32_t ulTxInterruptMask = ENET_INT_TXDONE | ENET_INT_TXUNDERRUN | ENET_
     /* Get pending interrupts */
     ulDMAStatus = Chip_ENET_GetIntStatus(LPC_ETHERNET);
 
+    
+    if (ulDMAStatus & ENET_INT_RXOVERRUN)
+    {
+        Chip_ENET_RXDisable(LPC_ETHERNET); /* Temporarily disable RX */
+        Chip_ENET_ResetRXLogic(LPC_ETHERNET); /* Reset the RX side */
+        Chip_ENET_RXEnable(LPC_ETHERNET);
+# if defined(COLLECT_NETDRIVER_ERROR_STATS)
+        numNetworkRXIntOverrunErrors++;
+#endif
+    }
+
+    
     /* RX group interrupt(s). */
     if( ( ulDMAStatus & ulRxInterruptMask ) != 0x00 )
     {
@@ -978,7 +943,6 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 	setting the priority of this task to that of the idle task. */
     //vTaskPrioritySet( NULL, tskIDLE_PRIORITY );
     vTaskPrioritySet( NULL, tskIDLE_PRIORITY+1 );// IDLE is never called so idle + 1
-    FreeRTOS_debug_printf( ( "\prvSetLinkSpeed(): Changing Task Priority to: %d\n",tskIDLE_PRIORITY+1  ) );
 
 	xTimeOnEntering = xTaskGetTickCount();
 
@@ -991,23 +955,19 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 			/* Set interface speed and duplex. */
 			if( ( ulPhyStatus & PHY_LINK_SPEED100 ) != 0x00 )
 			{
-                //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Setting Link Speed: 100Mbps\n" ) );
                 Chip_ENET_Set100Mbps( LPC_ETHERNET );
 			}
 			else
 			{
-                //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Setting Link Speed: 10Mbps\n" ) );
                 Chip_ENET_Set10Mbps( LPC_ETHERNET );
 			}
 
 			if( ( ulPhyStatus & PHY_LINK_FULLDUPLX ) != 0x00 )
 			{
-                //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Setting Duplex: Full\n" ) );
                 Chip_ENET_SetFullDuplex( LPC_ETHERNET );
 			}
 			else
 			{
-                //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Setting Duplex: Half\n" ) );
                 Chip_ENET_SetHalfDuplex( LPC_ETHERNET );
 			}
 
@@ -1015,8 +975,6 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 			break;
         } else {
             
-            //FreeRTOS_debug_printf( ( "\nprvSetLinkSpeed():Link Not Connected!\n" ) );
-
         }
 	} while( ( xTaskGetTickCount() - xTimeOnEntering ) < xAutoNegotiateDelay );
 
@@ -1074,7 +1032,6 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 //}
 /*-----------------------------------------------------------*/
 
-          //TODO:: implement for 17xx
 //static void prvAddMACAddress( const uint8_t* ucMacAddress )
 //{
 //BaseType_t xIndex;
@@ -1094,13 +1051,13 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 configPLACE_IN_SECTION_RAM
 static void prvEMACHandlerTask( void *pvParameters )
 {
-TimeOut_t xPhyTime;
-TickType_t xPhyRemTime;
-UBaseType_t uxLastMinBufferCount = 0;
-UBaseType_t uxCurrentCount;
-BaseType_t xResult = 0;
-uint32_t ulStatus;
-const TickType_t xBlockTime = pdMS_TO_TICKS( 5000ul );
+    TimeOut_t xPhyTime;
+    TickType_t xPhyRemTime;
+    //UBaseType_t uxLastMinBufferCount = 0;
+    //UBaseType_t uxCurrentCount;
+    BaseType_t xResult = 0;
+    uint32_t ulStatus;
+    const TickType_t xBlockTime = pdMS_TO_TICKS( 5000ul );
 
     /* Remove compiler warning about unused parameter. */
     ( void ) pvParameters;
@@ -1113,33 +1070,34 @@ const TickType_t xBlockTime = pdMS_TO_TICKS( 5000ul );
 
     for( ;; )
     {
-        
-        uxCurrentCount = uxGetMinimumFreeNetworkBuffers();
-        if( uxLastMinBufferCount != uxCurrentCount )
-        {
-            /* The logging produced below may be helpful
-            while tuning +TCP: see how many buffers are in use. */
-            uxLastMinBufferCount = uxCurrentCount;
 
-            //SD::ensure EMAC Task Stack is large enough to use printf here
-            FreeRTOS_debug_printf( ( "Network buffers: %lu lowest %lu\n", uxGetNumberOfFreeNetworkBuffers(), uxCurrentCount ) );
-            
-        }
-
-        #if( ipconfigCHECK_IP_QUEUE_SPACE != 0 )
-        {
-        static UBaseType_t uxLastMinQueueSpace = 0;
-
-            uxCurrentCount = uxGetMinimumIPQueueSpace();
-            if( uxLastMinQueueSpace != uxCurrentCount )
-            {
-                /* The logging produced below may be helpful
-                while tuning +TCP: see how many buffers are in use. */
-                uxLastMinQueueSpace = uxCurrentCount;
-                FreeRTOS_debug_printf( ( "Queue space: lowest %lu\n", uxCurrentCount ) );
-            }
-        }
-        #endif /* ipconfigCHECK_IP_QUEUE_SPACE */
+        //can now view lowest from M122 now
+//        uxCurrentCount = uxGetMinimumFreeNetworkBuffers();
+//        if( uxLastMinBufferCount != uxCurrentCount )
+//        {
+//            /* The logging produced below may be helpful
+//            while tuning +TCP: see how many buffers are in use. */
+//            uxLastMinBufferCount = uxCurrentCount;
+//
+//            //SD::ensure EMAC Task Stack is large enough to use printf here
+//            FreeRTOS_debug_printf( ( "Network buffers: %lu lowest %lu\n", uxGetNumberOfFreeNetworkBuffers(), uxCurrentCount ) );
+//
+//        }
+//
+//        #if( ipconfigCHECK_IP_QUEUE_SPACE != 0 )
+//        {
+//        static UBaseType_t uxLastMinQueueSpace = 0;
+//
+//            uxCurrentCount = uxGetMinimumIPQueueSpace();
+//            if( uxLastMinQueueSpace != uxCurrentCount )
+//            {
+//                /* The logging produced below may be helpful
+//                while tuning +TCP: see how many buffers are in use. */
+//                uxLastMinQueueSpace = uxCurrentCount;
+//                FreeRTOS_debug_printf( ( "Queue space: lowest %lu\n", uxCurrentCount ) );
+//            }
+//        }
+//        #endif /* ipconfigCHECK_IP_QUEUE_SPACE */
 
         ulTaskNotifyTake( pdTRUE, xBlockTime );
 
@@ -1183,7 +1141,6 @@ const TickType_t xBlockTime = pdMS_TO_TICKS( 5000ul );
             if( ( ulPHYLinkStatus & PHY_LINK_CONNECTED ) != ( ulStatus & PHY_LINK_CONNECTED ) )
             {
                 ulPHYLinkStatus = ulStatus;
-                FreeRTOS_debug_printf( ( "prvEMACHandlerTask: PHY LS now %d (polled PHY)\n", ( ulPHYLinkStatus & PHY_LINK_CONNECTED ) != 0 ) );
                 
                 if( (ulPHYLinkStatus & PHY_LINK_CONNECTED) == 0 )
                 {

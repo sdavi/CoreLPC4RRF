@@ -37,9 +37,23 @@
 #define FREERTOS_IP_CONFIG_H
 
 
+#include "StaticNetworkMemoryAllocator.h"
+
+
+//SD: Enable this to enable Networking Driver to collect stats on all the errors
+//#define COLLECT_NETDRIVER_ERROR_STATS 1
+
+//SD:: Added functions for allocation static block of memory for TCP Buffers
+//SD:: See StaticNetworkMemoryAllocator.c
+//Malloc/free defines for large TCP Buffers 
+#define pvPortMallocLarge( x )      staticMallocLarge( x )
+#define vPortFreeLarge( ptr )       staticFreeLarge( ptr )
+
+
+
 /*SD:: LPC17xx Driver defines*/
-#define configNUM_RX_DESCRIPTORS  (4)
-#define configNUM_TX_DESCRIPTORS  (3)
+#define configNUM_RX_DESCRIPTORS  (2)// was 4
+#define configNUM_TX_DESCRIPTORS  (2) // was 3
 #define NETWORK_IRQHandler ENET_IRQHandler
 
 
@@ -47,61 +61,45 @@
  * 32-bit memory instructions, all packets will be stored 32-bit-aligned, plus 16-bits.
  * This has to do with the contents of the IP-packets: all 32-bit fields are
  * 32-bit-aligned, plus 16-bit(!) */
-//#define ipconfigPACKET_FILLER_SIZE               ( 2 )   // 2 bytes for 32bit alignment
-#define ipconfigBUFFER_PADDING                  ( 4+2 )
+#define ipconfigPACKET_FILLER_SIZE   ( 2 )   // 2 bytes for 32bit alignment
+#define ipconfigBUFFER_PADDING       ( 32 )
+#define ipconfigTCP_MSS              (512) //SD:: Make this the size of the write buffer to the SDCard
 
 //Enable Zero Copy in the LPC17xx driver 
 #define ipconfigZERO_COPY_RX_DRIVER  ( 1 )
 #define ipconfigZERO_COPY_TX_DRIVER  ( 1 )
 
 /* USE_TCP: Use TCP and all its features */
-#define ipconfigUSE_TCP                ( 1 )
+#define ipconfigUSE_TCP              ( 1 )
 
 /* USE_WIN: Let TCP use windowing mechanism. */
-
-//#define ipconfigUSE_TCP_WIN            ( 1 )
+//#define ipconfigUSE_TCP_WIN        ( 1 )
 //SD:: disable sliding window to save ram
-#define ipconfigUSE_TCP_WIN            ( 0 )
+#define ipconfigUSE_TCP_WIN          ( 0 )
 
 //SD:: Enable the DHCP Hook so we can control if DHCP starts ot not using the RRF config settings, otherwise it will always start if DHCP is set to 1
 #define ipconfigUSE_DHCP_HOOK           ( 1 )
 #define ipconfigDHCP_REGISTER_HOSTNAME  ( 1 )
-
-//SD::: SDCard Access is slow on SPI, so we can save some extra ram by dropping MTU, MSS etc
-//SD::  witout losing any extra upload speed
 
 /* The MTU is the maximum number of bytes the payload of a network frame can
  contain.  For normal Ethernet V2 frames the maximum MTU is 1500.  Setting a
  lower value can save RAM, depending on the buffer management scheme used.  If
  ipconfigCAN_FRAGMENT_OUTGOING_PACKETS is 1 then (ipconfigNETWORK_MTU - 28) must
  be divisible by 8. */
-//#define ipconfigNETWORK_MTU        1200
-//SD::
 #define ipconfigCAN_FRAGMENT_OUTGOING_PACKETS    ( 0 )
-#define ipconfigNETWORK_MTU                      ( 608 ) // 586 Minimum to use DHCP
+#define ipconfigNETWORK_MTU                      ( 586 ) // 586 Minimum to use DHCP
 
-
-//MTU
-//-14  Ethernet header size
-//-20  IP protocol header size
-//-20  TCP protocol header size
-//-12  TCP options bytes
-
-//#define ipconfigTCP_MSS       ( ipconfigNETWORK_MTU-14-20-20-12 )
 
 /* Include support for LLMNR: Link-local Multicast Name Resolution
  (non-Microsoft) */
-//SD:: Disable LLMNR
 #define ipconfigUSE_LLMNR                    ( 0 )
 
 /* Include support for NBNS: NetBIOS Name Service (Microsoft) */
-//SD:: Disable NBNS
 #define ipconfigUSE_NBNS                    ( 0 )
 
 /* Set ipconfigUSE_DNS to 1 to include a basic DNS client/resolver.  DNS is used
  through the FreeRTOS_gethostbyname() API function. */
-//SD:: Disbale DNS
-#define ipconfigUSE_DNS            0
+#define ipconfigUSE_DNS                      0
 
 /* The size, in words (not bytes), of the stack allocated to the FreeRTOS+TCP
  task.  This setting is less important when the FreeRTOS Win32 simulator is used
@@ -116,26 +114,22 @@
  are available to the IP stack.  The total number of network buffers is limited
  to ensure the total amount of RAM that can be consumed by the IP stack is capped
  to a pre-determinable value. */
-//#define ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS        5
 #define ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS configNUM_RX_DESCRIPTORS + configNUM_TX_DESCRIPTORS + 1
 
 /* Each TCP socket has a circular buffers for Rx and Tx, which have a fixed
  maximum size.  Define the size of Rx buffer for TCP sockets. */
-//#define ipconfigTCP_RX_BUFFER_LENGTH            ( 1000 )
-//SD::
-#define ipconfigTCP_RX_BUFFER_LENGTH            ( 2 * ipconfigTCP_MSS  )
+#define ipconfigTCPSOCKET_NUMBER_RX_BUFFERS     (1)
+#define ipconfigTCP_RX_BUFFER_LENGTH            ( ipconfigTCPSOCKET_NUMBER_RX_BUFFERS * ipconfigTCP_MSS  )
 
 /* Define the size of Tx buffer for TCP sockets. */
-//#define ipconfigTCP_TX_BUFFER_LENGTH            ( 1000 )
-//SD::
-#define ipconfigTCP_TX_BUFFER_LENGTH            ( 2 * ipconfigTCP_MSS )
+#define ipconfigTCPSOCKET_NUMBER_TX_BUFFERS     (1)
+#define ipconfigTCP_TX_BUFFER_LENGTH            ( ipconfigTCPSOCKET_NUMBER_TX_BUFFERS * ipconfigTCP_MSS )
 
 /* Define the size of the pool of TCP window descriptors.  On the average, each
  TCP socket will use up to 2 x 6 descriptors, meaning that it can have 2 x 6
  outstanding packets (for Rx and Tx).  When using up to 10 TP sockets
  simultaneously, one could define TCP_WIN_SEG_COUNT as 120. */
 #define ipconfigTCP_WIN_SEG_COUNT        48
-
 
 /* Set to 1 to print out debug messages.  If ipconfigHAS_DEBUG_PRINTF is set to
 1 then FreeRTOS_debug_printf should be defined to the function used to print
@@ -195,7 +189,7 @@ configMAX_PRIORITIES is a standard FreeRTOS configuration parameter defined in
 FreeRTOSConfig.h, not FreeRTOSIPConfig.h. Consideration needs to be given as to
 the priority assigned to the task executing the IP stack relative to the
 priority assigned to tasks that use the IP stack. */
-#define ipconfigIP_TASK_PRIORITY			( configMAX_PRIORITIES - 2 )
+#define ipconfigIP_TASK_PRIORITY			2 //TODO:: this should use value in RTOSIFace  //( configMAX_PRIORITIES - 2 )
 
 
 
@@ -204,8 +198,8 @@ things such as a DHCP transaction number or initial sequence number.  Random
 number generation is performed via this macro to allow applications to use their
 own random number generation method.  For example, it might be possible to
 generate a random number by sampling noise on an analogue input. */
-extern UBaseType_t uxRand();
-#define ipconfigRAND32()	uxRand()
+//extern UBaseType_t uxRand();
+//#define ipconfigRAND32()	uxRand()
 
 /* If ipconfigUSE_NETWORK_EVENT_HOOK is set to 1 then FreeRTOS+TCP will call the
 network event hook at the appropriate times.  If ipconfigUSE_NETWORK_EVENT_HOOK
@@ -351,6 +345,11 @@ disconnecting stage will timeout after a period of non-activity. */
 #define ipconfigTCP_KEEP_ALIVE_INTERVAL		( 20 ) /* in seconds */
 
 #define portINLINE __inline
+
+
+
+//Debugging
+#define ipconfigCHECK_IP_QUEUE_SPACE ( 1 )
 
 
 

@@ -41,18 +41,6 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #include "board.h"
 #include "core.h"
 
-/**************************************************************************************************
-                      EINTconfiguration table(Do not alter uncless required)
-***************************************************************************************************/
-//eintConfig_t EintConfigTable[EINT_MAX] =
-//{  /* userFunPtr  IRQ Name   EINT Pin */
-//        { NULL,      EINT0_IRQn,  P2_10, },
-//        { NULL,      EINT1_IRQn,  P2_11, },
-//        { NULL,      EINT2_IRQn,  P2_12, },
-//        { NULL,      EINT3_IRQn,  P2_13, },
-//};
-/*************************************************************************************************/
-
 
 typedef void (*interruptCB)(CallbackParameter);
 
@@ -69,16 +57,10 @@ struct CallbackEntry{
     InterruptCallback intCallback;
 };
 
-constexpr uint8_t maxCallbacks = 3;
 
-//support only 3 callbacks
-static CallbackEntry callbacks[maxCallbacks] __attribute__((section ("AHBSRAM0")));
-
-
-
-//takes 256 Bytes each
-//static InterruptCallback callbacksGPIO0[32] __attribute__ ((section ("AHBSRAM0"))); // put callbacks array in AHB0
-//static InterruptCallback callbacksGPIO2[32] __attribute__ ((section ("AHBSRAM0")));
+//support only 3 callbacks to save memory
+static CallbackEntry callbacks[MaxExtIntEntries] __attribute__((section ("AHBSRAM0")));
+Pin ExternalInterruptPins[MaxExtIntEntries] = {NoPin, NoPin, NoPin};
 
 
 //Function from WInterrupts from RRF.
@@ -107,13 +89,8 @@ static unsigned int GetHighestBit(uint32_t bits)
     return bitNum;
 }
 
-//SD: added new functions to handle Interrupt in on GPIO
 
-//defined in pins_lpc
-extern const Pin ExternalInterruptPinsPort0Array[32];
-extern const Pin ExternalInterruptPinsPort2Array[32];
-
-bool attachInterrupt(uint32_t pin, void (*callback)(CallbackParameter), enum InterruptMode mode, void *param)
+bool attachInterrupt(Pin pin, void (*callback)(CallbackParameter), enum InterruptMode mode, void *param)
 {
     
     
@@ -129,49 +106,26 @@ bool attachInterrupt(uint32_t pin, void (*callback)(CallbackParameter), enum Int
 
     // Set callback function and parameter
 
-    
+    size_t slot = MaxExtIntEntries;
+    for(size_t i=0; i<MaxExtIntEntries; i++)
+    {
+        if(ExternalInterruptPins[i] == pin){
+            slot = i; //found slot
+            break;
+        }
+    }
+
     //ensure pin is on Port 0 or Port 2
     //Each port pin can be programmed to generate an interrupt on a rising edge, a falling edge, or both.
-    if(portNumber == 0 || portNumber == 2 )
+    if(slot < MaxExtIntEntries && (portNumber == 0 || portNumber == 2) )
     {
-
-        //check if we have it in out array
-        
-        uint8_t slot;
-        if(portNumber == 0 && ExternalInterruptPinsPort0Array[var_pinNumber_u8] != 0){
-            slot = ExternalInterruptPinsPort0Array[var_pinNumber_u8] - 1;
-            
-        } else if (portNumber == 2 && ExternalInterruptPinsPort2Array[var_pinNumber_u8] != 0){
-            slot = ExternalInterruptPinsPort2Array[var_pinNumber_u8] - 1;
-        }else {
-            return false; // this pin not defined to handle ext interrupts
-        }
-
         const irqflags_t flags = cpu_irq_save();
 
-     
-        NVIC_EnableIRQ(EINT3_IRQn); // GPIO interrupts on P0 and P2 trigger EINT3 handler
-
-        
-//        if(portNumber == 0)
-//        {
-//            callbacksGPIO0[var_pinNumber_u8].func = callback;
-//            callbacksGPIO0[var_pinNumber_u8].param = param;
-//        }
-//        else if(portNumber == 2)
-//        {
-//            callbacksGPIO2[var_pinNumber_u8].func = callback;
-//            callbacksGPIO2[var_pinNumber_u8].param = param;
-//        }
-
-        
         callbacks[slot].intCallback.func = callback;
         callbacks[slot].intCallback.param = param;
+        
+        NVIC_EnableIRQ(EINT3_IRQn); // GPIO interrupts on P0 and P2 trigger EINT3 handler
 
-
-        
-        
-        
         switch(mode)
         {
             case INTERRUPT_MODE_LOW:
@@ -225,8 +179,6 @@ bool attachInterrupt(uint32_t pin, void (*callback)(CallbackParameter), enum Int
 
         cpu_irq_restore(flags);
         
-
-        
     } else {
         
         return false; // no interrupts avail on this pin
@@ -237,7 +189,7 @@ bool attachInterrupt(uint32_t pin, void (*callback)(CallbackParameter), enum Int
 }
 
 
-void detachInterrupt(uint32_t pin){
+void detachInterrupt(Pin pin){
  
     uint8_t portNumber;
     uint8_t var_pinNumber_u8;
@@ -277,57 +229,10 @@ __attribute__( ( always_inline ) ) static inline uint32_t __get_IPSR(void)
 // Return true if we are in any interrupt service routine
 bool inInterrupt()
 {
-    //return (__get_IPSR() & 0x01FF) != 0;
-    
     //bits 0:8 are the ISR_NUMBER
     //bits 9:31 reserved
-    
     return (__get_IPSR() & 0xFF) != 0;
 }
-
-
-
-
-
-
-/***************************************************************************************************
-                            EINTx ISR's
-*****************************************************************************************************
- desc: The four ISR's will be called independently whenever the interrupt is detected on EITx pins.
-
-       The ISR will clear the Interrupt bit as it is being served.(Setting the bit will clear the Corresponding ISR Bit)
-       If the user CallBack Function is configured then it will be called. 
-
-*****************************************************************************************************/
-//extern "C" void EINT0_IRQHandler(void)
-//{
-//    util_BitSet(LPC_SC->EXTINT, EINT0);  /* Clear Interrupt Flag */
-//    if(EintConfigTable[EINT0].userFunction != NULL)
-//    {
-//        EintConfigTable[EINT0].userFunction();
-//    }
-//}
-//
-//
-//extern "C" void EINT1_IRQHandler(void)
-//{
-//    util_BitSet(LPC_SC->EXTINT, EINT1);  /* Clear Interrupt Flag */
-//    if(EintConfigTable[EINT1].userFunction != NULL)
-//    {
-//        EintConfigTable[EINT1].userFunction();
-//    }
-//}
-//
-//
-//extern "C" void EINT2_IRQHandler(void)
-//{
-//    util_BitSet(LPC_SC->EXTINT, EINT2);  /* Clear Interrupt Flag */
-//    if(EintConfigTable[EINT2].userFunction != NULL)
-//    {
-//        EintConfigTable[EINT2].userFunction();
-//    }
-//}
-//
 
 extern "C" void EINT3_IRQHandler(void)
 {
@@ -344,17 +249,23 @@ extern "C" void EINT3_IRQHandler(void)
         const unsigned int pos0 = GetHighestBit(isr0);
         LPC_GPIOINT->IO0IntClr |= (1 << pos0); // clear the status
         
-        uint8_t slot = ExternalInterruptPinsPort0Array[pos0] - 1;
+        //Find the slot for this pin
+        const Pin pin= (Pin)(pos0);// port 0, this is just the pin number
+        size_t slot = MaxExtIntEntries;
+        for(size_t i=0; i<MaxExtIntEntries; i++)
+        {
+            if(ExternalInterruptPins[i] == pin){
+                slot = i; //found slot
+                break;
+            }
+        }
         
-        if(callbacks[slot].intCallback.func != NULL)
+        if(slot < MaxExtIntEntries && callbacks[slot].intCallback.func != NULL)
         {
             callbacks[slot].intCallback.func(callbacks[slot].intCallback.param);
 
         }
-//        if (callbacksGPIO0[pos0].func != nullptr)
-//        {
-//            callbacksGPIO0[pos0].func(callbacksGPIO0[pos0].param);
-//        }
+
         isr0 &= ~(1u << pos0);
     }
     //port 2
@@ -363,15 +274,24 @@ extern "C" void EINT3_IRQHandler(void)
         const unsigned int pos2 = GetHighestBit(isr2);
         LPC_GPIOINT->IO2IntClr |= (1 << pos2); // clear the status
 
-        uint8_t slot = ExternalInterruptPinsPort0Array[pos2] - 1;
-        if(callbacks[slot].intCallback.func != NULL)
+        //Find the slot for this pin
+        const Pin pin = (Pin) ((2 << 5) | (pos2));// pin on port 2
+        size_t slot = MaxExtIntEntries;
+        for(size_t i=0; i<MaxExtIntEntries; i++)
+        {
+            if(ExternalInterruptPins[i] == pin){
+                slot = i; //found slot
+                break;
+            }
+        }
+
+        
+        if(slot < MaxExtIntEntries && callbacks[slot].intCallback.func != NULL)
         {
             callbacks[slot].intCallback.func(callbacks[slot].intCallback.param);
         }
-//        if (callbacksGPIO2[pos2].func != nullptr)
-//        {
-//            callbacksGPIO2[pos2].func(callbacksGPIO2[pos2].param);
-//        }
+
+
         isr0 &= ~(1u << pos2);
     }
 

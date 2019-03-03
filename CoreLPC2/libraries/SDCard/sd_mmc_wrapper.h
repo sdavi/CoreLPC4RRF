@@ -4,7 +4,9 @@
 #include "Core.h"
 
 
-#define _DRIVES 2 // Support 2 cards (one on each SSP slot)
+//#define _DRIVES 2 // Support 2 cards (one on each SSP slot)
+constexpr size_t _DRIVES = 2;
+
 
 typedef uint8_t sd_mmc_err_t; //!< Type of return error code
 
@@ -34,6 +36,9 @@ uint32_t sd_mmc_get_capacity(uint8_t slot);
 card_type_t sd_mmc_get_type(uint8_t slot);
 void sd_mmc_unmount(uint8_t slot);
 uint32_t sd_mmc_get_interface_speed(uint8_t slot);
+
+
+void sd_mmc_reinit_slot(uint8_t slot, Pin csPin, uint32_t spiFrequency);
 
 
 #endif

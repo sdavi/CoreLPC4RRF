@@ -127,6 +127,8 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
      //SD: adapted for LPC
  extern "C" void pinModeDuet(Pin pin, enum PinMode ulMode, uint32_t debounceCutoff)
  {
+     if(pin == NoPin) return;
+     
      const PinDescription& pinDesc = g_APinDescription[pin];
 
      switch (ulMode)
@@ -198,12 +200,13 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
      
 extern "C" void digitalWrite( Pin pin, bool dwVal )
 {
-    GPIO_PinWrite(pin,dwVal);
+    if(pin != NoPin) GPIO_PinWrite(pin,dwVal);
 }
 
 extern "C" bool digitalRead( Pin pin )
 {
-    return GPIO_PinRead(pin);
+    if(pin != NoPin) return GPIO_PinRead(pin);
+    else return 0;
 }
 
 extern "C" void setPullup(Pin pin, bool en){

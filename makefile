@@ -1,11 +1,10 @@
 PROCESSOR = LPC17xx
 
-#BOARD = AZTEEGX5MINI
-#BOARD = SMOOTHIEBOARD
-#BOARD = REARM
-#BOARD = AZSMZ
-#BOARD = MKSBASE
-BOARD = MBED
+
+#Enable when debugging on MBED to swap serial and USB 
+#and select direct ld script
+MBED = true
+
 BUILD_DIR = $(PWD)/build
 
 #BUILD = Debug
@@ -14,6 +13,9 @@ BUILD = Release
 #compile in Ethernet Networking?
 NETWORKING = true
 #NETWORKING = false
+
+#ESP Networking
+#ESP_NETWORKING = true
 
 
 #enable DFU
@@ -51,17 +53,14 @@ RTOS_CONFIG_INCLUDE = FreeRTOSConfig
 
 
 OUTPUT_NAME=firmware
-$(info Saving Binary to $(OUTPUT_NAME))
 
-ifeq ($(BOARD), AZTEEGX5MINI)
-	NETWORKING = false #AzteegX5Mini has no Networking, Ensure its disabled
-endif
-$(info Building Network Support: $(NETWORKING))
+$(info  - Firmware Filename:  $(OUTPUT_NAME).bin)
+$(info  - Building Network Support: $(NETWORKING))
 
 
 
 ifeq ($(BUILD),Debug)
-	DEBUG_FLAGS = -Og -g -gdwarf-3
+	DEBUG_FLAGS = -Og -g
 else
 	DEBUG_FLAGS = -Os#-O2
 endif
@@ -69,7 +68,7 @@ endif
 
 
 #select correct linker script
-ifeq ($(BOARD), MBED)
+ifeq ($(MBED), true)
 	#No bootloader for MBED
 	LINKER_SCRIPT_BASE = $(CORE)/variants/LPC/linker_scripts/gcc/LPC17xx_direct
 else 
@@ -80,14 +79,20 @@ endif
 
 #Path to the linker Script
 LINKER_SCRIPT  = $(LINKER_SCRIPT_BASE)_combined.ld
-
+$(info  - Linker Script used: $(LINKER_SCRIPT))
 
 
 MKDIR = mkdir -p
 
 
 #Flags common for Core in c and c++
-FLAGS  = -D__$(PROCESSOR)__ -D__$(BOARD)__ -DCORE_M3 -D_XOPEN_SOURCE
+FLAGS  = -D__$(PROCESSOR)__ -DCORE_M3 -D_XOPEN_SOURCE
+
+ifeq ($(MBED), true)
+$(info Building for MBED)
+	FLAGS += -D__MBED__
+endif
+
 #lpcopen Defines
 FLAGS += -DCORE_M3
 #RTOS + enable mods to RTOS+TCP for RRF
@@ -98,7 +103,9 @@ FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant
 FLAGS += $(DEBUG_FLAGS)
 FLAGS += -MMD -MP 
 
-ifeq ($(NETWORKING), true)
+ifeq ($(ESP_NETWORKING), true)
+	FLAGS += -DESP_NETWORKING -DHAS_ESP32_NETWORKING
+else ifeq ($(NETWORKING), true)
         FLAGS += -DLPC_NETWORKING
 endif
 
@@ -191,11 +198,11 @@ RTOSPLUS_TCP_NI_SRC    += $(RTOSPLUS_TCP_SRC)/portable/NetworkInterface/LPC17xx
 RTOSPLUS_CORE_OBJ_SRC_C  += $(foreach src, $(RTOSPLUS_TCP_NI_SRC), $(wildcard $(src)/*.c) )
 
 
-CORE_OBJS += $(patsubst %.c,$(BUILD_DIR)/%.o,$(RTOSPLUS_CORE_OBJ_SRC_C))
-
-#RTOS+TCP Includes
-CORE_INCLUDES   += -I$(RTOSPLUS_TCP_INCLUDE) -I$(RTOSPLUS_TCP_INCLUDE)
-
+ifeq ($(NETWORKING), true)
+	CORE_OBJS += $(patsubst %.c,$(BUILD_DIR)/%.o,$(RTOSPLUS_CORE_OBJ_SRC_C))
+	#RTOS+TCP Includes
+	CORE_INCLUDES   += -I$(RTOSPLUS_TCP_INCLUDE) -I$(RTOSPLUS_TCP_INCLUDE)
+endif
 
 
 
@@ -205,13 +212,16 @@ RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries
 RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel
 RRF_SRC_DIRS += LPC LPC/MCP4461
 
-#biuld in LCD Support? only when networking is false
+RRF_SRC_DIRS += Display Display/ST7920
+
+#build in LCD Support? only when networking is false
 #networking support?
-ifeq ($(NETWORKING), true)
+ifeq ($(ESP_NETWORKING), true)
+	RRF_SRC_DIRS += LPC/ESPNetworking LPC/ESPNetworking/ESP32Interface
+else ifeq ($(NETWORKING), true)
 	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet
 else
 	RRF_SRC_DIRS += LPC/NoNetwork
-	RRF_SRC_DIRS += Display Display/ST7920
 endif
 
 #Find the c and cpp source files
@@ -257,26 +267,27 @@ coreLPC: $(BUILD_DIR)/core.a
 
 $(BUILD_DIR)/core.a: $(CORE_OBJS)
 
-	@echo Building core.a
+	@echo "\nBuilt LPCCore"
 	$(V)$(AR) rcs $@ $(CORE_OBJS)
 
 
 $(BUILD_DIR)/$(OUTPUT_NAME).elf: $(BUILD_DIR)/core.a $(RRF_OBJS) 
-	@echo Building ELF and BIN
+	@echo "\nCreating $(OUTPUT_NAME).bin"
 	$(V)$(MKDIR) $(dir $@)
-	$(V)$(LD) -L$(BUILD_DIR)/ -Os --specs=nano.specs -u _printf_float -u _scanf_float -Wl,--warn-section-align -Wl,--gc-sections -Wl,--fatal-warnings -march=armv7-m -mcpu=cortex-m3 -T$(LINKER_SCRIPT) -Wl,-Map,$(OUTPUT_NAME).map -o $(OUTPUT_NAME).elf  -mthumb -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-unresolved-symbols -Wl,--start-group $(BUILD_DIR)/$(CORE)/cores/arduino/syscalls.o $(BUILD_DIR)/core.a $(RRF_OBJS) -Wl,--end-group -lm
+	$(V)$(LD) -L$(BUILD_DIR)/ -L$(CORE)/variants/LPC/linker_scripts/gcc/ -Os --specs=nano.specs -u _printf_float -u _scanf_float -Wl,--warn-section-align -Wl,--gc-sections -Wl,--fatal-warnings -march=armv7-m -mcpu=cortex-m3 -T$(LINKER_SCRIPT) -Wl,-Map,$(OUTPUT_NAME).map -o $(OUTPUT_NAME).elf  -mthumb -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-unresolved-symbols -Wl,--start-group $(BUILD_DIR)/$(CORE)/cores/arduino/syscalls.o $(BUILD_DIR)/core.a $(RRF_OBJS) -Wl,--end-group -lm
 	$(V)$(OBJCOPY) --strip-unneeded -O binary $(OUTPUT_NAME).elf $(OUTPUT_NAME).bin
 	$(V)$(SIZE) $(OUTPUT_NAME).elf
 
 	@./staticMemStats.sh 
 
 $(BUILD_DIR)/%.o: %.c
-	@echo "[$(CC): Compiling $<]"
+	@/bin/echo -n "." #@echo "[$(CC): Compiling $<]"
 	$(V)$(MKDIR) $(dir $@)
 	$(V)$(CC)  $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -o $@ $<
 	
 $(BUILD_DIR)/%.o: %.cpp
-	@echo "[$(CXX): Compiling $<]"
+	@/bin/echo -n "."
+#@echo "[$(CXX): Compiling $<]"
 	$(V)$(MKDIR) $(dir $@)
 	$(V)$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -o $@ $<
 
