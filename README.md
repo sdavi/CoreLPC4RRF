@@ -4,7 +4,7 @@ This is an experimental port of DC42's [CoreNG](https://github.com/dc42/CoreNG) 
 
 **The LPC port is experimental and are likely to contain bugs - Use at your own risk - All configuration/settings etc should be checked in the source code to ensure they are correct**
 
-Experimental binaries can be found [here](https://github.com/sdavi/CoreLPC4RRF/tree/master/EdgeRelease).
+Experimental binaries can be found [here](https://github.com/sdavi/RepRapFirmware/tree/v2-dev-lpc/EdgeRelease).
 
 ## Compiling RepRapFirmware for LPC
 

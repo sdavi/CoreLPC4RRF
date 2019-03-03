@@ -25,7 +25,7 @@
 #define NumberSockets 2
 #define MemBlocks (ipconfigTCPSOCKET_NUMBER_RX_BUFFERS+ipconfigTCPSOCKET_NUMBER_TX_BUFFERS) * NumberSockets
 
-//SD:: Create a static array of the same data size requested from FreeRTOS_Sockets.c assusing 1*MSS buffer size
+//SD:: Create a static array of the same data size requested from FreeRTOS_Sockets.c
 
 //Following is in FreeRTOS_Sockets.c
 //StreamBuffer_t *pxBuffer
@@ -44,7 +44,7 @@ struct dataBlock_t{
     uint8_t data[TCPDataSizeRequested];
 };
 
-static struct dataBlock_t tcpData[MemBlocks] = {0};
+static __attribute__ ((used,section("AHBSRAM0"))) struct dataBlock_t tcpData[MemBlocks] = {0};
 
 
 
