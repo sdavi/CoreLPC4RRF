@@ -41,7 +41,9 @@
 
 
 //SD: Enable this to enable Networking Driver to collect stats on all the errors
-//#define COLLECT_NETDRIVER_ERROR_STATS 1
+//Debugging
+#define ipconfigCHECK_IP_QUEUE_SPACE ( 1 )
+#define COLLECT_NETDRIVER_ERROR_STATS 1
 
 //SD:: Added functions for allocation static block of memory for TCP Buffers
 //SD:: See StaticNetworkMemoryAllocator.c
@@ -62,7 +64,7 @@
  * This has to do with the contents of the IP-packets: all 32-bit fields are
  * 32-bit-aligned, plus 16-bit(!) */
 #define ipconfigPACKET_FILLER_SIZE   ( 2 )   // 2 bytes for 32bit alignment
-#define ipconfigBUFFER_PADDING       ( 32 )
+#define ipconfigBUFFER_PADDING       ( 8 )
 #define ipconfigTCP_MSS              (512) //SD:: Make this the size of the write buffer to the SDCard
 
 //Enable Zero Copy in the LPC17xx driver 
@@ -73,8 +75,6 @@
 #define ipconfigUSE_TCP              ( 1 )
 
 /* USE_WIN: Let TCP use windowing mechanism. */
-//#define ipconfigUSE_TCP_WIN        ( 1 )
-//SD:: disable sliding window to save ram
 #define ipconfigUSE_TCP_WIN          ( 0 )
 
 //SD:: Enable the DHCP Hook so we can control if DHCP starts ot not using the RRF config settings, otherwise it will always start if DHCP is set to 1
@@ -101,14 +101,6 @@
  through the FreeRTOS_gethostbyname() API function. */
 #define ipconfigUSE_DNS                      0
 
-/* The size, in words (not bytes), of the stack allocated to the FreeRTOS+TCP
- task.  This setting is less important when the FreeRTOS Win32 simulator is used
- as the Win32 simulator only stores a fixed amount of information on the task
- stack.  FreeRTOS includes optional stack overflow detection, see:
- http://www.freertos.org/Stacks-and-stack-overflow-checking.html */
-//#define ipconfigIP_TASK_STACK_SIZE_WORDS    ( configMINIMAL_STACK_SIZE * 5 )
-//SD::
-#define ipconfigIP_TASK_STACK_SIZE_WORDS    ( 150 /*240*/ ) // around 240 if using debug printf
 
 /* ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS defines the total number of network buffer that
  are available to the IP stack.  The total number of network buffers is limited
@@ -138,8 +130,7 @@ extern void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1,
 
 #define ipconfigHAS_DEBUG_PRINTF	0
 #if( ipconfigHAS_DEBUG_PRINTF == 1 )
-	//#define FreeRTOS_debug_printf(X)	vLoggingPrintf X
-#define FreeRTOS_debug_printf(X)    debugPrintf X
+    #define FreeRTOS_debug_printf(X)    debugPrintf X
 #endif
 
 /* Set to 1 to print out non debugging messages, for example the output of the
@@ -159,7 +150,7 @@ on).  Valid options are pdFREERTOS_BIG_ENDIAN and pdFREERTOS_LITTLE_ENDIAN. */
 /* If the network card/driver includes checksum offloading (IP/TCP/UDP checksums)
 then set ipconfigDRIVER_INCLUDED_RX_IP_CHECKSUM to 1 to prevent the software
 stack repeating the checksum calculations. */
-#define ipconfigDRIVER_INCLUDED_RX_IP_CHECKSUM   1
+#define ipconfigDRIVER_INCLUDED_RX_IP_CHECKSUM   0
 
 /* Several API's will block until the result is known, or the action has been
 performed, for example FreeRTOS_send() and FreeRTOS_recv().  The timeouts can be
@@ -191,15 +182,6 @@ the priority assigned to the task executing the IP stack relative to the
 priority assigned to tasks that use the IP stack. */
 #define ipconfigIP_TASK_PRIORITY			2 //TODO:: this should use value in RTOSIFace  //( configMAX_PRIORITIES - 2 )
 
-
-
-/* ipconfigRAND32() is called by the IP stack to generate random numbers for
-things such as a DHCP transaction number or initial sequence number.  Random
-number generation is performed via this macro to allow applications to use their
-own random number generation method.  For example, it might be possible to
-generate a random number by sampling noise on an analogue input. */
-//extern UBaseType_t uxRand();
-//#define ipconfigRAND32()	uxRand()
 
 /* If ipconfigUSE_NETWORK_EVENT_HOOK is set to 1 then FreeRTOS+TCP will call the
 network event hook at the appropriate times.  If ipconfigUSE_NETWORK_EVENT_HOOK
@@ -345,13 +327,6 @@ disconnecting stage will timeout after a period of non-activity. */
 #define ipconfigTCP_KEEP_ALIVE_INTERVAL		( 20 ) /* in seconds */
 
 #define portINLINE __inline
-
-
-
-//Debugging
-#define ipconfigCHECK_IP_QUEUE_SPACE ( 1 )
-
-
 
 
 #endif /* FREERTOS_IP_CONFIG_H */

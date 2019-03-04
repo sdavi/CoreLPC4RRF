@@ -237,7 +237,7 @@ static uint32_t ulPHYLinkStatus = 0;
 
 /* Tx descriptors and index. */
 //SD:TX Descriptors and Statuses
-//SD:: Manual states that base address of Descriptors are to be 4 byte aligned. Base address of statuses are to be 8 byte aigned
+//SD:: Manual states that base address of Descriptors are to be 4 byte aligned. Base address of statuses are to be 8 byte aligned
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_TXDESC_T xDMATxDescriptors[ configNUM_TX_DESCRIPTORS ] __attribute__ ( ( aligned( 4 ) ) );
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_TXSTAT_T xDMATxStatuses[ configNUM_TX_DESCRIPTORS ] __attribute__ ( ( aligned( 8 ) ) );
 
@@ -250,9 +250,6 @@ static uint32_t ulTxDescriptorToClear;
 //SD:RX Descriptors and Statuses are seperated
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_RXDESC_T xDMARxDescriptors[ configNUM_RX_DESCRIPTORS ] __attribute__ ( ( aligned( 4 ) ) );
 static __attribute__ ((used,section("AHBSRAM0"))) ENET_RXSTAT_T xDMARxStatuses[ configNUM_RX_DESCRIPTORS ] __attribute__ ( ( aligned( 8 ) ) );
-
-
-static uint32_t ulNextRxDescriptorToProcess;
 
 /* Must be defined externally - the demo applications define this in main.c. */
 extern uint8_t ucMACAddress[ 6 ];
@@ -520,7 +517,8 @@ const TickType_t xBlockTimeTicks = pdMS_TO_TICKS( 50 );
             //ENET_TCTRL_CRC           Append a hardware CRC to Frame
             //ENET_TCTRL_LAST          Last Descriptor for TX Frame
             //ENET_TCTRL_INT           Generate TxDone Interrupt
-            xDMATxDescriptors[produceIndex].Control = ENET_TCTRL_SIZE(pxDescriptor->xDataLength) | ENET_TCTRL_INT | ENET_TCTRL_LAST; // size and generate interrupt and last descriptor (SD::last cause tcpip library is handing the packetisation and we will always get a size which fits our MTU)
+            xDMATxDescriptors[produceIndex].Control = ENET_TCTRL_SIZE(pxDescriptor->xDataLength) | ENET_TCTRL_INT  | ENET_TCTRL_CRC | ENET_TCTRL_LAST; // size and generate interrupt and last descriptor (SD::last cause tcpip library is handing the packetisation and we will always get a size which fits our MTU)
+            
             Chip_ENET_IncTXProduceIndex(LPC_ETHERNET); //trigger buffer to transmit...increase the TXProduceIndex
             
             /* This descriptor is given back to the DMA. */
@@ -612,9 +610,6 @@ BaseType_t x;
 	NetworkBufferDescriptor_t *pxNetworkBuffer;
 #endif
     
-    /* Index to the next Rx descriptor to use. */
-    ulNextRxDescriptorToProcess = 0;
-
     /* Clear RX descriptor list. */
     memset( ( void * )  xDMARxDescriptors, 0, sizeof( xDMARxDescriptors ) );
     memset( ( void * )  xDMARxStatuses, 0, sizeof( xDMARxStatuses ) );
@@ -723,7 +718,6 @@ static BaseType_t prvNetworkInterfaceInput()
     uint32_t ulStatus;
     eFrameProcessingResult_t eResult;
     const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS( 250 );
-    //const UBaseType_t uxMinimumBuffersRemaining = 3UL;
     const UBaseType_t uxMinimumBuffersRemaining = configNUM_TX_DESCRIPTORS;
 
     uint16_t usLength;
@@ -734,11 +728,13 @@ static BaseType_t prvNetworkInterfaceInput()
     IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
 
     uint16_t produceIdx = Chip_ENET_GetRXProduceIndex(LPC_ETHERNET);
-
-    if (Chip_ENET_GetBufferStatus(LPC_ETHERNET, produceIdx, ulNextRxDescriptorToProcess, configNUM_RX_DESCRIPTORS) != ENET_BUFF_EMPTY)
+    
+    if (!Chip_ENET_IsRxEmpty(LPC_ETHERNET))
     {
+        uint16_t consumeIdx = Chip_ENET_GetRXConsumeIndex(LPC_ETHERNET);
+
         //packet is waiting to be processed
-        ulStatus = xDMARxStatuses[ ulNextRxDescriptorToProcess ].StatusInfo; //get status about packet
+        ulStatus = xDMARxStatuses[ consumeIdx ].StatusInfo; //get status about packet
 
 #if defined(COLLECT_NETDRIVER_ERROR_STATS)
         if(ulStatus & ENET_RINFO_CRC_ERR ) numNetworkCRCErrors++;
@@ -758,7 +754,7 @@ static BaseType_t prvNetworkInterfaceInput()
         {
             xResult++;
 
-            eResult = ipCONSIDER_FRAME_FOR_PROCESSING( ( const uint8_t * const ) ( xDMARxDescriptors[ ulNextRxDescriptorToProcess ].Packet ) );
+            eResult = ipCONSIDER_FRAME_FOR_PROCESSING( ( const uint8_t * const ) ( xDMARxDescriptors[ consumeIdx ].Packet ) );
 
             if( eResult == eProcessBuffer )
             {
@@ -794,8 +790,8 @@ static BaseType_t prvNetworkInterfaceInput()
                     #if( ipconfigZERO_COPY_RX_DRIVER != 0 )
                     {
                         /* Replace the character buffer 'Packet'. */
-                        pucBuffer = ( const uint8_t * const ) ( xDMARxDescriptors[ ulNextRxDescriptorToProcess ].Packet );
-                        xDMARxDescriptors[ ulNextRxDescriptorToProcess ].Packet = ( uint32_t ) pxNewDescriptor->pucEthernetBuffer;
+                        pucBuffer = ( const uint8_t * const ) ( xDMARxDescriptors[ consumeIdx ].Packet );
+                        xDMARxDescriptors[ consumeIdx ].Packet = ( uint32_t ) pxNewDescriptor->pucEthernetBuffer;
 
                         /* 'Packet' contained the address of a 'pucEthernetBuffer' that
                         belongs to a Network Buffer.  Find the original Network Buffer. */
@@ -819,7 +815,7 @@ static BaseType_t prvNetworkInterfaceInput()
                         #if( ipconfigZERO_COPY_RX_DRIVER == 0 )
                         {
                             /* Copy the data into the allocated buffer. */
-                            memcpy( ( void * ) pxDescriptor->pucEthernetBuffer, ( void * ) xDMARxDescriptors[ ulNextRxDescriptorToProcess ].Packet, usLength );
+                            memcpy( ( void * ) pxDescriptor->pucEthernetBuffer, ( void * ) xDMARxDescriptors[ consumeIdx ].Packet, usLength );
                         }
                         #endif /* ipconfigZERO_COPY_RX_DRIVER */
                         /* It is possible that more data was copied than
@@ -862,17 +858,11 @@ static BaseType_t prvNetworkInterfaceInput()
          back to the DMA. */
 
         //reset the StatusInfo and HashCRC
-        xDMARxStatuses[ ulNextRxDescriptorToProcess ].StatusInfo = 0xFFFFFFFF;
-        xDMARxStatuses[ ulNextRxDescriptorToProcess ].StatusHashCRC = 0xFFFFFFFF;
+        xDMARxStatuses[ consumeIdx ].StatusInfo = 0xFFFFFFFF;
+        xDMARxStatuses[ consumeIdx ].StatusHashCRC = 0xFFFFFFFF;
         
         Chip_ENET_IncRXConsumeIndex(LPC_ETHERNET); //Update consume index
 
-        /* Move onto the next descriptor. */
-        ulNextRxDescriptorToProcess++;
-        if( ulNextRxDescriptorToProcess >= configNUM_RX_DESCRIPTORS )
-        {
-            ulNextRxDescriptorToProcess = 0;
-        }
     }
     else{
 
@@ -1161,8 +1151,5 @@ static void prvEMACHandlerTask( void *pvParameters )
         }
     }
 }
-
-
-
 
 /*-----------------------------------------------------------*/
