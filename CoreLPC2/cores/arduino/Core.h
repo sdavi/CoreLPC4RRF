@@ -140,6 +140,9 @@ enum SSPChannel {
 #include "variant.h"
 
 
+#ifndef __STATIC_INLINE
+ #define __STATIC_INLINE  static inline
+#endif
 #endif /* __ARDUINO_H__ */
 
 /*lint -restore */
