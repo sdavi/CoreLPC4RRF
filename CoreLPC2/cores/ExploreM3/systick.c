@@ -215,20 +215,30 @@ uint64_t millis64( void ){
 
 
 
-#ifdef RTOS
-void vApplicationTickHook(void)
-#else
-void SysTick_Handler(void)
-#endif
+//#ifdef RTOS
+//void vApplicationTickHook(void)
+//#else
+//void SysTick_Handler(void)
+//#endif
+//{
+//    V_SysTickMiliSecCount_U32++;
+//    V_SysTickMiliSecCount_U64++;
+//
+//    sysTickHook();
+//
+//    wdt_restart(WDT);                            // kick the watchdog
+//
+//}
+
+void CoreSysTick(void)
 {
+    const irqflags_t flags = cpu_irq_save();    // save and disable interrupts, because under RTOS the systick interrupt is low priority
     V_SysTickMiliSecCount_U32++;
     V_SysTickMiliSecCount_U64++;
-
-    sysTickHook();
-
-    wdt_restart(WDT);                            // kick the watchdog
+    cpu_irq_restore(flags);
 
 }
+
 
 /*************************************************************************************************
                                     END of  ISR's 

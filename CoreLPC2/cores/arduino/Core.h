@@ -28,6 +28,8 @@ extern void loop();
 extern void setup();
 extern void init( void );
 
+extern "C" void CoreSysTick(void);
+
 typedef gpioPins_et Pin;
 static const Pin NoPin = P_NC; //which =0xff
 
