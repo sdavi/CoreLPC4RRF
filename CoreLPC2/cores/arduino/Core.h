@@ -9,12 +9,10 @@
 #include <math.h>
 
 #include "stdutils.h"
-//#include "bit_constants.h"
 #include "gpio.h"
 #include "adc.h"
 #include "systick.h"
 #include "timer.h"
-//#include "uart.h"
 #include "delay.h"
 #include "reset.h"
 
@@ -30,30 +28,27 @@ extern void loop();
 extern void setup();
 extern void init( void );
 
-
-
-//SD: Added for compatibility with RRF
-//typedef uint8_t Pin;
-//static const Pin NoPin = 0xFF;
 typedef gpioPins_et Pin;
 static const Pin NoPin = P_NC; //which =0xff
 
 #include "exti.h"
 #include "board.h"
 #include "wiring_digital.h"
-//#include "wiring_analog.h"
 #include "wirish_time.h"
 #include "wdt.h"
 
 #ifdef __cplusplus
-extern "C"{
-#endif // __cplusplus
 
-    
-#ifdef __cplusplus
-} // extern "C"
+// Pin Attributes to be OR-ed
+constexpr uint8_t PIN_ATTR_NONE = 0;
+constexpr uint8_t PIN_ATTR_COMBO = 1 << 0;
+constexpr uint8_t PIN_ATTR_ANALOG = 1 << 1;
+constexpr uint8_t PIN_ATTR_DIGITAL = 1 << 2;
+constexpr uint8_t PIN_ATTR_PWM = 1 << 3;
+constexpr uint8_t PIN_ATTR_TIMER = 1 << 4;
+constexpr uint8_t PIN_ATTR_DAC = 1 << 5;
 
-    
+
 // Usage:
 // 1. Enable the channels you need by making calls to AnalogEnableChannel.
 // 2. If desired, call AnalogSetCallback to set a callback for when conversion is complete.
@@ -61,7 +56,7 @@ extern "C"{
 // 4. Either use the callback to determine when conversion is complete, or call AnalogCheckReady to poll the status.
 // 5. Call AnalogReadChannel to read the most recent converted result for each channel of interest.
 
-enum AnalogChannelNumber
+enum AnalogChannelNumber : int8_t
 {
     NO_ADC=-1,
     ADC0=0,
@@ -75,7 +70,7 @@ enum AnalogChannelNumber
 };
 
 // Definitions for PWM channels
-typedef enum _EPWMChannel
+enum EPWMChannel : int8_t
 {
     NOT_ON_PWM=-1,
     PWM1_1=0,
@@ -84,33 +79,25 @@ typedef enum _EPWMChannel
     PWM1_4,
     PWM1_5,
     PWM1_6,
-} EPWMChannel ;
-
-// Pin Attributes to be OR-ed
-#define PIN_ATTR_NONE        (0UL)
-#define PIN_ATTR_COMBO        (1UL<<0)
-#define PIN_ATTR_ANALOG        (1UL<<1)
-#define PIN_ATTR_DIGITAL    (1UL<<2)
-#define PIN_ATTR_PWM        (1UL<<3)
-#define PIN_ATTR_TIMER        (1UL<<4)
-#define PIN_ATTR_DAC        (1UL<<5)
+}  ;
 
 
-//cut down version
 struct PinDescription{
     uint8_t pPort;
-    //uint32_t ulPin;
-    //uint32_t ulPeripheralId;
-    //pio_type_t ulPinType;
-    //uint32_t ulPinConfiguration;
-    uint32_t ulPinAttribute;
+    uint8_t ulPinAttribute;
     AnalogChannelNumber ulADCChannelNumber; // ADC or DAC channel number
     EPWMChannel ulPWMChannel;
-    //ETCChannel ulTCChannel;
+    
+    //added for RRF 3.0
+    Pin pin;
+    const char *names;
+    
+    
 };
 
 /* Pins table to be instantiated into variant.cpp */
-extern const PinDescription g_APinDescription[];
+constexpr uint32_t MaxPinNumber = 160;// 5*32
+extern const PinDescription g_APinDescription[MaxPinNumber];
 
 
 enum SSPChannel {
@@ -121,16 +108,12 @@ enum SSPChannel {
 
 
 
-//#include "platform_memory.h"
 #include "new.h"
 #include "WCharacter.h"
 #include "HardwareSerial.h"
 #include "Stream.h"
-//#include "eeprom.h"
-
 #include "usb_serial.h"
 #include "WMath.h"
-
 #include "AnalogIn.h"
 #include "AnalogOut.h"
 
@@ -143,6 +126,8 @@ enum SSPChannel {
 #ifndef __STATIC_INLINE
  #define __STATIC_INLINE  static inline
 #endif
+
+
 #endif /* __ARDUINO_H__ */
 
 /*lint -restore */

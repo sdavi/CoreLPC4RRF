@@ -16,8 +16,8 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _VARIANT_ARDUINO_DUE_X_
-#define _VARIANT_ARDUINO_DUE_X_
+#ifndef _VARIANT_LPC
+#define _VARIANT_LPC
 
 /*----------------------------------------------------------------------------
  *        Headers
@@ -26,48 +26,21 @@
 #include "Core.h"
 #include "gpio.h"
 
-
-/*----------------------------------------------------------------------------
- *        Definitions
- *----------------------------------------------------------------------------*/
-
-
-
-
-/** Frequency of the board main oscillator */
-//#define VARIANT_MAINOSC		12000000  // 12MHz
-
-/** Master clock frequency */
-//#define VARIANT_MCK			100000000
-#define F_CPU   (SystemCoreClock)
+#ifdef __GNUC__  /* GCC CS3 */
+#    include "syscalls.h" /** RedHat Newlib minimal stub */
+#endif
 
 
 #ifdef __cplusplus
 
 
-
-#if defined (  __GNUC__  ) /* GCC CS3 */
-#    include "syscalls.h" /** RedHat Newlib minimal stub */
-#endif
-
-
-
+//i2c for DigitalPots
+constexpr Pin SDA = P0_0;
+constexpr Pin SCL = P0_1;
 
 void ConfigurePin(const PinDescription& pinDesc);
-#endif
 
+#endif //end __cplusplus
 
-/**
- * Libc porting layers
- */
-
-
-//i2c for DigitalPots
-#define SDA P0_0
-#define SCL P0_1
-
-#define MaxPinNumber 160 // 5*32
-
-
-#endif /* _VARIANT_ARDUINO_DUE_X_ */
+#endif /* _VARIANT_LPC */
 

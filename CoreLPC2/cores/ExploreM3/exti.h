@@ -39,15 +39,11 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 
 
 #ifdef __cplusplus
-//extern "C" {
-//#endif
 
 #include "Core.h"
 #include "lpc17xx.h"
 #include "stdutils.h"
 #include "stdlib.h"
-
-
 
 
 /*************************************************************************************************
@@ -58,8 +54,6 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #define EINT2          2
 #define EINT3          3
 #define EINT_MAX       4
-
-
 
 #define FALLING 2
 #define RISING  3
@@ -75,50 +69,48 @@ enum InterruptMode {
     INTERRUPT_MODE_RISING
 };
 
-
-typedef void (*extnIntrFunPtr)(void);
-
-typedef struct
-{
-    extnIntrFunPtr userFunction; 
-    IRQn_Type IrqNumber;
-    uint8_t pinumber; 
-}eintConfig_t;
-
-    
 union CallbackParameter
 {
     void *vp;
-    uint32_t ip;
+    uint32_t u32;
+    int32_t i32;
     
     CallbackParameter(void *pp) : vp(pp) { }
-    CallbackParameter(uint32_t pp) : ip(pp) { }
-    CallbackParameter() : ip(0) { }
+    CallbackParameter(uint32_t pp) : u32(pp) { }
+    CallbackParameter(int32_t pp) : i32(pp) { }
+    CallbackParameter() : u32(0) { }
 };
 
-    
+typedef void (*StandardCallbackFunction)(CallbackParameter);
 
-//SD:: Updated to match RRF CoreNG
-bool attachInterrupt(Pin pin, void (*callback)(CallbackParameter), enum InterruptMode mode, void *param);
+bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptMode mode, CallbackParameter param);
 void detachInterrupt(Pin pin);
-    
-bool inInterrupt();
 
+// Return true if we are in an interrupt service routine
+bool inInterrupt();
 
 
 constexpr size_t MaxExtIntEntries = 3;
 extern Pin ExternalInterruptPins[MaxExtIntEntries];
 
+// Find the lowest set bit. Returns the lowest set bit number, undefined if no bits are set.
+// GCC provides intrinsics, but unhelpfully they are in terms of int, long and long long instead of uint32_t, uint64_t etc.
+inline unsigned int LowestSetBitNumber(unsigned int val)
+{
+    return (unsigned int)__builtin_ctz(val);
+}
+
+inline unsigned int LowestSetBitNumber(unsigned long val)
+{
+    return (unsigned int)__builtin_ctzl(val);
+}
+
+inline unsigned int LowestSetBitNumber(unsigned long long val)
+{
+    return (unsigned int)__builtin_ctzll(val);
+}
 
 #endif //__cplusplus
-
-
-//#define ExtInt_Slot1 (1)
-//#define ExtInt_Slot2 (2)
-//#define ExtInt_Slot3 (3)
-
-//#define MaxExtInterrupts 3
-
 
 
 #endif

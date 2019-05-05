@@ -98,11 +98,6 @@ enum PinMode
 // The remaining functionality is only available to C++ clients
 #ifdef __cplusplus
 
-/*inline const PinDescription& GetPinDescription(Pin pin)
-{
-    return g_APinDescription[pin];
-}*/
-
 // Set a pin high with no error checking
 inline void fastDigitalWriteHigh(Pin pin)
 {

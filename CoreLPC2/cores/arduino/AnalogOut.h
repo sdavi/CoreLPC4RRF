@@ -32,7 +32,8 @@ extern void AnalogOutInit();
 extern void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000);
 extern void GetTimerInfo( uint16_t freqs[4] );
 extern void ConfigureTimerForPWM(uint8_t timerChannel, uint16_t frequency);
-
+extern bool IsPwmCapable(Pin pin);
+extern bool IsServoCapable(Pin pin);
 
 
 //Timer PWM

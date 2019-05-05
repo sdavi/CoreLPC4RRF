@@ -7,8 +7,8 @@ MBED = true
 
 BUILD_DIR = $(PWD)/build
 
-#BUILD = Debug
-BUILD = Release
+BUILD = Debug
+#BUILD = Release
 
 #compile in Ethernet Networking?
 NETWORKING = true
@@ -117,9 +117,9 @@ CXXFLAGS = $(FLAGS) -std=gnu++17  -fno-threadsafe-statics -fno-exceptions -fno-r
 RRF_CXXFLAGS  = $(CXXFLAGS) 
 
 
-#ifeq ($(NETWORKING), true)
-#	RRF_CXXFLAGS += -DLPC_NETWORKING
-#endif
+ifeq ($(NETWORKING), true)
+	RRF_CXXFLAGS += -DLPC_NETWORKING
+endif
 
 
 #Core libraries
@@ -202,6 +202,7 @@ ifeq ($(NETWORKING), true)
 	CORE_OBJS += $(patsubst %.c,$(BUILD_DIR)/%.o,$(RTOSPLUS_CORE_OBJ_SRC_C))
 	#RTOS+TCP Includes
 	CORE_INCLUDES   += -I$(RTOSPLUS_TCP_INCLUDE) -I$(RTOSPLUS_TCP_INCLUDE)
+	
 endif
 
 
@@ -209,7 +210,7 @@ endif
 #---RepRapFirmware---
 RRF_SRC_DIRS  = FilamentMonitors GCodes Heating Movement Movement/BedProbing Movement/Kinematics 
 RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries/sha1
-RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel
+RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel Endstops
 RRF_SRC_DIRS += LPC LPC/MCP4461
 
 RRF_SRC_DIRS += Display Display/ST7920
@@ -219,7 +220,7 @@ RRF_SRC_DIRS += Display Display/ST7920
 ifeq ($(ESP_NETWORKING), true)
 	RRF_SRC_DIRS += LPC/ESPNetworking LPC/ESPNetworking/ESP32Interface
 else ifeq ($(NETWORKING), true)
-	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet
+	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet #Networking/ESP8266WiFi
 else
 	RRF_SRC_DIRS += LPC/NoNetwork
 endif
@@ -253,6 +254,7 @@ RRF_INCLUDES += $(addprefix -I, $(RRF_LIBRARY_SRC))
 
 #all Includes (RRF + Core)
 INCLUDES = $(CORE_INCLUDES) $(RRF_INCLUDES)
+INCLUDES += -IDuetWiFiSocketServer/src/include
 
 
 default: all

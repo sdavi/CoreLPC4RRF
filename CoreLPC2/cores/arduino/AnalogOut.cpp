@@ -584,8 +584,6 @@ void AnalogOut(Pin pin, float ulValue, uint16_t freq)
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
 
-    
-    //if (TimerPWMPinsArray[pin] != 0)
     if(port <= 4 && (pinsOnATimer[port] & portPinPosition))
     {
         //pin is defined as PWM on Timer
@@ -622,12 +620,32 @@ void GetTimerInfo( uint16_t freqs[4] ){
         {
             freqs[i+1] = 0;
         }
-        
     }
+}
+
+ // Return true if this pin exists and can do PWM
+bool IsPwmCapable(Pin pin)
+{
+
+    const uint8_t port = (pin >> 5);
+    const uint32_t portPinPosition = 1 << (pin & 0x1f);
     
+    //check if pin is configured to use a timer for pwm
+    if(port <= 4 && (pinsOnATimer[port] & portPinPosition)) return true;
+
+    //check if pin is HW PWM capable
+    if (pin < ARRAY_SIZE(g_APinDescription) && (g_APinDescription[pin].ulPinAttribute & PIN_ATTR_PWM) != 0) return true;
+    
+    return false;
+
     
 }
 
+bool IsServoCapable(Pin pin)
+{
+    //TODO:: assumes it is setup as pwm correctly. we should check if the pin is configured for timer2
+    return IsPwmCapable(pin);
+}
 
 
 // End
