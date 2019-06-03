@@ -48,14 +48,17 @@
 //SD:: Added functions for allocation static block of memory for TCP Buffers
 //SD:: See StaticNetworkMemoryAllocator.c
 //Malloc/free defines for large TCP Buffers 
-#define pvPortMallocLarge( x )      staticMallocLarge( x )
-#define vPortFreeLarge( ptr )       staticFreeLarge( ptr )
+//#define pvPortMallocLarge( x )      staticMallocLarge( x )
+//#define vPortFreeLarge( ptr )       staticFreeLarge( ptr )
 
+
+extern void IPTaskWatchDogTimer();
+#define ipconfigWATCHDOG_TIMER() IPTaskWatchDogTimer();
 
 
 /*SD:: LPC17xx Driver defines*/
-#define configNUM_RX_DESCRIPTORS  (2)// was 4
-#define configNUM_TX_DESCRIPTORS  (2) // was 3
+#define configNUM_RX_DESCRIPTORS  (2)
+#define configNUM_TX_DESCRIPTORS  (2)
 #define NETWORK_IRQHandler ENET_IRQHandler
 
 
@@ -180,7 +183,7 @@ configMAX_PRIORITIES is a standard FreeRTOS configuration parameter defined in
 FreeRTOSConfig.h, not FreeRTOSIPConfig.h. Consideration needs to be given as to
 the priority assigned to the task executing the IP stack relative to the
 priority assigned to tasks that use the IP stack. */
-#define ipconfigIP_TASK_PRIORITY			2 //TODO:: this should use value in RTOSIFace  //( configMAX_PRIORITIES - 2 )
+#define ipconfigIP_TASK_PRIORITY			3 //TODO:: this should use value in RTOSIFace  //( configMAX_PRIORITIES - 2 )
 
 
 /* If ipconfigUSE_NETWORK_EVENT_HOOK is set to 1 then FreeRTOS+TCP will call the
@@ -320,7 +323,7 @@ real program memory (RAM or flash) or just has a random non-zero value. */
 /* Include support for TCP hang protection.  All sockets in a connecting or
 disconnecting stage will timeout after a period of non-activity. */
 #define ipconfigTCP_HANG_PROTECTION			( 1 )
-#define ipconfigTCP_HANG_PROTECTION_TIME	( 10 )
+#define ipconfigTCP_HANG_PROTECTION_TIME	( 2 ) /* in seconds */
 
 /* Include support for TCP keep-alive messages. */
 #define ipconfigTCP_KEEP_ALIVE				( 0 )

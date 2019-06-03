@@ -129,7 +129,7 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
  {
      if(pin == NoPin) return;
      
-     const PinDescription& pinDesc = g_APinDescription[pin];
+     //const PinDescription& pinDesc = g_APinDescription[pin];
 
      switch (ulMode)
      {
@@ -165,18 +165,13 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
              break;
              
          case OUTPUT_PWM_LOW:
-             if ((pinDesc.ulPinAttribute & (PIN_ATTR_PWM | PIN_ATTR_TIMER)) != 0)
-             {
-                 AnalogOut(pin, 0.0, 0);                            // set it to zero frequency to force re-initialisation on next AnalogOut call
-             }
+             //AnalogOut will set the correct pin function depending on pwm/timerpwm/digital
+             AnalogOut(pin, 0.0, 0);
              break;
              
          case OUTPUT_PWM_HIGH:
-             
-             if ((pinDesc.ulPinAttribute & (PIN_ATTR_PWM | PIN_ATTR_TIMER)) != 0)
-             {
-                 AnalogOut(pin, 1.0, 0);                            // set it to zero frequency to force re-initialisation on next AnalogOut call
-             }
+             //AnalogOut will set the correct pin function depending on pwm/timerpwm/digital
+             AnalogOut(pin, 1.0, 0);
              break;
              
          case AIN:
@@ -185,9 +180,6 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
              break;
              
          case SPECIAL:
-              
-             //ConfigurePin(pinDesc);
-             //pins default as GPIO  DigitalOut on startup
              break;
              
          default:
@@ -195,7 +187,6 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
      }
  }
 
-     
      
      
 extern "C" void digitalWrite( Pin pin, bool dwVal )

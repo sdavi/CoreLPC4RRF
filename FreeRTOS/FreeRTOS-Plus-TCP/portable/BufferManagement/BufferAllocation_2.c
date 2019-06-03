@@ -1,5 +1,5 @@
 /*
- * FreeRTOS+TCP V2.0.1
+ * FreeRTOS+TCP V2.0.11
  * Copyright (C) 2017 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -103,24 +103,25 @@ BaseType_t xReturn, x;
 	{
 		xNetworkBufferSemaphore = xSemaphoreCreateCounting( ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS, ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS );
 		configASSERT( xNetworkBufferSemaphore );
-		#if ( configQUEUE_REGISTRY_SIZE > 0 )
-		{
-			vQueueAddToRegistry( xNetworkBufferSemaphore, "NetBufSem" );
-		}
-		#endif /* configQUEUE_REGISTRY_SIZE */
-
-		/* If the trace recorder code is included name the semaphore for viewing
-		in FreeRTOS+Trace.  */
-		#if( ipconfigINCLUDE_EXAMPLE_FREERTOS_PLUS_TRACE_CALLS == 1 )
-		{
-			extern QueueHandle_t xNetworkEventQueue;
-			vTraceSetQueueName( xNetworkEventQueue, "IPStackEvent" );
-			vTraceSetQueueName( xNetworkBufferSemaphore, "NetworkBufferCount" );
-		}
-		#endif /*  ipconfigINCLUDE_EXAMPLE_FREERTOS_PLUS_TRACE_CALLS == 1 */
 
 		if( xNetworkBufferSemaphore != NULL )
 		{
+			#if ( configQUEUE_REGISTRY_SIZE > 0 )
+			{
+				vQueueAddToRegistry( xNetworkBufferSemaphore, "NetBufSem" );
+			}
+			#endif /* configQUEUE_REGISTRY_SIZE */
+
+			/* If the trace recorder code is included name the semaphore for viewing
+			in FreeRTOS+Trace.  */
+			#if( ipconfigINCLUDE_EXAMPLE_FREERTOS_PLUS_TRACE_CALLS == 1 )
+			{
+				extern QueueHandle_t xNetworkEventQueue;
+				vTraceSetQueueName( xNetworkEventQueue, "IPStackEvent" );
+				vTraceSetQueueName( xNetworkBufferSemaphore, "NetworkBufferCount" );
+			}
+			#endif /*  ipconfigINCLUDE_EXAMPLE_FREERTOS_PLUS_TRACE_CALLS == 1 */
+
 			vListInitialise( &xFreeBuffersList );
 
 			/* Initialise all the network buffers.  No storage is allocated to
@@ -323,12 +324,21 @@ BaseType_t xListItemAlreadyInFreeList;
 	}
 	taskEXIT_CRITICAL();
 
+	/*
+	 * Update the network state machine, unless the program fails to release its 'xNetworkBufferSemaphore'.
+	 * The program should only try to release its semaphore if 'xListItemAlreadyInFreeList' is false.
+	 */
 	if( xListItemAlreadyInFreeList == pdFALSE )
 	{
-		xSemaphoreGive( xNetworkBufferSemaphore );
+		if ( xSemaphoreGive( xNetworkBufferSemaphore ) == pdTRUE )
+		{
+			iptraceNETWORK_BUFFER_RELEASED( pxNetworkBuffer );
+		}
 	}
-
-	iptraceNETWORK_BUFFER_RELEASED( pxNetworkBuffer );
+	else
+	{
+		iptraceNETWORK_BUFFER_RELEASED( pxNetworkBuffer );
+	}
 }
 /*-----------------------------------------------------------*/
 
@@ -374,7 +384,7 @@ uint8_t *pucBuffer;
 		vReleaseNetworkBuffer( pxNetworkBuffer->pucEthernetBuffer );
 		pxNetworkBuffer->pucEthernetBuffer = pucBuffer;
 	}
-	
+
 	return pxNetworkBuffer;
 }
 

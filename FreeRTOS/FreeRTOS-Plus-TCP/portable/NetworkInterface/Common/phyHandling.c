@@ -24,7 +24,7 @@
 
 #include "phyHandling.h"
 
-//#include "eventLogging.h"
+///#include "eventLogging.h"
 
 #define phyMIN_PHY_ADDRESS		0
 #define phyMAX_PHY_ADDRESS		31
@@ -569,10 +569,10 @@ TimeOut_t xTimer;
 				( ulRegValue & phyPHYSTS_DUPLEX_STATUS ) ? "full" : "half",
 				( ulRegValue & phyPHYSTS_SPEED_STATUS ) ? 10 : 100,
 				( ( ulPHYLinkStatus |= phyBMSR_LINK_STATUS ) != 0) ? "high" : "low" ) );
-			/*eventLogAdd( "%s duplex %u mbit %s st",
-				( ulRegValue & phyPHYSTS_DUPLEX_STATUS ) ? "full" : "half",
-				( ulRegValue & phyPHYSTS_SPEED_STATUS ) ? 10 : 100,
-				( ( ulPHYLinkStatus |= phyBMSR_LINK_STATUS ) != 0) ? "high" : "low" );*/
+//            eventLogAdd( "%s duplex %u mbit %s st",
+//                ( ulRegValue & phyPHYSTS_DUPLEX_STATUS ) ? "full" : "half",
+//                ( ulRegValue & phyPHYSTS_SPEED_STATUS ) ? 10 : 100,
+//                ( ( ulPHYLinkStatus |= phyBMSR_LINK_STATUS ) != 0) ? "high" : "low" );
 {
 	uint32_t regs[4];
 	int i,j;
@@ -584,8 +584,8 @@ TimeOut_t xTimer;
 			pxPhyObject->fnPhyRead( xPhyAddress, address, regs + j );
 			address++;
 		}
-		/*eventLogAdd("%04lX %04lX %04lX %04lX",
-			regs[0], regs[1], regs[2], regs[3]);*/
+		//eventLogAdd("%04lX %04lX %04lX %04lX",
+			//regs[0], regs[1], regs[2], regs[3]);
 	}
 }
 			if( ( ulRegValue & phyPHYSTS_DUPLEX_STATUS ) != ( uint32_t )0u )

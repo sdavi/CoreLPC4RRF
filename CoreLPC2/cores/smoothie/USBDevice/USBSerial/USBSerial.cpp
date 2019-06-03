@@ -50,7 +50,8 @@ size_t USBSerial::canWrite()
 }
 
 
-bool USBSerial::isConnected(){
+bool USBSerial::isConnected()
+{
     return attached;
 }
 
@@ -286,75 +287,7 @@ void USBSerial::flush(void){
     while(attached && !txbuf->isEmpty()){}
 }
 
-/*
-void USBSerial::on_module_loaded()
-{
-    this->register_for_event(ON_MAIN_LOOP);
-    this->register_for_event(ON_IDLE);
-}
 
-void USBSerial::on_idle(void *argument)
-{
-    if(halt_flag) {
-        halt_flag = false;
-        THEKERNEL->call_event(ON_HALT, nullptr);
-        if(THEKERNEL->is_grbl_mode()) {
-            puts("ALARM: Abort during cycle\r\n");
-        } else {
-            puts("HALTED, M999 or $X to exit HALT state\r\n");
-        }
-        rxbuf->flush(); // flush the recieve buffer, hopefully upstream has stopped sending
-        nl_in_rx = 0;
-    }
-
-    if(query_flag) {
-        query_flag = false;
-        puts(THEKERNEL->get_query_string().c_str());
-    }
-
- }*/
-
-
-void USBSerial::on_main_loop(void *argument)
-{
-    // apparently some OSes don't assert DTR when a program opens the port
-    if (available() && !attach)
-        attach = true;
-
-    if (attach != attached) {
-        if (attach) {
-            attached = true;
-            //THEKERNEL->streams->append_stream(this);
-            puts("Smoothie\r\nok\r\n");
-        } else {
-            attached = false;
-            //THEKERNEL->streams->remove_stream(this);
-            txbuf->flush();
-            rxbuf->flush();
-            nl_in_rx = 0;
-        }
-    }
-
-    // if we are in feed hold we do not process anything
-    //if(THEKERNEL->get_feed_hold()) return;
-/*
-    if (nl_in_rx) {
-        string received;
-        while (available()) {
-            char c = _getc();
-            if( c == '\n' || c == '\r') {
-                struct SerialMessage message;
-                message.message = received;
-                message.stream = this;
-                iprintf("USBSerial Received: %s\n", message.message.c_str());
-                THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
-                return;
-            } else {
-                received += c;
-            }
-        }
-    }*/
-}
 void USBSerial::on_attach()
 {
     attach = true;

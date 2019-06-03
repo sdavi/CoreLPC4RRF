@@ -22,9 +22,6 @@
 #include "USBCDC.h"
 #include "CircBuffer.h"
 
-//#include "Module.h"
-//#include "StreamOutput.h"
-
 class USBSerial_Receiver {
 protected:
     virtual bool SerialEvent_RX(void) = 0;
@@ -53,10 +50,6 @@ public:
 
     CircBuffer<uint8_t> *rxbuf;
     CircBuffer<uint8_t> *txbuf;
-
-    //void on_module_loaded(void);
-    void on_main_loop(void *);
-    //void on_idle(void *);
 
 protected:
 //     virtual bool EpCallback(uint8_t, uint8_t);

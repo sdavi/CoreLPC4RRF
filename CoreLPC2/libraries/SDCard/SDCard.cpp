@@ -1,643 +1,573 @@
-/* mbed SDFileSystem Library, for providing file access to SD cards
- * Copyright (c) 2008-2010, sford
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- *
- * This version significantly altered by Michael Moon and is (c) 2012
- */
+/*------------------------------------------------------------------------*/
+/* LPCXpresso176x: MMCv3/SDv1/SDv2 (SPI mode) control module              */
+/*------------------------------------------------------------------------*/
+/*
+ /  Copyright (C) 2015, ChaN, all right reserved.
+ /
+ / * This software is a free software and there is NO WARRANTY.
+ / * No restriction on use. You can use, modify and redistribute it for
+ /   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
+ / * Redistributions of source code must retain the above copyright notice.
+ /
+ /-------------------------------------------------------------------------*/
 
-/* Introduction
- * ------------
- * SD and MMC cards support a number of interfaces, but common to them all
- * is one based on SPI. This is the one I'm implmenting because it means
- * it is much more portable even though not so performant, and we already
- * have the mbed SPI Interface!
- *
- * The main reference I'm using is Chapter 7, "SPI Mode" of:
- *  http://www.sdcard.org/developers/tech/sdcard/pls/Simplified_Physical_Layer_Spec.pdf
- *
- * SPI Startup
- * -----------
- * The SD card powers up in SD mode. The SPI interface mode is selected by
- * asserting CS low and sending the reset command (CMD0). The card will
- * respond with a (R1) response.
- *
- * CMD8 is optionally sent to determine the voltage range supported, and
- * indirectly determine whether it is a version 1.x SD/non-SD card or
- * version 2.x. I'll just ignore this for now.
- *
- * ACMD41 is repeatedly issued to initialise the card, until "in idle"
- * (bit 0) of the R1 response goes to '0', indicating it is initialised.
- *
- * You should also indicate whether the host supports High Capicity cards,
- * and check whether the card is high capacity - i'll also ignore this
- *
- * SPI Protocol
- * ------------
- * The SD SPI protocol is based on transactions made up of 8-bit words, with
- * the host starting every bus transaction by asserting the CS signal low. The
- * card always responds to commands, data blocks and errors.
- *
- * The protocol supports a CRC, but by default it is off (except for the
- * first reset CMD0, where the CRC can just be pre-calculated, and CMD8)
- * I'll leave the CRC off I think!
- *
- * Standard capacity cards have variable data block sizes, whereas High
- * Capacity cards fix the size of data block to 512 bytes. I'll therefore
- * just always use the Standard Capacity cards with a block size of 512 bytes.
- * This is set with CMD16.
- *
- * You can read and write single blocks (CMD17, CMD25) or multiple blocks
- * (CMD18, CMD25). For simplicity, I'll just use single block accesses. When
- * the card gets a read command, it responds with a response token, and then
- * a data token or an error.
- *
- * SPI Command Format
- * ------------------
- * Commands are 6-bytes long, containing the command, 32-bit argument, and CRC.
- *
- * +---------------+------------+------------+-----------+----------+--------------+
- * | 01 | cmd[5:0] | arg[31:24] | arg[23:16] | arg[15:8] | arg[7:0] | crc[6:0] | 1 |
- * +---------------+------------+------------+-----------+----------+--------------+
- *
- * As I'm not using CRC, I can fix that byte to what is needed for CMD0 (0x95)
- *
- * All Application Specific commands shall be preceded with APP_CMD (CMD55).
- *
- * SPI Response Format
- * -------------------
- * The main response format (R1) is a status byte (normally zero). Key flags:
- *  idle - 1 if the card is in an idle state/initialising
- *  cmd  - 1 if an illegal command code was detected
- *
- *    +-------------------------------------------------+
- * R1 | 0 | arg | addr | seq | crc | cmd | erase | idle |
- *    +-------------------------------------------------+
- *
- * R1b is the same, except it is followed by a busy signal (zeros) until
- * the first non-zero byte when it is ready again.
- *
- * Data Response Token
- * -------------------
- * Every data block written to the card is acknowledged by a byte
- * response token
- *
- * +----------------------+
- * | xxx | 0 | status | 1 |
- * +----------------------+
- *              010 - OK!
- *              101 - CRC Error
- *              110 - Write Error
- *
- * Single Block Read and Write
- * ---------------------------
- *
- * Block transfers have a byte header, followed by the data, followed
- * by a 16-bit CRC. In our case, the data will always be 512 bytes.
- *
- * +------+---------+---------+- -  - -+---------+-----------+----------+
- * | 0xFE | data[0] | data[1] |        | data[n] | crc[15:8] | crc[7:0] |
- * +------+---------+---------+- -  - -+---------+-----------+----------+
- */
+
+// Sdavi: Modified for RRF
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "SDCard.h"
 #include "SharedSPI.h"
-static const uint8_t OXFF = 0xFF;
+
+extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
+//#define SD_DEBUG
+
+
+constexpr uint32_t SCLK_SD25 =  50000000;   /* SCLK frequency under High Speed operation [Hz] */
+constexpr uint32_t SCLK_SD12 =  25000000;   /* SCLK frequency under normal operation  [Hz] */
+constexpr uint32_t SCLK_INIT =  400000;     /* SCLK frequency under initialization [Hz] */
+
+/* MMC/SD command */
+#define CMD0     (0)         /* GO_IDLE_STATE */
+#define CMD1     (1)         /* SEND_OP_COND (MMC) */
+#define ACMD41   (0x80+41)   /* SEND_OP_COND (SDC) */
+#define CMD6     (6)         /* Switch Function Command*/
+#define CMD8     (8)         /* SEND_IF_COND */
+#define CMD9     (9)         /* SEND_CSD */
+#define CMD10    (10)        /* SEND_CID */
+#define CMD12    (12)        /* STOP_TRANSMISSION */
+#define ACMD13   (0x80+13)   /* SD_STATUS (SDC) */
+#define CMD16    (16)        /* SET_BLOCKLEN */
+#define CMD17    (17)        /* READ_SINGLE_BLOCK */
+#define CMD18    (18)        /* READ_MULTIPLE_BLOCK */
+#define CMD23    (23)        /* SET_BLOCK_COUNT (MMC) */
+#define ACMD23   (0x80+23)   /* SET_WR_BLK_ERASE_COUNT (SDC) */
+#define CMD24    (24)        /* WRITE_BLOCK */
+#define CMD25    (25)        /* WRITE_MULTIPLE_BLOCK */
+#define CMD32    (32)        /* ERASE_ER_BLK_START */
+#define CMD33    (33)        /* ERASE_ER_BLK_END */
+#define CMD38    (38)        /* ERASE */
+#define CMD48    (48)        /* READ_EXTR_SINGLE */
+#define CMD49    (49)        /* WRITE_EXTR_SINGLE */
+#define CMD55    (55)        /* APP_CMD */
+#define CMD58    (58)        /* READ_OCR */
+
+
+
+
 
 #define SD_COMMAND_TIMEOUT 5000
 
 SDCard::SDCard(uint8_t SSPSlot, Pin cs) {
-
-      frequency = 10000000; //default frequency to run at
-
     
-      if(SSPSlot == 0 ){
-          _sspi_device.sspChannel = SSP0;
-      } else if(SSPSlot == 1) {
-          _sspi_device.sspChannel = SSP1;
-      }
-      _sspi_device.csPin = cs;
-      _sspi_device.csPolarity = false; // active low chip select
-      _sspi_device.clockFrequency = 25000; //initial init freq
-      _sspi_device.bitsPerTransferControl = 8;
-      _sspi_device.spiMode = SPI_MODE_0;
+    maxFrequency = SCLK_SD12; //default max frequency to run at
+    frequency = SCLK_SD12;
+    isHighSpeed = false;
+    sdcardSectors = 0;
+    sdcardBlockSize = 512;
     
-      sspi_master_init(&_sspi_device, 8); //default to 8bits
-      sspi_master_setup_device(&_sspi_device); //init the bus
-
-    
-    
-      busyflag = false;
-      _sectors = 0;
-}
-
-void SDCard::ReInit(Pin cs, uint32_t freq)
-{
-    frequency = freq; //remember the freq
+    if(SSPSlot == 0 ){
+        _sspi_device.sspChannel = SSP0;
+    } else if(SSPSlot == 1) {
+        _sspi_device.sspChannel = SSP1;
+    }
     _sspi_device.csPin = cs;
     _sspi_device.csPolarity = false; // active low chip select
-    _sspi_device.clockFrequency = freq;
+    _sspi_device.clockFrequency = SCLK_INIT; //initial init freq
     _sspi_device.bitsPerTransferControl = 8;
     _sspi_device.spiMode = SPI_MODE_0;
     
     sspi_master_init(&_sspi_device, 8); //default to 8bits
     sspi_master_setup_device(&_sspi_device); //init the bus
     
-    busyflag = false;
-    _sectors = 0;
-    
+    status = STA_NOINIT;
 }
 
 
-#define R1_IDLE_STATE           (1 << 0)
-#define R1_ERASE_RESET          (1 << 1)
-#define R1_ILLEGAL_COMMAND      (1 << 2)
-#define R1_COM_CRC_ERROR        (1 << 3)
-#define R1_ERASE_SEQUENCE_ERROR (1 << 4)
-#define R1_ADDRESS_ERROR        (1 << 5)
-#define R1_PARAMETER_ERROR      (1 << 6)
-
-// Types
-//  - v1.x Standard Capacity
-//  - v2.x Standard Capacity
-//  - v2.x High Capacity
-//  - Not recognised as an SD Card
-
-// #define SDCARD_FAIL 0
-// #define SDCARD_V1   1
-// #define SDCARD_V2   2
-// #define SDCARD_V2HC 3
-
-#define BUSY_FLAG_MULTIREAD          1
-#define BUSY_FLAG_MULTIWRITE         2
-#define BUSY_FLAG_ENDREAD            4
-#define BUSY_FLAG_ENDWRITE           8
-#define BUSY_FLAG_WAITNOTBUSY       (1<<31)
-
-#define SDCMD_GO_IDLE_STATE          0
-#define SDCMD_ALL_SEND_CID           2
-#define SDCMD_SEND_RELATIVE_ADDR     3
-#define SDCMD_SET_DSR                4
-#define SDCMD_SELECT_CARD            7
-#define SDCMD_SEND_IF_COND           8
-#define SDCMD_SEND_CSD               9
-#define SDCMD_SEND_CID              10
-#define SDCMD_STOP_TRANSMISSION     12
-#define SDCMD_SEND_STATUS           13
-#define SDCMD_GO_INACTIVE_STATE     15
-#define SDCMD_SET_BLOCKLEN          16
-#define SDCMD_READ_SINGLE_BLOCK     17
-#define SDCMD_READ_MULTIPLE_BLOCK   18
-#define SDCMD_WRITE_BLOCK           24
-#define SDCMD_WRITE_MULTIPLE_BLOCK  25
-#define SDCMD_PROGRAM_CSD           27
-#define SDCMD_SET_WRITE_PROT        28
-#define SDCMD_CLR_WRITE_PROT        29
-#define SDCMD_SEND_WRITE_PROT       30
-#define SDCMD_ERASE_WR_BLOCK_START  32
-#define SDCMD_ERASE_WR_BLK_END      33
-#define SDCMD_ERASE                 38
-#define SDCMD_LOCK_UNLOCK           42
-#define SDCMD_APP_CMD               55
-#define SDCMD_GEN_CMD               56
-
-#define SD_ACMD_SET_BUS_WIDTH            6
-#define SD_ACMD_SD_STATUS               13
-#define SD_ACMD_SEND_NUM_WR_BLOCKS      22
-#define SD_ACMD_SET_WR_BLK_ERASE_COUNT  23
-#define SD_ACMD_SD_SEND_OP_COND         41
-#define SD_ACMD_SET_CLR_CARD_DETECT     42
-#define SD_ACMD_SEND_CSR                51
-
-#define SD_CARD_HIGH_CAPACITY           (1UL<<30)
-
-#define BLOCK2ADDR(block)   (((cardtype == SDCARD_V1) || (cardtype == SDCARD_V2))?(block << 9):((cardtype == SDCARD_V2HC)?(block):0))
-
-SDCard::CARD_TYPE SDCard::initialise_card() {
-    
-    if(_sspi_device.csPin == NoPin) return SDCARD_FAIL; // We dont have a CS pin defined, return FAIL
-    
-    // Set to 25kHz for initialisation, and clock card with cs = 1
-    _sspi_device.clockFrequency = 25000;
-    sspi_master_setup_device(&_sspi_device); //update the freq
-
-    sspi_deselect_device(&_sspi_device);
-    
-    for(int i=0; i<24; i++) {
-        sspi_transceive_a_packet(0xFF);
-    }
-    // send CMD0, should return with all zeros except IDLE STATE set (bit 0)
-    if(_cmd(SDCMD_GO_IDLE_STATE, 0) != R1_IDLE_STATE) {
-        //fprintf(stderr, "No disk, or could not put SD card in to SPI idle state\n");
-        return cardtype = SDCARD_FAIL;
-    }
-
-    // send CMD8 to determine whther it is ver 2.x
-    int r = _cmd8();
-    if(r == R1_IDLE_STATE) {
-        return initialise_card_v2();
-    } else if(r == (R1_IDLE_STATE | R1_ILLEGAL_COMMAND)) {
-        return initialise_card_v1();
-    } else {
-        //fprintf(stderr, "Not in idle state after sending CMD8 (not an SD card?)\n");
-        return cardtype = SDCARD_FAIL;
-    }
-}
-
-SDCard::CARD_TYPE SDCard::initialise_card_v1() {
-    for(int i=0; i<SD_COMMAND_TIMEOUT; i++) {
-        _cmd(SDCMD_APP_CMD, 0);
-        if(_cmd(SD_ACMD_SD_SEND_OP_COND, 0) == 0) {
-            return cardtype = SDCARD_V1;
-        }
-    }
-
-    //fprintf(stderr, "Timeout waiting for v1.x card\n");
-    return SDCARD_FAIL;
-}
-
-SDCard::CARD_TYPE SDCard::initialise_card_v2() {
-
-    for(int i=0; i<SD_COMMAND_TIMEOUT; i++) {
-        _cmd(SDCMD_APP_CMD, 0);
-        if(_cmd(SD_ACMD_SD_SEND_OP_COND, SD_CARD_HIGH_CAPACITY) == 0) {
-            uint32_t ocr;
-            _cmd58(&ocr);
-            if (ocr & SD_CARD_HIGH_CAPACITY)
-                return cardtype = SDCARD_V2HC;
-            else
-                return cardtype = SDCARD_V2;
-        }
-    }
-
-    //fprintf(stderr, "Timeout waiting for v2.x card\n");
-
-    return cardtype = SDCARD_FAIL;
-}
-
-int SDCard::disk_initialize()
+void SDCard::ReInit(Pin cs, uint32_t freq)
 {
-    busyflag = true;
+    maxFrequency = freq; //Maximum frequency set by the user
 
-    _sectors = 0;
-
-    CARD_TYPE i = initialise_card();
-
-    if (i == SDCARD_FAIL) {
-        busyflag = false;
-        return 1;
+    if(!(status & STA_NOINIT))
+    {
+        //card already initialised
+        if(isHighSpeed)
+        {
+            frequency = SCLK_SD25;
+        }
+        else
+        {
+            frequency = SCLK_SD12;
+        }
     }
-
-    _sectors = _sd_sectors();
-
-    // Set block length to 512 (CMD16)
-    if(_cmd(SDCMD_SET_BLOCKLEN, 512) != 0) {
-        //fprintf(stderr, "Set 512-byte block timed out\n");
-        busyflag = false;
-        return 1;
-    }
+    
+    if(frequency > maxFrequency) frequency = maxFrequency; //dont set higher than the max speed user set in config.
 
     _sspi_device.clockFrequency = frequency;
+    _sspi_device.csPin = cs;
+    
+    sspi_master_init(&_sspi_device, 8); //default to 8bits
+    sspi_master_setup_device(&_sspi_device); //init the bus
+    
+}
+
+void SDCard::unmount()
+{
+    status = STA_NOINIT;
+    isHighSpeed = false;
+    frequency = SCLK_INIT;
+}
+
+/*-----------------------------------------------------------------------*/
+/* Send/Receive data to the MMC  (Platform dependent)                    */
+/*-----------------------------------------------------------------------*/
+
+/* Exchange a byte */
+static inline uint8_t xchg_spi (uint8_t dat)
+{
+    return sspi_transceive_a_packet(dat);
+}
+
+
+/* Receive multiple byte */
+/* buff - Pointer to data buffer */
+/* btr - Number of bytes to receive (16, 64 or 512) */
+static inline void rcvr_spi_multi(uint8_t *buff, uint32_t btr)
+{
+    sspi_transceive_packet_16(nullptr, buff, btr); //use 16-bit transfer
+}
+
+/* Send multiple byte */
+/* buff - ointer to the data */
+/* Number of bytes to send (multiple of 16) */
+static inline void xmit_spi_multi (const uint8_t *buff, uint32_t btx)
+{
+    sspi_transceive_packet_16(buff, nullptr, btx);//use 16-bit transfer
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Wait for card ready                                                   */
+/*-----------------------------------------------------------------------*/
+
+/* wt - Timeout [ms] */
+int SDCard::wait_ready (uint32_t wt) /* 1:Ready, 0:Timeout */
+{
+    uint8_t d;
+    
+    uint32_t now = millis();
+    
+    do {
+        d = xchg_spi(0xFF);
+        
+        /* This loop takes a time. Insert rot_rdq() here for multitask envilonment. */
+        
+    } while (d != 0xFF && (millis() - now) < wt);    /* Wait for card goes ready or timeout */
+    
+    return (d == 0xFF) ? 1 : 0;
+}
+
+
+/*-----------------------------------------------------------------------*/
+/* Deselect card and release SPI                                         */
+/*-----------------------------------------------------------------------*/
+
+void SDCard::deselect (void)
+{
+    sspi_deselect_device(&_sspi_device);
+    xchg_spi(0xFF);    /* Dummy clock (force DO hi-z for multiple slave SPI) */
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Select card and wait for ready                                        */
+/*-----------------------------------------------------------------------*/
+
+int SDCard::select (void)    /* 1:OK, 0:Timeout */
+{
+    sspi_select_device(&_sspi_device);
+    xchg_spi(0xFF);    /* Dummy clock (force DO enabled) */
+    
+    if (wait_ready(500)) return 1;    /* Leading busy check: Wait for card ready */
+    
+    deselect();        /* Timeout */
+    return 0;
+}
+
+
+/*-----------------------------------------------------------------------*/
+/* Receive a data packet from the MMC                                    */
+/*-----------------------------------------------------------------------*/
+/* buff - Data buffer */
+/* btr - Data block length (byte) */
+int SDCard::rcvr_datablock (uint8_t *buff, uint32_t btr)/* 1:OK, 0:Error */
+{
+    uint8_t token;
+    
+    uint32_t now = millis();
+    do {                            /* Wait for DataStart token in timeout of 200ms */
+        token = xchg_spi(0xFF);
+        
+        /* This loop will take a time. Insert rot_rdq() here for multitask envilonment. */
+        
+    } while ((token == 0xFF) && (millis() - now) < 200 );
+    if(token != 0xFE) return 0;        /* Function fails if invalid DataStart token or timeout */
+    
+    rcvr_spi_multi(buff, btr);        /* Store trailing data to the buffer */
+    xchg_spi(0xFF); xchg_spi(0xFF);    /* Discard CRC */
+    
+    return 1;                        /* Function succeeded */
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Send a data packet to the MMC                                         */
+/*-----------------------------------------------------------------------*/
+
+/* buff - Pointer to 512 byte data to be sent */
+/* Token */
+
+int SDCard::xmit_datablock (const uint8_t *buff, uint8_t token) /* 1:OK, 0:Failed */
+{
+    if (!wait_ready(500)) return 0;        /* Leading busy check: Wait for card ready to accept data block */
+    
+    xchg_spi(token);                    /* Send token */
+    if (token == 0xFD) return 1;        /* Do not send data if token is StopTran */
+    
+    xmit_spi_multi(buff, 512);            /* Data */
+    xchg_spi(0xFF); xchg_spi(0xFF);        /* Dummy CRC */
+    
+    uint8_t resp = xchg_spi(0xFF);                /* Receive data resp */
+    
+    return (resp & 0x1F) == 0x05 ? 1 : 0;    /* Data was accepted or not */
+    
+    /* Busy check is done at next transmission */
+}
+
+
+/*-----------------------------------------------------------------------*/
+/* Send a command packet to the MMC                                      */
+/*-----------------------------------------------------------------------*/
+/* cmd - Command index */
+/* arg - Argument */
+uint8_t SDCard::send_cmd (uint8_t cmd, uint32_t arg)/* Return value: R1 resp (bit7==1:Failed to send) */
+{
+    uint8_t n, res;
+    
+    
+    if (cmd & 0x80) {    /* Send a CMD55 prior to ACMD<n> */
+        cmd &= 0x7F;
+        res = send_cmd(CMD55, 0);
+        if (res > 1) return res;
+    }
+    
+    /* Select the card and wait for ready except to stop multiple block read */
+    if (cmd != CMD12) {
+        deselect();
+        if (!select()) return 0xFF;
+    }
+    
+    /* Send command packet */
+    xchg_spi(0x40 | cmd);                   /* Start + command index */
+    xchg_spi((uint8_t)(arg >> 24));         /* Argument[31..24] */
+    xchg_spi((uint8_t)(arg >> 16));         /* Argument[23..16] */
+    xchg_spi((uint8_t)(arg >> 8));          /* Argument[15..8] */
+    xchg_spi((uint8_t)arg);                 /* Argument[7..0] */
+    n = 0x01;                               /* Dummy CRC + Stop */
+    if (cmd == CMD0) n = 0x95;              /* Valid CRC for CMD0(0) */
+    if (cmd == CMD8) n = 0x87;              /* Valid CRC for CMD8(0x1AA) */
+    xchg_spi(n);
+    
+    /* Receive command resp */
+    if (cmd == CMD12) xchg_spi(0xFF);       /* Diacard following one byte when CMD12 */
+    n = 10;                                 /* Wait for response (10 bytes max) */
+    do
+        res = xchg_spi(0xFF);
+    while ((res & 0x80) && --n);
+    
+    return res;                            /* Return received response */
+}
+
+/*-----------------------------------------------------------------------*/
+/* Initialize disk drive                                                 */
+/*-----------------------------------------------------------------------*/
+
+uint8_t SDCard::disk_initialize ()
+{
+    uint8_t n, cmd, ty, ocr[4];
+    
+    if(_sspi_device.csPin == NoPin) return 1; // We dont have a CS pin defined, return FAIL
+    if (status & STA_NODISK) return status;    /* Is a card existing in the soket? */
+    
+    
+    //Change frequency to slow clock for initialisation
+    _sspi_device.clockFrequency = SCLK_INIT; // 25000
     sspi_master_setup_device(&_sspi_device); //update the freq
 
-    busyflag = false;
+    for (n = 10; n; n--) xchg_spi(0xFF);    /* Send 80 dummy clocks */
+    
+    ty = 0;
+    if (send_cmd(CMD0, 0) == 1) {            /* Put the card SPI state */
+       
+        uint32_t now = millis();
+        const uint32_t timeout = 1000;                        /* Initialization timeout = 1 sec */
+        
+        if (send_cmd(CMD8, 0x1AA) == 1) {    /* Is the card SDv2? */
+            for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);    /* Get 32 bit return value of R7 resp */
+            if (ocr[2] == 0x01 && ocr[3] == 0xAA) {                /* Does the card support 2.7-3.6V? */
+                while ((millis() - now) < timeout && send_cmd(ACMD41, 1UL << 30)) ;    /* Wait for end of initialization with ACMD41(HCS) */
+                if ((millis() - now) < timeout && send_cmd(CMD58, 0) == 0) {        /* Check CCS bit in the OCR */
+                    for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);
+                    ty = (ocr[0] & 0x40) ? CT_SD2 | CT_BLOCK : CT_SD2;    /* Check if the card is SDv2 */
+                }
+            }
+        } else {    /* Not an SDv2 card */
+            if (send_cmd(ACMD41, 0) <= 1)     {    /* SDv1 or MMCv3? */
+                ty = CT_SD1; cmd = ACMD41;    /* SDv1 (ACMD41(0)) */
+            } else {
+                ty = CT_MMC; cmd = CMD1;    /* MMCv3 (CMD1(0)) */
+            }
+            while ((millis() - now) < timeout && send_cmd(cmd, 0)) ;        /* Wait for the card leaves idle state */
+            if ((millis() - now) > timeout || send_cmd(CMD16, 512) != 0){    /* Set block length: 512 */
+                ty = 0;
+            }
+        }
+        
+        //set card Blockmode to 512
+        if(send_cmd(CMD16, 512) != 0) {
+            //failed to set block mode
+        }
+        
+    }
+    cardtype = ty;    /* Card type */
+    deselect();
+    
+    if (ty) {        /* OK */
 
-    return 0;
-}
+        //sdavi: now find the max freq to run card at.
+        frequency = SCLK_SD12; // 12.5MB/s interface - clock speed up to 25MHz (default)
+        if(cardtype & CT_SD2)
+        {
+            isHighSpeed = false;
+            
+            //Try and put the Card in HighSpeed Mode
+            select();
+            if (send_cmd(CMD6, 0x80FFFFF1) == 0)
+            {
+                // 512 bits of status (64 bytes)
+                uint8_t buf[64];
+                if(rcvr_datablock(buf, 64))
+                {
+                    //bits of interest are 376:379
+                    isHighSpeed = ((buf[16] & 0x0F) == 1);
+                    
+                    if(isHighSpeed)
+                    {
+                        frequency = SCLK_SD25; // 25MB/s card interface - clock speed up to 50MHz
+                        xchg_spi(0xFF);// send 8 dummy cycles before switching speed
+#ifdef SD_DEBUG
+                        debugPrintf("SDCard supports High Speed Mode\n");
+#endif
+                    }
+                    
+                }
+            }
+            deselect();
+        }
+        
+        if(frequency > maxFrequency) frequency = maxFrequency; //dont set higher than the max speed user set in config.
 
-int SDCard::disk_write(const uint8_t *buffer, uint32_t block_number)
-{
-    if (busyflag)
-        return 0;
+        _sspi_device.clockFrequency = frequency;
+        sspi_master_setup_device(&_sspi_device); //update the freq
 
-    busyflag = true;
-
-    if (cardtype == SDCARD_FAIL)
-        return -1;
-    // set write address for single block (CMD24)
-    if(_cmd(SDCMD_WRITE_BLOCK, BLOCK2ADDR(block_number)) != 0) {
+        status = 0;// clear the status flags (currently not using NoDisk or Protect)
+        
+        //get the Sector Count for the card
+        uint32_t sec = 0;
+        if(disk_ioctl(GET_SECTOR_COUNT, &sec) == RES_OK) sdcardSectors = sec;
+        
+#ifdef SD_DEBUG
+        debugPrintf("SD1:%d, SDv2:%d, SDv2HC:%d\n", ((cardtype & CT_SD1)>0),((cardtype & CT_SD2)>0), (( (cardtype & CT_SD2) && (cardtype & CT_BLOCK) )>0));
+        debugPrintf("Sectors: %" PRIu32 ", BlockSize: %" PRIu32 "\n", sdcardSectors, sdcardBlockSize);
+#endif
+        
+    } else {        /* Failed */
+        status = STA_NOINIT;
         return 1;
     }
-
-    // send the data block
-    _write(buffer, 512);
-
-    busyflag = false;
-
-    return 0;
+    
+    return 0; //Success
 }
 
-int SDCard::disk_read(uint8_t *buffer, uint32_t block_number)
+
+
+/*-----------------------------------------------------------------------*/
+/* Get disk status                                                       */
+/*-----------------------------------------------------------------------*/
+
+///* Physical drive number (0) */
+uint8_t SDCard::disk_status ()
 {
-    if (busyflag)
-        return 0;
-
-    busyflag = true;
-
-    if (cardtype == SDCARD_FAIL)
-        return -1;
-    // set read address for single block (CMD17)
-    if(_cmd(SDCMD_READ_SINGLE_BLOCK, BLOCK2ADDR(block_number)) != 0) {
-        return 1;
-    }
-
-    // receive the data
-    _read(buffer, 512);
-
-    busyflag = false;
-
-    return 0;
+    return status;
 }
 
-int SDCard::disk_status() { return (_sectors > 0)?0:1; }
-int SDCard::disk_sync() {
-    // TODO: wait for DMA, wait for card not busy
-    return 0;
-}
-uint32_t SDCard::disk_sectors() { return _sectors; }
-uint64_t SDCard::disk_size() { return ((uint64_t) _sectors) << 9; }
-uint32_t SDCard::disk_blocksize() { return (1<<9); }
-bool SDCard::disk_canDMA() { return false; }
 
-SDCard::CARD_TYPE SDCard::card_type()
+CARD_TYPE SDCard::card_type()
 {
     return cardtype;
 }
 
-// PRIVATE FUNCTIONS
-
-int SDCard::_cmd(int cmd, uint32_t arg) {
-
-    sspi_select_device(&_sspi_device);
-
-    sspi_transceive_a_packet(0xFF); //SD:: add another write as some cards need those extra cycles
-    
-    // send a command
-    sspi_transceive_a_packet(0x40 | cmd);
-    sspi_transceive_a_packet(arg >> 24);
-    sspi_transceive_a_packet(arg >> 16);
-    sspi_transceive_a_packet(arg >> 8);
-    sspi_transceive_a_packet(arg >> 0);
-    sspi_transceive_a_packet(0x95);
-    
-    // wait for the repsonse (response[7] == 0)
-    for(int i=0; i<SD_COMMAND_TIMEOUT; i++) {
-        int response = sspi_transceive_a_packet(0xFF);
-        if(!(response & 0x80)) {
-            sspi_deselect_device(&_sspi_device);
-            sspi_transceive_a_packet(0xFF);
-            return response;
-        }
-    }
-    sspi_deselect_device(&_sspi_device);
-    sspi_transceive_a_packet(0xFF);
-    return -1; // timeout
-}
-int SDCard::_cmdx(int cmd, uint32_t arg) {
-    
-    sspi_select_device(&_sspi_device);
-
-    sspi_transceive_a_packet(0xFF); //SD:: add another write as some cards need those extra cycles
-    
-    // send a command
-    sspi_transceive_a_packet(0x40 | cmd);
-    sspi_transceive_a_packet(arg >> 24);
-    sspi_transceive_a_packet(arg >> 16);
-    sspi_transceive_a_packet(arg >> 8);
-    sspi_transceive_a_packet(arg >> 0);
-    sspi_transceive_a_packet(0x95);
-
-    // wait for the repsonse (response[7] == 0)
-    for(int i=0; i<SD_COMMAND_TIMEOUT; i++) {
-        int response = sspi_transceive_a_packet(0xFF);
-        if(!(response & 0x80)) {
-            return response;
-        }
-    }
-    sspi_deselect_device(&_sspi_device);
-    sspi_transceive_a_packet(0xFF);
-
-    return -1; // timeout
-}
 
 
-int SDCard::_cmd58(uint32_t *ocr) {
 
-    sspi_select_device(&_sspi_device);
+/*-----------------------------------------------------------------------*/
+/* Read sector(s)                                                        */
+/*-----------------------------------------------------------------------*/
+/* buff - Pointer to the data buffer to store read data */
+/* sector - Start sector number (LBA) */
+/* count - Number of sectors to read (1..128) */
 
-    sspi_transceive_a_packet(0xFF); //SD:: add another write as some cards need those extra cycles
-    
-    int arg = 0;
-
-    // send a command
-    sspi_transceive_a_packet(0x40 | 58);
-    sspi_transceive_a_packet(arg >> 24);
-    sspi_transceive_a_packet(arg >> 16);
-    sspi_transceive_a_packet(arg >> 8);
-    sspi_transceive_a_packet(arg >> 0);
-    sspi_transceive_a_packet(0x95);
-
-    // wait for the repsonse (response[7] == 0)
-    for(int i=0; i<SD_COMMAND_TIMEOUT; i++) {
-        
-        //int response = _spi.write(0xFF);
-        int response = sspi_transceive_a_packet(0xFF);
-        if(!(response & 0x80)) {
-            *ocr = sspi_transceive_a_packet(0xFF) << 24;
-            *ocr |= sspi_transceive_a_packet(0xFF) << 16;
-            *ocr |= sspi_transceive_a_packet(0xFF) << 8;
-            *ocr |= sspi_transceive_a_packet(0xFF) << 0;
-            
-            sspi_deselect_device(&_sspi_device);
-            sspi_transceive_a_packet(0xFF);
-            
-            return response;
-        }
-    }
-    sspi_deselect_device(&_sspi_device);
-
-    sspi_transceive_a_packet(0xFF);
-
-    return -1; // timeout
-}
-
-int SDCard::_cmd8() {
-
-    sspi_select_device(&_sspi_device);
-
-    sspi_transceive_a_packet(0xFF); //SD:: add another write as some cards need those extra cycles
-    
-    // send a command
-    sspi_transceive_a_packet(0x40 | SDCMD_SEND_IF_COND); // CMD8
-    sspi_transceive_a_packet(0x00);     // reserved
-    sspi_transceive_a_packet(0x00);     // reserved
-    sspi_transceive_a_packet(0x01);     // 3.3v
-    sspi_transceive_a_packet(0xAA);     // check pattern
-    sspi_transceive_a_packet(0x87);     // crc
-    
-    // wait for the repsonse (response[7] == 0)
-    for(int i=0; i<SD_COMMAND_TIMEOUT * 1000; i++) {
-        char response[5];
-        response[0] = sspi_transceive_a_packet(0xFF);
-        if(!(response[0] & 0x80)) {
-                for(int j=1; j<5; j++) {
-                    response[j] = sspi_transceive_a_packet(0xFF);
-                }
-                sspi_deselect_device(&_sspi_device);
-                sspi_transceive_a_packet(0xFF);
-                return response[0];
-        }
-    }
-    sspi_deselect_device(&_sspi_device);
-    sspi_transceive_a_packet(0xFF);
-    
-    return -1; // timeout
-}
-
-int SDCard::_read(uint8_t *buffer, int length) {
-    sspi_select_device(&_sspi_device);
-
-    // read until start byte (0xFF)
-    while(sspi_transceive_a_packet(0xFF) != 0xFE);
-    
-
-        // read data
-    for(int i=0; i<length; i++) {
-        buffer[i] = sspi_transceive_a_packet(0xFF);
-    }
-    
-    sspi_transceive_a_packet(0xFF); // checksum
-    sspi_transceive_a_packet(0xFF);
-
-    sspi_deselect_device(&_sspi_device);
-    
-    sspi_transceive_a_packet(0xFF);
-    
-    return 0;
-}
-
-int SDCard::_write(const uint8_t *buffer, int length) {
-    sspi_select_device(&_sspi_device);
-
-    
-    // indicate start of block
-    sspi_transceive_a_packet(0xFE);
-
-    // write the data
-    for(int i=0; i<length; i++) {
-        sspi_transceive_a_packet(buffer[i]);
-    }
-    
-    // write the checksum
-    sspi_transceive_a_packet(0xFF);
-    sspi_transceive_a_packet(0xFF);
-    
-    // check the repsonse token
-    if((sspi_transceive_a_packet(0xFF) & 0x1F) != 0x05) {
-        sspi_deselect_device(&_sspi_device);
-        sspi_transceive_a_packet(0xFF);
-        return 1;
-    }
-
-    // wait for write to finish
-    while(sspi_transceive_a_packet(0xFF) == 0);
-    sspi_deselect_device(&_sspi_device);
-    sspi_transceive_a_packet(0xFF);
-
-    return 0;
-}
-
-static int ext_bits(uint8_t *data, int msb, int lsb) {
-    int bits = 0;
-    int size = 1 + msb - lsb;
-    for(int i=0; i<size; i++) {
-        int position = lsb + i;
-        int byte = 15 - (position >> 3);
-        int bit = position & 0x7;
-        int value = (data[byte] >> bit) & 1;
-        bits |= value << i;
-    }
-    return bits;
-}
-
-uint32_t SDCard::_sd_sectors() {
-
-    // CMD9, Response R2 (R1 byte + 16-byte block read)
-    if(_cmdx(SDCMD_SEND_CSD, 0) != 0) {
-        //fprintf(stderr, "Didn't get a response from the disk\n");
-        return 0;
-    }
-
-    uint8_t csd[16];
-    if(_read(csd, 16) != 0) {
-        //fprintf(stderr, "Couldn't read csd response from disk\n");
-        return 0;
-    }
-
-    // csd_structure : csd[127:126]
-    // c_size        : csd[73:62]
-    // c_size_mult   : csd[49:47]
-    // read_bl_len   : csd[83:80] - the *maximum* read block length
-
-    uint8_t csd_structure = ext_bits(csd, 127, 126);
-
-    if (csd_structure == 0)
-    {
-        if (cardtype == SDCARD_V2HC)
-        {
-            //fprintf(stderr, "SDHC card with regular SD descriptor!\n");
-            return 0;
-        }
-        uint32_t c_size = ext_bits(csd, 73, 62);
-        uint32_t c_size_mult = ext_bits(csd, 49, 47);
-        uint32_t read_bl_len = ext_bits(csd, 83, 80);
-
-        uint32_t block_len = 1 << read_bl_len;
-        uint32_t mult = 1 << (c_size_mult + 2);
-        uint32_t blocknr = (c_size + 1) * mult;
-
-        if (block_len >= 512)
-            return blocknr * (block_len >> 9);
-        else
-            return (blocknr * block_len) >> 9;
-    }
-    else if (csd_structure == 1)
-    {
-        if (cardtype != SDCARD_V2HC)
-        {
-            //fprintf(stderr, "SD V1 or V2 card with SDHC descriptor!\n");
-            return 0;
-        }
-        uint32_t c_size = ext_bits(csd, 69, 48);
-        uint32_t blocknr = (c_size + 1) * 1024;
-
-        return blocknr;
-    }
-    //fprintf(stderr, "This disk tastes funny! (%d) I only know about type 0 or 1 CSD structures\n", csd_structure);
-    return 0;
-}
-
-bool SDCard::busy()
+DRESULT SDCard::disk_read (uint8_t *buff, uint32_t sector, uint32_t count)
 {
-    return busyflag;
+    uint8_t cmd;
+    
+    if (!count) return RES_PARERR;        /* Check parameter */
+    if (status & STA_NOINIT) return RES_NOTRDY;    /* Check if drive is ready */
+    if (!(cardtype & CT_BLOCK)) sector *= 512;    /* LBA ot BA conversion (byte addressing cards) */
+    
+    cmd = count > 1 ? CMD18 : CMD17;            /*  READ_MULTIPLE_BLOCK : READ_SINGLE_BLOCK */
+    if (send_cmd(cmd, sector) == 0) {
+        do {
+            if (!rcvr_datablock(buff, 512)) break;
+            buff += 512;
+        } while (--count);
+        if (cmd == CMD18) send_cmd(CMD12, 0);    /* STOP_TRANSMISSION */
+    }
+    deselect();
+    
+    return count ? RES_ERROR : RES_OK;    /* Return result */
 }
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Write sector(s)                                                       */
+/*-----------------------------------------------------------------------*/
+/* Pointer to the data to write */
+/* Start sector number (LBA) */
+/* Number of sectors to write (1..128) */
+
+DRESULT SDCard::disk_write (const uint8_t *buff, uint32_t sector, uint32_t count)
+{
+    if (!count){
+#ifdef SD_DEBUG
+        debugPrintf("[SDCard:disk_write] Err: count is incorrect count=%" PRIu32 "", count);
+#endif
+        return RES_PARERR;        /* Check parameter */
+    }
+    if (status & STA_NOINIT) return RES_NOTRDY;    /* Check drive status */
+    if (status & STA_PROTECT) return RES_WRPRT;    /* Check write protect */
+    
+    if (!(cardtype & CT_BLOCK)) sector *= 512;    /* LBA ==> BA conversion (byte addressing cards) */
+    
+    if (count == 1) {    /* Single sector write */
+        if ((send_cmd(CMD24, sector) == 0)    /* WRITE_BLOCK */
+            && xmit_datablock(buff, 0xFE)) {
+            count = 0;
+        } else {
+#ifdef SD_DEBUG
+            debugPrintf("[SDCard:disk_write] SingleSectorWrite Failed. Sector:%" PRIu32 "\n", sector);
+#endif
+        }
+    }
+    else {                /* Multiple sector write */
+        if (cardtype & CT_SDC) send_cmd(ACMD23, count);    /* Predefine number of sectors */
+        if (send_cmd(CMD25, sector) == 0) {    /* WRITE_MULTIPLE_BLOCK */
+            do {
+                if (!xmit_datablock(buff, 0xFC)) break;
+                buff += 512;
+            } while (--count);
+            if (!xmit_datablock(0, 0xFD)) count = 1;    /* STOP_TRAN token */
+        }
+    }
+    deselect();
+
+    return count ? RES_ERROR : RES_OK;    /* Return result */
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/* Miscellaneous drive controls other than data read/write               */
+/*-----------------------------------------------------------------------*/
+/* Control command code */
+/* Pointer to the control data */
+
+
+DRESULT SDCard::disk_ioctl (uint8_t cmd, void *buff)
+{
+    DRESULT res;
+    uint8_t n, csd[16];
+    uint32_t csize;
+
+    if (status & STA_NOINIT) return RES_NOTRDY;    /* Check if drive is ready */
+    
+    res = RES_ERROR;
+    
+    switch (cmd) {
+        case CTRL_SYNC:            /* Wait for end of internal write process of the drive */
+            if (select()) res = RES_OK;
+            break;
+            
+        case GET_SECTOR_COUNT:    /* Get drive capacity in unit of sector (DWORD) */
+            if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
+                if ((csd[0] >> 6) == 1) {    /* SDC ver 2.00 */
+                    csize = csd[9] + ((uint16_t)csd[8] << 8) + ((uint32_t)(csd[7] & 63) << 16) + 1;
+                    *(uint32_t*)buff = csize << 10;
+                } else {                    /* SDC ver 1.XX or MMC ver 3 */
+                    n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
+                    csize = (csd[8] >> 6) + ((uint16_t)csd[7] << 2) + ((uint16_t)(csd[6] & 3) << 10) + 1;
+                    *(uint32_t*)buff = csize << (n - 9);
+                }
+                res = RES_OK;
+            }
+            break;
+            
+        case GET_BLOCK_SIZE:    /* Get erase block size in unit of sector (DWORD) */
+            if (cardtype & CT_SD2) {    /* SDC ver 2.00 */
+                if (send_cmd(ACMD13, 0) == 0) {    /* Read SD status */
+                    xchg_spi(0xFF);
+                    if (rcvr_datablock(csd, 16)) {                /* Read partial block */
+                        for (n = 64 - 16; n; n--) xchg_spi(0xFF);    /* Purge trailing data */
+                        *(uint32_t*)buff = 16UL << (csd[10] >> 4);
+                        res = RES_OK;
+                    }
+                }
+            } else {                    /* SDC ver 1.XX or MMC */
+                if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {    /* Read CSD */
+                    if (cardtype & CT_SD1) {    /* SDC ver 1.XX */
+                        *(uint32_t*)buff = (((csd[10] & 63) << 1) + ((uint16_t)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) - 1);
+                    } else {                    /* MMC */
+                        *(uint32_t*)buff = ((uint16_t)((csd[10] & 124) >> 2) + 1) * (((csd[11] & 3) << 3) + ((csd[11] & 224) >> 5) + 1);
+                    }
+                    res = RES_OK;
+                }
+            }
+            break;
+
+        default:
+#ifdef SD_DEBUG
+            debugPrintf("[SDCard:disk_ioctl] Unhandled command: %d", cmd);
+#endif
+            res = RES_PARERR;
+    }
+    
+    deselect();
+    return res;
+}
+
+

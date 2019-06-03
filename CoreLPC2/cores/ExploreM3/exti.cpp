@@ -70,17 +70,22 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
     size_t slot = MaxExtIntEntries;
     for(size_t i=0; i<MaxExtIntEntries; i++)
     {
-        if(ExternalInterruptPins[i] == pin){
-            slot = i; //found slot
+        //find a free slot
+        if(ExternalInterruptPins[i] == NoPin){
+            slot = i; //found a free slot
             break;
         }
     }
+    
+    if(slot == MaxExtIntEntries) return false; // No Free External Int slots available.
 
     //ensure pin is on Port 0 or Port 2
     //Each port pin can be programmed to generate an interrupt on a rising edge, a falling edge, or both.
-    if(slot < MaxExtIntEntries && (portNumber == 0 || portNumber == 2) )
+    if(portNumber == 0 || portNumber == 2 )
     {
         const irqflags_t flags = cpu_irq_save();
+
+        ExternalInterruptPins[slot] = pin; // add the pin to the array
 
         callbacks[slot].func = callback;
         callbacks[slot].param = param;
@@ -153,13 +158,21 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
 
 void detachInterrupt(Pin pin){
  
-    uint8_t portNumber;
-    uint8_t var_pinNumber_u8;
-    
-    portNumber =  (pin>>5);  //Divide the pin number by 32 go get the PORT number
-    var_pinNumber_u8  =   pin & 0x1f;  //lower 5-bits contains the bit number of a 32bit port
+    const uint8_t portNumber =  (pin>>5);  //Divide the pin number by 32 go get the PORT number
+    const uint8_t var_pinNumber_u8  =   pin & 0x1f;  //lower 5-bits contains the bit number of a 32bit port
 
-    //clear Rise and Fall
+    const irqflags_t flags = cpu_irq_save();
+
+    for(size_t i=0; i<MaxExtIntEntries; i++)
+    {
+        if(ExternalInterruptPins[i] == pin){
+            ExternalInterruptPins[i] = NoPin; //remove the pin from the array
+
+            break;
+        }
+    }
+    
+    //clear Rise and Fall interrupt for Pin
     if(portNumber == 0){
         util_BitClear(LPC_GPIOINT->IO0IntEnF, var_pinNumber_u8); //Falling
         util_BitClear(LPC_GPIOINT->IO0IntEnR, var_pinNumber_u8); //Rising
@@ -168,6 +181,9 @@ void detachInterrupt(Pin pin){
         util_BitClear(LPC_GPIOINT->IO2IntEnF, var_pinNumber_u8); //Falling
         util_BitClear(LPC_GPIOINT->IO2IntEnR, var_pinNumber_u8); //Rising
     }
+    
+    cpu_irq_restore(flags);
+
     
 }
 
@@ -210,7 +226,7 @@ extern "C" void EINT3_IRQHandler(void)
         LPC_GPIOINT->IO0IntClr |= (1 << pos0); // clear the status
         
         //Find the slot for this pin
-        const Pin pin= (Pin)(pos0);// port 0, this is just the pin number
+        const Pin pin= (Pin)(pos0);// Since this is on port 0, this is just the pin number
         size_t slot = MaxExtIntEntries;
         for(size_t i=0; i<MaxExtIntEntries; i++)
         {

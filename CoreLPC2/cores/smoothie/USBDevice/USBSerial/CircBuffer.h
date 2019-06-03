@@ -21,7 +21,6 @@
 
 #include <stdlib.h>
 #include "LPC17xx.h"
-#include "new.h"
 #include <FreeRTOS.h>
 
 template <class T>

@@ -34,15 +34,13 @@
 #include "systick.h"
 
 
-//SerialUSB::SerialUSB()
 SerialUSB::SerialUSB(CircBuffer<uint8_t> *rxBuffer, CircBuffer<uint8_t> *txBuffer)
 {
-    
-    this->usb = new (AHB0) USB();
+    this->usb = new USB();
     usb->init(); //initialise USB
     usb->connect();
 
-    this->usbSerial = new (AHB0) USBSerial(usb, rxBuffer, txBuffer);
+    this->usbSerial = new USBSerial(usb, rxBuffer, txBuffer);
     
 #if defined(ENABLE_DFU)
     this->dfu = new DFU(this->usb);
@@ -57,11 +55,13 @@ void SerialUSB::begin(uint32_t baud)
     (void)baud;
 }
 
-void SerialUSB::end(void) {
+void SerialUSB::end(void)
+{
  
 }
 
-int SerialUSB::available(void) {
+int SerialUSB::available(void)
+{
     
     return usbSerial->available();
 }
@@ -73,20 +73,21 @@ int SerialUSB::peek(void)
 }
 
 
-int SerialUSB::read(void) {
-    
+int SerialUSB::read(void)
+{
     return usbSerial->_getc();
-
 }
 
 
 
-void SerialUSB::flush(void) {
+void SerialUSB::flush(void)
+{
     usbSerial->flush();
 }
 
 
-size_t SerialUSB::canWrite() const{
+size_t SerialUSB::canWrite() const
+{
     return usbSerial->canWrite();
 }
 
@@ -116,9 +117,7 @@ size_t SerialUSB::write(const uint8_t *buffer, size_t size)
 
 void SerialUSB::setInterruptPriority(uint32_t priority)
 {
-    //NVIC_SetPriority(_dwIrq, priority & 0x0F);
     NVIC_SetPriority(USB_IRQn, priority);
-
 }
 
 uint32_t SerialUSB::getInterruptPriority()

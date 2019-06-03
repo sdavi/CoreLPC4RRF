@@ -608,19 +608,14 @@ void AnalogOut(Pin pin, float ulValue, uint16_t freq)
 
 
 //get the frequencies of the pwm and timers to report in M122
-void GetTimerInfo( uint16_t freqs[4] ){
-    freqs[0] = PWMFreq; //Hardware PWM
+void GetTimerInfo( LPCPWMInfo *pwmInfo )
+{
+    
+    pwmInfo->hwPWMFreq = PWMFreq; //Hardware PWM
     //Timer PWMs
-    for(int i=0; i<numTimerChannels; i++){
-        if( (timerInitialised & (1<<i)) )
-        {
-            freqs[i+1] = TimerPWMs[i].frequency;
-        }
-        else
-        {
-            freqs[i+1] = 0;
-        }
-    }
+    pwmInfo->tim1Freq = TimerPWMs[0].frequency;
+    pwmInfo->tim2Freq = TimerPWMs[1].frequency;
+    pwmInfo->tim3Freq = TimerPWMs[2].frequency;
 }
 
  // Return true if this pin exists and can do PWM

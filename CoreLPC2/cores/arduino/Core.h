@@ -28,7 +28,14 @@ extern void loop();
 extern void setup();
 extern void init( void );
 
-extern "C" void CoreSysTick(void);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    void CoreSysTick(void);
+#ifdef __cplusplus
+}// end exten "C"
+#endif
 
 typedef gpioPins_et Pin;
 static const Pin NoPin = P_NC; //which =0xff
@@ -81,7 +88,7 @@ enum EPWMChannel : int8_t
     PWM1_4,
     PWM1_5,
     PWM1_6,
-}  ;
+};
 
 
 struct PinDescription{
@@ -89,12 +96,6 @@ struct PinDescription{
     uint8_t ulPinAttribute;
     AnalogChannelNumber ulADCChannelNumber; // ADC or DAC channel number
     EPWMChannel ulPWMChannel;
-    
-    //added for RRF 3.0
-    Pin pin;
-    const char *names;
-    
-    
 };
 
 /* Pins table to be instantiated into variant.cpp */
@@ -108,9 +109,6 @@ enum SSPChannel {
 };
 
 
-
-
-#include "new.h"
 #include "WCharacter.h"
 #include "HardwareSerial.h"
 #include "Stream.h"

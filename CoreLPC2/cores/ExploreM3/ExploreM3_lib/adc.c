@@ -42,11 +42,6 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #include "gpio.h"
 #include "delay.h"
 
-static volatile uint32_t adcInitDoneFlag_u32 = 0;
-
-
-
-
 const adcChannelConfig_st AdcConfig[C_MaxAdcChannels_U8]=
 {
   { P0_23, PINSEL_FUNC_1}, /* AD0[0] is on P0.23 second alternative function */
@@ -87,80 +82,7 @@ void ADC_Init()
 
 }
   
-  
-  
-///***************************************************************************************************
-//                         uint32_t ADC_GetAdcValue(uint32_t adcChannel_u8)
-//****************************************************************************************************
-// * I/P Arguments: uint32_t(channel number).
-// * Return value    : uint32_t(12 bit ADC result)
-//
-// * description  :This function does the ADC conversion for the Selected Channel
-//                 and returns the converted 12 bit result
-//                 The ADC value per bit depends on the resolution of the ADC.
-//***************************************************************************************************/    
-//
-//uint16_t ADC_GetAdcValue(uint8_t v_adcChannel_u8)
-//{
-//    uint16_t v_adcResult_u16,oldResult=0,cnt=0,finalResult=0;
-//    
-//    if(adcInitDoneFlag_u32==0)
-//    {
-//        adcInitDoneFlag_u32=1;
-//         ADC_Init();
-//    }
-//    
-//    if(v_adcChannel_u8 == P1_31)
-//    {
-//        v_adcChannel_u8 = 5;
-//    }       
-//    else
-//    {
-//        v_adcChannel_u8 = v_adcChannel_u8-P0_23;
-//    }
-//
-//    if((v_adcChannel_u8 >= 0) &&  (v_adcChannel_u8 <= 6))
-//    {
-//                /* Select channel is with range, COnfigure the channel for ADC and DO the A/D conversion */ 
-//        GPIO_PinFunction(AdcConfig[v_adcChannel_u8].pinNumber,AdcConfig[v_adcChannel_u8].PinFunSel);
-//        LPC_ADC->ADCR  = (LPC_ADC->ADCR  & 0xFFFFFF00) | (0x01 << v_adcChannel_u8 );     /* set the channel */
-//
-//        delay_us(10);        /* allow the channel voltage to stabilize*/
-//        
-//        while(cnt<=3)
-//        {
-//               util_BitSet(LPC_ADC->ADCR,SBIT_START);           /*Start ADC conversion*/    
-//               while(util_GetBitStatus(LPC_ADC->ADGDR,SBIT_DONE)==0);   /* wait till conversion completes */
-//
-//               v_adcResult_u16 = (LPC_ADC->ADGDR >> SBIT_RESULT) & 0xfff; /*Read the 12bit adc result*/
-//        
-//               if((v_adcResult_u16>=(oldResult+10)) || ((v_adcResult_u16+10)<=(oldResult)))
-//               {
-//                   oldResult = v_adcResult_u16;
-//                   finalResult = 0;
-//                   cnt = 0;
-//               }
-//               else
-//               {
-//                  finalResult+= v_adcResult_u16;
-//                  cnt++; 
-//               }          
-//        }
-//
-//
-//    }
-//    else
-//    {
-//        /* Channel is out of range, return 0*/
-//        finalResult = 0;  
-//    }        
-//
-//    return(finalResult>>2);                                    /* Return the 12-bit result */
-//}
-//
-//
-// 
- 
+
 
 /***************************************************************************************************
 						static uint32_t adc_GetPclk( void )

@@ -12,34 +12,15 @@
 #define SPI1_FUNCTION  PINSEL_FUNC_2
 
 
-// Lock for the SPI subsystem
-static bool sspiLocked = false;
+//SSP Status Register Bits
+constexpr uint8_t SR_TFE = (1<<0); //Transmit FIFO Empty. This bit is 1 is the Transmit FIFO is empty, 0 if not.
+constexpr uint8_t SR_TNF = (1<<1); //Transmit FIFO Not Full. This bit is 0 if the Tx FIFO is full, 1 if not.
+constexpr uint8_t SR_RNE = (1<<2); //Receive FIFO Not Empty. This bit is 0 if the Receive FIFO is empty, 1 if not
+constexpr uint8_t SR_RFF = (1<<3); //Receive FIFO Full. This bit is 1 if the Receive FIFO is full, 0 if not.
+constexpr uint8_t SR_BSY = (1<<4); //Busy. This bit is 0 if the SSPn controller is idle, or 1 if it is currently sending/receiving a frame and/or the Tx FIFO is not empty.
 
-// Acquire the SSP bus
-// Returns true if successfully acquired
 
-bool sspi_acquire(const sspi_device *device)
-{
-	irqflags_t flags = cpu_irq_save();
-	bool rslt;
-	if (sspiLocked)
-	{
-		rslt = false;
-	}
-	else
-	{
-		sspiLocked = true;
-		rslt = true;
-	}
-	cpu_irq_restore(flags);
-	return rslt;
-}
 
-// Release the SSP bus
-void sspi_release(const sspi_device *device)
-{
-	sspiLocked = false;
-}
 
 static inline LPC_SSP_TypeDef *getSSPDevice(SSPChannel channel){
     if(channel == SSP0) return LPC_SSP0;
@@ -47,19 +28,50 @@ static inline LPC_SSP_TypeDef *getSSPDevice(SSPChannel channel){
 }
 
 
+//#define SSPI_DEBUG
+extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
+
 // Wait for transmitter ready returning true if timed out
 static inline bool waitForTxReady(LPC_SSP_TypeDef* sspDevice)
 {
-	uint32_t timeout = SPI_TIMEOUT;
-    while (util_IsBitSet(sspDevice->SR, 4)) //check if SSP BSY flag (1=busy)
-	{
-		if (--timeout == 0)
-		{
-			return true;
-		}
-	}
-	return false;
+    uint32_t timeout = SPI_TIMEOUT;
+    while (sspDevice->SR & SR_BSY) //check if SSP BSY flag (1=busy)
+    {
+        if (--timeout == 0)
+        {
+            return true;
+        }
+    }
+    return false;
 }
+
+
+
+//Make sure all the SSP FIFOs are empty, if they aren't clear them
+//returns true if ready, false if timeout
+static inline bool clearSSP(LPC_SSP_TypeDef* sspDevice)
+{
+#ifdef SSPI_DEBUG
+    if( (sspDevice->SR & SR_BSY) ) debugPrintf("SPI Busy\n");
+    if( !(sspDevice->SR & SR_TFE) ) debugPrintf("SPI Tx Not Empty\n");
+    if( (sspDevice->SR & SR_RNE) ) debugPrintf("SPI Rx Not Empty\n");
+#endif
+
+    //wait for SSP to be idle
+    if (waitForTxReady(sspDevice)) return true; //timed out
+
+    //check the Receive FIFO
+    if( (sspDevice->SR & SR_RNE) ){
+        //clear out the FIFO
+        while( (sspDevice->SR & SR_RNE) ){
+            sspDevice->DR; // read
+        }
+    }
+
+    return false; //did not timeout (success)
+
+}
+
 
 
 
@@ -89,6 +101,10 @@ void sspi_master_init(struct sspi_device *device, uint32_t bits)
     } else {
         device->bitsPerTransferControl = 8; // default
     }
+    
+    
+    
+    
 }
 
 
@@ -134,6 +150,8 @@ void sspi_master_setup_device(const struct sspi_device *device)
     spi_format(getSSPDevice(device->sspChannel), device->bitsPerTransferControl, device->spiMode, 0); //Set the bits, set Mode 0, and set as Master
     spi_frequency(getSSPDevice(device->sspChannel), device->clockFrequency);
  
+    
+    clearSSP(getSSPDevice(device->sspChannel));
 }
 
 
@@ -164,62 +182,141 @@ void sspi_deselect_device(const struct sspi_device *device)
         digitalWrite(device->csPin, LOW);
     }
     selectedSSPDevice = nullptr;
-
 }
 
-//send and receive len bytes from the selected SPI device (use spi_select_device before using).
+
 spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
 {
 
     if(selectedSSPDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
-    
+    if(clearSSP(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
+
     for (uint32_t i = 0; i < len; ++i)
 	{
-        
 		uint32_t dOut = (tx_data == nullptr) ? 0x000000FF : (uint32_t)*tx_data++;
 
         //Wait for Transmit to be ready
-        if (waitForTxReady(selectedSSPDevice))
-		{
-			return SPI_ERROR_TIMEOUT;
-		}
+        if (waitForTxReady(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
         
         selectedSSPDevice->DR = dOut; //put data into the Data Registor to transmit
         
-        // Some devices are transmit-only e.g. 12864 display, so don't wait for received data if we don't need to
-        //if (rx_data != nullptr)
-        //SD:: On LPC make sure we always read the DR after a write
-        {
+        // Wait for receive to be ready
+        if (waitForRxReady(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
 
-            // Wait for receive to be ready
-            if (waitForRxReady(selectedSSPDevice))
-            {
-                return SPI_ERROR_TIMEOUT;
-            }
-        
-        
-            uint8_t dIn = selectedSSPDevice->DR; //get received data from Data Registor
-            if(rx_data != nullptr)*rx_data++ = dIn;
-        }
+        uint8_t dIn = selectedSSPDevice->DR; //get received data from Data Registor
+        if(rx_data != nullptr) *rx_data++ = dIn;
     }
     
-    // If we didn't wait to receive, then we need to wait for transmit to finish and clear the receive buffer and
-    if (rx_data == nullptr)
-    {
-        waitForTxEmpty(selectedSSPDevice);
-    }
-
-
 	return SPI_OK;
 }
 
 
-//TODO:: temp.....for SDCard
-int sspi_transceive_a_packet(int buf)
+
+//wait for SSP receive FIFO to be not empty
+static inline bool waitForReceiveNotEmpty(LPC_SSP_TypeDef* sspDevice)
+{
+    uint32_t timeout = SPI_TIMEOUT;
+    
+    //Bit 2 - RNE (Receive Not Empty) - This bit is 0 if the Receive FIFO is empty
+    while( !(sspDevice->SR & SR_RNE) )
+    {
+        if (--timeout == 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+//16bit version of transceive packet
+// len - Number of bytes to transceive
+// (TODO: must be at least 16 bytes to use this method)
+spi_status_t sspi_transceive_packet_16(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
+{
+    if(clearSSP(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
+    
+    const uint32_t cr0 =  selectedSSPDevice->CR0 & 0xFFFF; // save old value
+    
+    //change to 16 bit mode (DSS = (bits-1) dss is bits 0:3 of CR)
+    selectedSSPDevice->CR0 |= 0x000F;
+    
+    //Fill the FIFO by loading up the first 8 frames (each 16bit frame holds 2 bytes)
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        uint32_t dOut = 0x0000FFFF;
+        if(tx_data != nullptr)
+        {
+            dOut = *tx_data++;
+            dOut = (dOut << 8) | *tx_data++;
+        }
+        selectedSSPDevice->DR = dOut; //put data into the Data Register to transmit
+
+    }
+    len -= 16;
+    
+    while (len >= 2)
+    {
+        //wait until there is data in the FIFO
+        if (waitForReceiveNotEmpty(selectedSSPDevice))
+        {
+            selectedSSPDevice->CR0 = cr0; //set mode back to previous value
+            //debugPrintf("SharedSPI: Timeout Error\n");
+            return SPI_ERROR_TIMEOUT;
+        }
+
+        //Read in a Frame
+        uint32_t dIn = selectedSSPDevice->DR; //get received data from Data Register
+        if(rx_data != nullptr)
+        {
+            *rx_data++ = dIn >> 8;
+            *rx_data++ = dIn;
+        }
+            
+        //Send the next Frame
+        uint32_t dOut = 0x0000FFFF;
+        if(tx_data != nullptr)
+        {
+            dOut = *tx_data++;
+            dOut = (dOut << 8) | *tx_data++;
+        }
+
+        selectedSSPDevice->DR = dOut; //put data into the Data Register to transmit
+        
+        len -= 2;
+    }
+    
+    //get the last 8 frames from Receive FIFO
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        //wait until there is data in the FIFO
+        if (waitForReceiveNotEmpty(selectedSSPDevice))
+        {
+            selectedSSPDevice->CR0 = cr0; //set mode back to previous value
+//            debugPrintf("SharedSPI: Timeout Error\n");
+            return SPI_ERROR_TIMEOUT;
+        }
+        
+        
+        //Read Frame
+        uint32_t dIn = selectedSSPDevice->DR; //get received data from Data Register
+        if(rx_data != nullptr)
+        {
+            *rx_data++ = dIn >> 8;
+            *rx_data++ = dIn;
+        }
+    }
+    
+    selectedSSPDevice->CR0 = cr0; //set mode back to previous value
+
+    return SPI_OK;
+}
+
+//transceive a packet for SDCard
+uint8_t sspi_transceive_a_packet(uint8_t buf)
 {
     uint8_t tx[1], rx[1];
     tx[0] = (uint8_t)buf;
     sspi_transceive_packet(tx, rx, 1);
-    return (int) rx[0];
+    return rx[0];
 }
-

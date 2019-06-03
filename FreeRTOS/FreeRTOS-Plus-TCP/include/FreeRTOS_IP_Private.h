@@ -1,5 +1,5 @@
 /*
- * FreeRTOS+TCP V2.0.1
+ * FreeRTOS+TCP V2.0.11
  * Copyright (C) 2017 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -19,10 +19,8 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * http://www.FreeRTOS.org
  * http://aws.amazon.com/freertos
- *
- * 1 tab == 4 spaces!
+ * http://www.FreeRTOS.org
  */
 
 #ifndef FREERTOS_IP_PRIVATE_H
@@ -438,8 +436,18 @@ eFrameProcessingResult_t eConsiderFrameForProcessing( const uint8_t * const pucE
 uint16_t usGenerateChecksum( uint32_t ulSum, const uint8_t * pucNextData, size_t uxDataLengthBytes );
 
 /* Socket related private functions. */
+
+/* 
+ * The caller must ensure that pxNetworkBuffer->xDataLength is the UDP packet 
+ * payload size (excluding packet headers) and that the packet in pucEthernetBuffer 
+ * is at least the size of UDPPacket_t. 
+ */
 BaseType_t xProcessReceivedUDPPacket( NetworkBufferDescriptor_t *pxNetworkBuffer, uint16_t usPort );
-void vNetworkSocketsInit( void );
+
+/*
+ * Initialize the socket list data structures for TCP and UDP. 
+ */
+BaseType_t vNetworkSocketsInit( void );
 
 /*
  * Returns pdTRUE if the IP task has been created and is initialised.  Otherwise
@@ -673,7 +681,7 @@ void vProcessGeneratedUDPPacket( NetworkBufferDescriptor_t * const pxNetworkBuff
  * bOut = false: checksum will be calculated for incoming packets
  *     returning 0xffff means: checksum was correct
  */
-uint16_t usGenerateProtocolChecksum( const uint8_t * const pucEthernetBuffer, BaseType_t xOutgoingPacket );
+uint16_t usGenerateProtocolChecksum( const uint8_t * const pucEthernetBuffer, size_t uxBufferLength, BaseType_t xOutgoingPacket );
 
 /*
  * An Ethernet frame has been updated (maybe it was an ARP request or a PING

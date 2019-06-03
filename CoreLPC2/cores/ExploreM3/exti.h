@@ -46,20 +46,6 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #include "stdlib.h"
 
 
-/*************************************************************************************************
-                         Costants, Structures and Typedefs for timers 							   
-**************************************************************************************************/
-#define EINT0          0
-#define EINT1          1
-#define EINT2          2
-#define EINT3          3
-#define EINT_MAX       4
-
-#define FALLING 2
-#define RISING  3
-#define CHANGE 4  // Added for compat with RRF
-
-
 enum InterruptMode {
     INTERRUPT_MODE_NONE = 0,
     INTERRUPT_MODE_LOW,
@@ -89,9 +75,7 @@ void detachInterrupt(Pin pin);
 // Return true if we are in an interrupt service routine
 bool inInterrupt();
 
-
 constexpr size_t MaxExtIntEntries = 3;
-extern Pin ExternalInterruptPins[MaxExtIntEntries];
 
 // Find the lowest set bit. Returns the lowest set bit number, undefined if no bits are set.
 // GCC provides intrinsics, but unhelpfully they are in terms of int, long and long long instead of uint32_t, uint64_t etc.

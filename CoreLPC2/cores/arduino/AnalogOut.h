@@ -29,8 +29,17 @@ extern void AnalogOutInit();
  * \param ulValue, will be constrained to be within 0.0 to 1.0 within this function
  * \param freq (optional)
  */
+
+struct LPCPWMInfo
+{
+    uint16_t hwPWMFreq;
+    uint16_t tim1Freq;
+    uint16_t tim2Freq;
+    uint16_t tim3Freq;
+};
+
 extern void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000);
-extern void GetTimerInfo( uint16_t freqs[4] );
+extern void GetTimerInfo( LPCPWMInfo *pwmInfo );
 extern void ConfigureTimerForPWM(uint8_t timerChannel, uint16_t frequency);
 extern bool IsPwmCapable(Pin pin);
 extern bool IsServoCapable(Pin pin);

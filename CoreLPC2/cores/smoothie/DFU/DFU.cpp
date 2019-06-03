@@ -1,8 +1,5 @@
 #include "DFU.h"
 
-// #include <LPC17xx.h>
-//#include "lpc17xx_wdt.h"
-
 #include "Core.h"
 
 #include <stdio.h>

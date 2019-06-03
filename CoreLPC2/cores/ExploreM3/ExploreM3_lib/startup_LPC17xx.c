@@ -185,29 +185,15 @@ void Reset_Handler(void)
   //  SystemInit();
     unsigned long *pulSrc, *pulDest;
 
-    //added by SD (The SP was starting at a low memory address causing collisions, not sure why, but lets fix it)
-    //__set_MSP((unsigned long)&__StackTop); // set the stack pointer to where it should be
-
     //
     // Copy the data segment initializers from flash to SRAM in ROM mode
     //
-//#if (__RAM_MODE__==0)
     pulSrc = &__sidata;
     for(pulDest = &__data_start__; pulDest < &__data_end__; )
     {
         *(pulDest++) = *(pulSrc++);
     }
-//#endif
 
-
-    //
-    // Zero fill the bss segment.
-    //
-    //for(pulDest = &__bss_start__; pulDest < &__bss_end__; )
-    //{
-     //   *(pulDest++) = 0;
-   // }
-    
     //
     // Zero fill the bss segment.  This is done with inline assembly since this
     // will clear the value of pulDest if it is not kept in a register.
