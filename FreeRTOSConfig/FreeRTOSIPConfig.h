@@ -45,13 +45,6 @@
 #define ipconfigCHECK_IP_QUEUE_SPACE ( 1 )
 #define COLLECT_NETDRIVER_ERROR_STATS 1
 
-//SD:: Added functions for allocation static block of memory for TCP Buffers
-//SD:: See StaticNetworkMemoryAllocator.c
-//Malloc/free defines for large TCP Buffers 
-//#define pvPortMallocLarge( x )      staticMallocLarge( x )
-//#define vPortFreeLarge( ptr )       staticFreeLarge( ptr )
-
-
 extern void IPTaskWatchDogTimer();
 #define ipconfigWATCHDOG_TIMER() IPTaskWatchDogTimer();
 

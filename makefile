@@ -7,15 +7,18 @@ MBED = true
 
 BUILD_DIR = $(PWD)/build
 
-BUILD = Debug
-#BUILD = Release
+#BUILD = Debug
+BUILD = Release
 
 #compile in Ethernet Networking?
 NETWORKING = true
-#NETWORKING = false
 
 #ESP Networking
 #ESP_NETWORKING = true
+
+#ESP8826_NETWORKING
+#ESP8826_NETWORKING = true
+
 
 
 #enable DFU
@@ -86,7 +89,7 @@ MKDIR = mkdir -p
 
 
 #Flags common for Core in c and c++
-FLAGS  = -D__$(PROCESSOR)__ -DCORE_M3 -D_XOPEN_SOURCE
+FLAGS  = -D__$(PROCESSOR)__ -D_XOPEN_SOURCE
 
 ifeq ($(MBED), true)
 $(info Building for MBED)
@@ -105,6 +108,8 @@ FLAGS += -MMD -MP
 
 ifeq ($(ESP_NETWORKING), true)
 	FLAGS += -DESP_NETWORKING -DHAS_ESP32_NETWORKING
+else ifeq ($(ESP8826_NETWORKING), true)
+	FLAGS += -DESP8266_NETWORKING
 else ifeq ($(NETWORKING), true)
         FLAGS += -DLPC_NETWORKING
 endif
@@ -112,20 +117,18 @@ endif
 
 CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline
 CXXFLAGS = $(FLAGS) -std=gnu++17  -fno-threadsafe-statics -fno-exceptions -fno-rtti
-#-std=gnu++14
-#RRF c++ flags
-RRF_CXXFLAGS  = $(CXXFLAGS) 
 
 
-ifeq ($(NETWORKING), true)
-	RRF_CXXFLAGS += -DLPC_NETWORKING
-endif
 
+#Core
+CORE_SRC_DIRS  = cores system variants/LPC libraries/WIRE libraries/SDCard libraries/SharedSPI
+CORE_SRC_DIRS += cores/ExploreM3 cores/ExploreM3/ExploreM3_lib cores/arduino cores/smoothie
+CORE_SRC_DIRS += cores/smoothie/USBDevice cores/smoothie/USBDevice/USBDevice cores/smoothie/USBDevice/USBSerial/ cores/smoothie/DFU
+CORE_SRC_DIRS += cores/lpcopen/src
 
-#Core libraries
-CORE_SRC     = $(CORE)/cores $(CORE)/system $(CORE)/variants/LPC
-CORE_SRC    += $(CORE)/libraries/WIRE $(CORE)/libraries/SDCard
-CORE_SRC    += $(CORE)/libraries/SharedSpi
+CORE_SRC = $(CORE) $(addprefix $(CORE)/, $(CORE_SRC_DIRS))
+CORE_INCLUDES = $(addprefix -I, $(CORE_SRC))
+
 
 ifeq ($(USE_DFU), true)
         #enable DFU
@@ -133,32 +136,18 @@ ifeq ($(USE_DFU), true)
         CXXFLAGS += -DENABLE_DFU
 endif
 
-
-
-#Includes
-CORE_INCLUDES	 = -I$(CORE)
+#Additional Core Includes
 CORE_INCLUDES	+= -I$(CORE)/system/ExploreM3_lib/
-CORE_INCLUDES	+= -I$(CORE)/cores/ExploreM3/
-CORE_INCLUDES   += -I$(CORE)/cores/arduino/
-CORE_INCLUDES   += -I$(CORE)/cores/smoothie/
-CORE_INCLUDES   += -I$(CORE)/cores/smoothie/USBDevice/
-CORE_INCLUDES   += -I$(CORE)/cores/smoothie/USBDevice/USBDevice/
-CORE_INCLUDES   += -I$(CORE)/cores/smoothie/USBDevice/USBSerial/ 
 CORE_INCLUDES   += -I$(CORE)/system/CMSIS/CMSIS/Include/
-CORE_INCLUDES   += -I$(CORE)/variants/LPC/
-CORE_INCLUDES   += -I$(CORE)/libraries/SDCard/ 
-CORE_INCLUDES   += -I$(CORE)/libraries/SharedSpi/
-CORE_INCLUDES   += -I$(CORE)/libraries/WIRE/
 
 #openlpc 
-CORE_INCLUDES  += -I$(CORE)/cores/lpcopen/
 CORE_INCLUDES  += -I$(CORE)/cores/lpcopen/inc
-CORE_INCLUDES  += -I$(CORE)/cores/lpcopen/board
 
 #Find all c and c++ files for Core
-CORE_OBJ_SRC_C	   += $(foreach src, $(CORE_SRC), $(wildcard $(src)/*.c $(src)/*/*.c $(src)/*/*/*.c $(src)/*/*/*/*.c $(src)/*/*/*/*/*.c) )
-CORE_OBJ_SRC_CXX   += $(foreach src, $(CORE_SRC), $(wildcard $(src)/*.cpp $(src)/*/*.cpp $(src)/*/*/*.cpp $(src)/*/*/*/*.cpp $(src)/*/*/*/*/*.cpp) )
+CORE_OBJ_SRC_C    += $(foreach src, $(CORE_SRC), $(wildcard $(src)/*.c))
+CORE_OBJ_SRC_CXX   += $(foreach src, $(CORE_SRC), $(wildcard $(src)/*.cpp))
 CORE_OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(CORE_OBJ_SRC_C)) $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(CORE_OBJ_SRC_CXX))
+
 
 
 #RTOS Sources (selected dirs only)
@@ -178,7 +167,6 @@ CORE_INCLUDES   += -I$(RTOS_CONFIG_INCLUDE)
 #RTOS +TCP
 RTOSPLUS_TCP_SRC = $(RTOSPLUS_SRC)/FreeRTOS-Plus-TCP
 RTOSPLUS_TCP_INCLUDE = $(RTOSPLUS_TCP_SRC)/include/
-
 
 RTOSPLUS_CORE_SRC    += $(RTOSPLUS_TCP_SRC) $(RTOS_SRC_PORTABLE)
 RTOSPLUS_CORE_OBJ_SRC_C  += $(foreach src, $(RTOSPLUS_CORE_SRC), $(wildcard $(src)/*.c) )
@@ -210,7 +198,7 @@ endif
 #---RepRapFirmware---
 RRF_SRC_DIRS  = FilamentMonitors GCodes Heating Movement Movement/BedProbing Movement/Kinematics 
 RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries/sha1
-RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel Endstops
+RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel Endstops Hardware
 RRF_SRC_DIRS += LPC LPC/MCP4461
 
 RRF_SRC_DIRS += Display Display/ST7920
@@ -220,7 +208,9 @@ RRF_SRC_DIRS += Display Display/ST7920
 ifeq ($(ESP_NETWORKING), true)
 	RRF_SRC_DIRS += LPC/ESPNetworking LPC/ESPNetworking/ESP32Interface
 else ifeq ($(NETWORKING), true)
-	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet #Networking/ESP8266WiFi
+	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet
+else ifeq ($(ESP8826_NETWORKING), true)
+	RRF_SRC_DIRS += Networking Networking/ESP8266WiFi
 else
 	RRF_SRC_DIRS += LPC/NoNetwork
 endif
@@ -257,15 +247,21 @@ INCLUDES = $(CORE_INCLUDES) $(RRF_INCLUDES)
 INCLUDES += -IDuetWiFiSocketServer/src/include
 
 
+DEPS = $(CORE_OBJS:.o=.d)
+DEPS += $(RRF_OBJS:.o=.d)
+
+
 default: all
 
 all: firmware
 
 
+-include $(DEPS)
+
+
 firmware:  $(BUILD_DIR)/$(OUTPUT_NAME).elf
 
 coreLPC: $(BUILD_DIR)/core.a
-
 
 $(BUILD_DIR)/core.a: $(CORE_OBJS)
 
@@ -283,16 +279,16 @@ $(BUILD_DIR)/$(OUTPUT_NAME).elf: $(BUILD_DIR)/core.a $(RRF_OBJS)
 	@./staticMemStats.sh 
 
 $(BUILD_DIR)/%.o: %.c
-	@/bin/echo -n "." #@echo "[$(CC): Compiling $<]"
+	@echo "[$(CC): Compiling $<]"
 	$(V)$(MKDIR) $(dir $@)
+	$(V)$(CC)  $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -MM -MF $(patsubst %.o,%.d,$@) $<
 	$(V)$(CC)  $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -o $@ $<
 	
 $(BUILD_DIR)/%.o: %.cpp
-	@/bin/echo -n "."
-#@echo "[$(CXX): Compiling $<]"
+	@echo "[$(CXX): Compiling $<]"
 	$(V)$(MKDIR) $(dir $@)
+	$(V)$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -MM -MF $(patsubst %.o,%.d,$@) $<
 	$(V)$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -o $@ $<
-
 
 upload: $(BUILD_DIR)/$(OUTPUT_NAME).elf
 	@echo "Flashing firmware via DFU"
@@ -304,10 +300,10 @@ cleanrrf:
 cleancore:
 	-rm -f $(BUILD_DIR)/core.a $(CORE_OBJS)
 
-clean:
-	-rm -f firmware.lst firmware.elf firmware.hex firmware.map firmware.bin firmware.list
+clean: distclean
 
-distclean: clean cleancore cleanrrf
-	-rm -rf $(BUILD_DIR)/core.a $(RRF_OBJS) $(CORE_OBJS)
+distclean:
+	-rm -rf $(BUILD_DIR)/ 
+	-rm -f firmware.elf firmware.bin firmware.map
 
 .PHONY: all  clean distclean
