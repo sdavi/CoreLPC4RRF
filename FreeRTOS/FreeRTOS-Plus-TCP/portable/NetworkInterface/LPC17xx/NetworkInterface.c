@@ -522,7 +522,7 @@ const TickType_t xBlockTimeTicks = pdMS_TO_TICKS( 50 );
             //ENET_TCTRL_CRC           Append a hardware CRC to Frame
             //ENET_TCTRL_LAST          Last Descriptor for TX Frame
             //ENET_TCTRL_INT           Generate TxDone Interrupt
-            xDMATxDescriptors[produceIndex].Control = ENET_TCTRL_SIZE(pxDescriptor->xDataLength) | ENET_TCTRL_INT  | ENET_TCTRL_CRC | ENET_TCTRL_LAST; // size and generate interrupt and last descriptor (SD::last cause tcpip library is handing the packetisation and we will always get a size which fits our MTU)
+            xDMATxDescriptors[produceIndex].Control = ENET_TCTRL_SIZE(pxDescriptor->xDataLength) | ENET_TCTRL_PAD | ENET_TCTRL_INT  | ENET_TCTRL_CRC | ENET_TCTRL_LAST; // size and generate interrupt and last descriptor (SD::last cause tcpip library is handing the packetisation and we will always get a size which fits our MTU)
             
             Chip_ENET_IncTXProduceIndex(LPC_ETHERNET); //trigger buffer to transmit...increase the TXProduceIndex
             

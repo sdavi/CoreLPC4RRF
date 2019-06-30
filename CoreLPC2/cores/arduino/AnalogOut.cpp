@@ -59,6 +59,9 @@
 #define LER5_EN            (1 << 5)
 #define LER6_EN            (1 << 6)
 
+
+extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
+
 template<class T, size_t N>
 constexpr size_t size(T (&)[N]) { return N; }
 
@@ -120,10 +123,10 @@ static bool AnalogWriteDac(const PinDescription& pinDesc, float ulValue)
 */
 
 
-const uint8_t numPwmChannels = 6;
 static bool PWMEnabled = false;
-static uint16_t PWMValue[numPwmChannels] = {0};
-static uint16_t PWMFreq = 0;
+//static uint16_t PWMValue[NumPwmChannels] = {0};
+Pin UsedHardwarePWMChannel[NumPwmChannels] = {NoPin, NoPin, NoPin, NoPin, NoPin, NoPin};
+uint16_t HardwarePWMFrequency = 250;
 static unsigned int pwm_clock_mhz;
 
 void PWM_Set( Pin pin, uint32_t dutyCycle )
@@ -189,63 +192,54 @@ static bool AnalogWritePwm(const PinDescription& pinDesc, float ulValue, uint16_
     pre((pinDesc.ulPinAttribute & PIN_ATTR_PWM) != 0)
 {
     
-    const uint32_t chan = pinDesc.ulPWMChannel;
+    //const uint32_t chan = pinDesc.ulPWMChannel;
     if (freq == 0)
     {
         return false;
     }
 
     
-    if (PWMFreq != freq) // A change of Freq is requested. !!!This changes the Freq for ALL PWM channels!!!
+    //if (PWMFreq != freq) // A change of Freq is requested. !!!This changes the Freq for ALL PWM channels!!!
+    if(!PWMEnabled)
     {
+        //Enable and Setup HW PWM
+
+        //Power on
+        LPC_SC->PCONP |= 1 << 6;
+
+        //pclk set to 1/4 in system_LPC17xx.c
+        LPC_PWM1->PR = 0; // no pre-scale
         
+        LPC_PWM1->IR = 0;// Disable all interrupt flags for PWM
+        //NOTE::: Manual states LPC pwm pins all share the same period!
 
-        
-        if (!PWMEnabled)
-        {
-            //Power on
-            LPC_SC->PCONP |= 1 << 6;
-
-            //pclk set to 1/4 in system_LPC17xx.c
-            LPC_PWM1->PR = 0; // no pre-scale
-            
-            LPC_PWM1->IR = 0;// Disable all interrupt flags for PWM
-            //NOTE::: Manual states LPC pwm pins all share the same period!
-
-            LPC_PWM1->MCR = 1 << 1; // Single PWMMode -> reset TC on match 0
-            pwm_clock_mhz = SystemCoreClock / 4000000;
-            
-            PWMEnabled = true;
-        }
+        LPC_PWM1->MCR = 1 << 1; // Single PWMMode -> reset TC on match 0
+        pwm_clock_mhz = SystemCoreClock / 4000000;
 
         LPC_PWM1->TCR = TCR_RESET; //set reset
 
-        uint32_t ticks = pwm_clock_mhz * (1000000/freq);
+        uint32_t ticks = pwm_clock_mhz * (1000000/HardwarePWMFrequency);
         LPC_PWM1->MR0 = ticks; //Set the period (for ALL channels)
         LPC_PWM1->LER|= LER0_EN;
         
         // enable counter and pwm, clear reset
         LPC_PWM1->TCR = TCR_CNT_EN | TCR_PWM_EN;
 
-        //TODO:: if frequency changes while PWM is running their duty cycles will be wrong
-        //       update all running ones.... this is not an issue in RRF as we arent changing PWM freq for HW PWM
-
-        
-        //remember the PWM freq
-        PWMFreq = freq;
+        PWMEnabled = true;
     }
 
+    
     //setup the PWM channel
     uint32_t v = (uint32_t)((float)(LPC_PWM1->MR0) * ulValue); //calculate duty cycle
 
-    //SD:: this is workaround from MBED (not tested but assume its required)
+    //SD:: this is workaround from MBED
     // workaround for PWM1[1] - Never make it equal MR0, else we get 1 cycle dropout
     if (v == LPC_PWM1->MR0) {
         v++;
     }
 
-    PWM_Set(pin, v); //set the duty cycle
-    PWMValue[chan] = ulValue;// remember the pwm value
+    PWM_Set(pin, v); //set the duty cycle for the pin
+    //PWMValue[chan] = ulValue;// remember the pwm value
 
     return true;
 }
@@ -263,7 +257,7 @@ Pin Timer3PWMPins[MaxTimerEntries] = {NoPin, NoPin, NoPin};
 
 struct TimerPwmStruct{
     LPC_TIM_TypeDef *timer;
-    const Pin* timerPins;
+    Pin* const timerPins;
     uint16_t frequency;
 };
 
@@ -611,7 +605,7 @@ void AnalogOut(Pin pin, float ulValue, uint16_t freq)
 void GetTimerInfo( LPCPWMInfo *pwmInfo )
 {
     
-    pwmInfo->hwPWMFreq = PWMFreq; //Hardware PWM
+    pwmInfo->hwPWMFreq = HardwarePWMFrequency; //Hardware PWM
     //Timer PWMs
     pwmInfo->tim1Freq = TimerPWMs[0].frequency;
     pwmInfo->tim2Freq = TimerPWMs[1].frequency;
@@ -632,8 +626,6 @@ bool IsPwmCapable(Pin pin)
     if (pin < ARRAY_SIZE(g_APinDescription) && (g_APinDescription[pin].ulPinAttribute & PIN_ATTR_PWM) != 0) return true;
     
     return false;
-
-    
 }
 
 bool IsServoCapable(Pin pin)
@@ -642,5 +634,58 @@ bool IsServoCapable(Pin pin)
     return IsPwmCapable(pin);
 }
 
+
+
+bool ConfigurePinForPWM(Pin pin, uint16_t frequency)
+{
+    if(pin == NoPin || frequency == 0) return false;
+    
+    //Check for HW Pin (assume HWPWM is always running at 250Hz for Heaters/fans
+    for(uint8_t i=0; i<size(PinMap_PWM); i++)
+    {
+        if(PinMap_PWM[i].pinNumber == pin)
+        {
+            //the pin is HWPWM, check HWPWM is running at the requested frequency
+            if(HardwarePWMFrequency == frequency)
+            {
+                //some PWM pins share the same pwm channel, so check another pin on same channel is not in use
+                if(UsedHardwarePWMChannel[PinMap_PWM[i].pwmChannelNumber] == NoPin){
+                    UsedHardwarePWMChannel[PinMap_PWM[i].pwmChannelNumber] = pin; //Pin will use HW PWM
+                    return true;
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    
+    
+    //is there a timer running at the requested frequency?
+    for(uint8_t i=0; i<numTimerChannels; i++ )
+    {
+        if(TimerPWMs[i].frequency == frequency)
+        {
+            //Timer running at correct frequency, check for free slots
+            for(uint8_t t=0; t<MaxTimerEntries; t++)
+            {
+                if(TimerPWMs[i].timerPins[t] == NoPin)
+                {
+                    //Timer has slot free, add pin to the timerPins array
+                    TimerPWMs[i].timerPins[t] = pin;
+                    
+                    //Update the pinsOnATimer bitmask to tell analogWrite that pin is now TimerPWM capable
+                    const uint8_t port = (pin >> 5);
+                    if(port <= 4){
+                        pinsOnATimer[port] |= 1 << (pin & 0x1f);
+                    }
+                    return true;
+                }
+            }
+        }
+    }
+    return false; //Pin unable to do PWM
+}
 
 // End

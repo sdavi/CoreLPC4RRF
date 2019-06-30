@@ -18,7 +18,7 @@
 
 #include "Core.h"
 
-#define SPI_TIMEOUT       15000//15000
+#define SPI_TIMEOUT       15000
 
 
 #ifdef __cplusplus
@@ -27,14 +27,8 @@
 extern "C" {
 #endif
 
-//struct spi_s {
-//        LPC_SSP_TypeDef *spi;
-//};
-
-//typedef struct spi_s spi_t;
 typedef LPC_SSP_TypeDef spi_t;
     
-//void spi_init         (spi_t *obj, Pin mosi, Pin miso, Pin sclk, Pin ssel);
 void spi_init(spi_t *obj, uint8_t SSPChannel);
 
 void spi_free         (spi_t *obj);

@@ -20,7 +20,7 @@
 #define ANALOGOUT_H
 
 // Initialise this module
-extern void AnalogOutInit();
+void AnalogOutInit();
 
 /*
  * \brief Writes an analog value (PWM wave) to a pin.
@@ -38,11 +38,13 @@ struct LPCPWMInfo
     uint16_t tim3Freq;
 };
 
-extern void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000);
-extern void GetTimerInfo( LPCPWMInfo *pwmInfo );
-extern void ConfigureTimerForPWM(uint8_t timerChannel, uint16_t frequency);
-extern bool IsPwmCapable(Pin pin);
-extern bool IsServoCapable(Pin pin);
+void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000);
+void GetTimerInfo( LPCPWMInfo *pwmInfo );
+void ConfigureTimerForPWM(uint8_t timerChannel, uint16_t frequency);
+bool IsPwmCapable(Pin pin);
+bool IsServoCapable(Pin pin);
+bool ConfigurePinForPWM(Pin pin, uint16_t frequency);
+
 
 
 //Timer PWM
@@ -52,12 +54,15 @@ extern bool IsServoCapable(Pin pin);
 
 
 static const size_t MaxTimerEntries = 3; //MR0 for the Frequency and MR1-3 for the Timer PWM
+static const uint8_t NumPwmChannels = 6;
+
 
 extern uint32_t pinsOnATimer[5]; // 5 Ports
 extern Pin Timer1PWMPins[MaxTimerEntries];
 extern Pin Timer2PWMPins[MaxTimerEntries];
 extern Pin Timer3PWMPins[MaxTimerEntries];
-
+extern Pin UsedHardwarePWMChannel[NumPwmChannels];
+extern uint16_t HardwarePWMFrequency;
 
 
 

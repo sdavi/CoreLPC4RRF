@@ -101,10 +101,6 @@ void sspi_master_init(struct sspi_device *device, uint32_t bits)
     } else {
         device->bitsPerTransferControl = 8; // default
     }
-    
-    
-    
-    
 }
 
 

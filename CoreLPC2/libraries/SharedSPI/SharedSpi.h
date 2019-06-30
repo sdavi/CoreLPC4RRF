@@ -51,11 +51,11 @@ typedef enum
 extern "C" {
 #endif
 
-extern void sspi_master_init(struct sspi_device *device, uint32_t bits);
-extern void sspi_master_setup_device(const struct sspi_device *device);
-extern void sspi_select_device(const struct sspi_device *device);
-extern void sspi_deselect_device(const struct sspi_device *device);
-extern spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len);
+void sspi_master_init(struct sspi_device *device, uint32_t bits);
+void sspi_master_setup_device(const struct sspi_device *device);
+void sspi_select_device(const struct sspi_device *device);
+void sspi_deselect_device(const struct sspi_device *device);
+spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len);
 
 static inline spi_status_t sspi_read_packet(uint8_t *buf, size_t len)
 {
@@ -69,8 +69,8 @@ static inline spi_status_t sspi_write_packet(const uint8_t *buf, size_t len)
 }
     
     //transceive 1 packet, returns read
-extern uint8_t sspi_transceive_a_packet(uint8_t buf);
-extern spi_status_t sspi_transceive_packet_16(const uint8_t *tx_data, uint8_t *rx_data, size_t len);
+uint8_t sspi_transceive_a_packet(uint8_t buf);
+spi_status_t sspi_transceive_packet_16(const uint8_t *tx_data, uint8_t *rx_data, size_t len);
 
     
     
