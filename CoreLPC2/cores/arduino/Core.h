@@ -48,6 +48,7 @@ static const Pin NoPin = P_NC; //which =0xff
 #ifdef __cplusplus
 extern "C"{
 #endif // __cplusplus
+    void CoreSysTick(void);
 
     
 #ifdef __cplusplus

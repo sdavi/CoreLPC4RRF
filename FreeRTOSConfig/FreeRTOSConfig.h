@@ -64,7 +64,7 @@ extern uint32_t SystemCoreClock;
 #define configUSE_TICK_HOOK						1
 #define configCPU_CLOCK_HZ						( SystemCoreClock )
 #define configTICK_RATE_HZ						( 1000 )
-#define configMAX_PRIORITIES					( 5 )
+#define configMAX_PRIORITIES					( 6 )
 #define configMINIMAL_STACK_SIZE				( ( unsigned short ) 120 )
 
 #define configAPPLICATION_ALLOCATED_HEAP        ( 1 )
@@ -123,7 +123,7 @@ FreeRTOS/Source/tasks.c for limitations. */
 to exclude the API function. */
 #define INCLUDE_vTaskPrioritySet		1
 #define INCLUDE_uxTaskPriorityGet		1
-#define INCLUDE_vTaskDelete				0
+#define INCLUDE_vTaskDelete				1
 #define INCLUDE_vTaskCleanUpResources	1
 #define INCLUDE_vTaskSuspend			1
 #define INCLUDE_vTaskDelayUntil			1
@@ -181,8 +181,7 @@ standard names. */
 #define xPortSysTickHandler SysTick_Handler
 
 /* The priority used by the Ethernet MAC driver interrupt. */
-//#define configMAC_INTERRUPT_PRIORITY	( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY )
-#define configMAC_INTERRUPT_PRIORITY  ( configLIBRARY_LOWEST_INTERRUPT_PRIORITY - 5 )
+#define configMAC_INTERRUPT_PRIORITY	( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY )
 
 /* Dimensions a buffer that can be used by the FreeRTOS+CLI command
 interpreter.  See the FreeRTOS+CLI documentation for more information:

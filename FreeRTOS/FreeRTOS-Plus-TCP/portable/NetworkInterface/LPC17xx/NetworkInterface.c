@@ -68,6 +68,11 @@ TaskHandle_t RRfInitialiseEMACTask(TaskFunction_t pxTaskCode); // defined in RTO
 /* The size of the stack allocated to the task that handles Rx packets. */
 #define nwRX_TASK_STACK_SIZE	140
 
+#ifndef    EMAC_MAX_BLOCK_TIME_MS
+    #define    EMAC_MAX_BLOCK_TIME_MS    100ul
+#endif
+
+
 #ifndef	PHY_LS_HIGH_CHECK_TIME_MS
 	/* Check if the LinkSStatus in the PHY is still high after 5 seconds of not
 	receiving packets. */
@@ -517,7 +522,7 @@ const TickType_t xBlockTimeTicks = pdMS_TO_TICKS( 50 );
             //ENET_TCTRL_CRC           Append a hardware CRC to Frame
             //ENET_TCTRL_LAST          Last Descriptor for TX Frame
             //ENET_TCTRL_INT           Generate TxDone Interrupt
-            xDMATxDescriptors[produceIndex].Control = ENET_TCTRL_SIZE(pxDescriptor->xDataLength) | ENET_TCTRL_INT  | ENET_TCTRL_CRC | ENET_TCTRL_LAST; // size and generate interrupt and last descriptor (SD::last cause tcpip library is handing the packetisation and we will always get a size which fits our MTU)
+            xDMATxDescriptors[produceIndex].Control = ENET_TCTRL_SIZE(pxDescriptor->xDataLength) | ENET_TCTRL_PAD | ENET_TCTRL_INT  | ENET_TCTRL_CRC | ENET_TCTRL_LAST; // size and generate interrupt and last descriptor (SD::last cause tcpip library is handing the packetisation and we will always get a size which fits our MTU)
             
             Chip_ENET_IncTXProduceIndex(LPC_ETHERNET); //trigger buffer to transmit...increase the TXProduceIndex
             
@@ -708,6 +713,8 @@ BaseType_t xReturn;
     uint32_t numNetworkALIGNErrors = 0; //ENET_RINFO_ALIGN_ERR
     uint32_t numNetworkOVERRUNErrors = 0; //ENET_RINFO_OVERRUN
 
+    uint32_t numRejectedStackPackets = 0;
+
 #endif
 
 
@@ -717,7 +724,7 @@ static BaseType_t prvNetworkInterfaceInput()
     BaseType_t xResult = pdFALSE;
     uint32_t ulStatus;
     eFrameProcessingResult_t eResult;
-    const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS( 250 );
+    const TickType_t xDescriptorWaitTime = pdMS_TO_TICKS( 50u );
     const UBaseType_t uxMinimumBuffersRemaining = configNUM_TX_DESCRIPTORS;
 
     uint16_t usLength;
@@ -727,7 +734,7 @@ static BaseType_t prvNetworkInterfaceInput()
 #endif /* ipconfigZERO_COPY_RX_DRIVER */
     IPStackEvent_t xRxEvent = { eNetworkRxEvent, NULL };
 
-    uint16_t produceIdx = Chip_ENET_GetRXProduceIndex(LPC_ETHERNET);
+    //uint16_t produceIdx = Chip_ENET_GetRXProduceIndex(LPC_ETHERNET);
     
     if (!Chip_ENET_IsRxEmpty(LPC_ETHERNET))
     {
@@ -830,7 +837,9 @@ static BaseType_t prvNetworkInterfaceInput()
                         {
                             /* Could not send the descriptor into the TCP/IP
                             stack, it must be released. */
+                            numRejectedStackPackets++;
                             vReleaseNetworkBufferAndDescriptor( pxDescriptor );
+                            iptraceETHERNET_RX_EVENT_LOST();
                         }
                         else
                         {
@@ -973,70 +982,6 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 
 	return xReturn;
 }
-/*-----------------------------------------------------------*/
-
-//static uint32_t prvGenerateCRC32( const uint8_t *ucAddress )
-//{
-//unsigned int j;
-//const uint32_t Polynomial = 0xEDB88320;
-//uint32_t crc = ~0ul;
-//const uint8_t *pucCurrent = ( const uint8_t * ) ucAddress;
-//const uint8_t *pucLast = pucCurrent + 6;
-//
-//    /* Calculate  normal CRC32 */
-//    while( pucCurrent < pucLast )
-//    {
-//        crc ^= *( pucCurrent++ );
-//        for( j = 0; j < 8; j++ )
-//        {
-//            if( ( crc & 1 ) != 0 )
-//            {
-//                crc = (crc >> 1) ^ Polynomial;
-//            }
-//            else
-//            {
-//                crc >>= 1;
-//            }
-//        }
-//    }
-//    return ~crc;
-//}
-/*-----------------------------------------------------------*/
-
-//static uint32_t prvGetHashIndex( const uint8_t *ucAddress )
-//{
-//uint32_t ulCrc = prvGenerateCRC32( ucAddress );
-//uint32_t ulIndex = 0ul;
-//BaseType_t xCount = 6;
-//
-//    /* Take the lowest 6 bits of the CRC32 and reverse them */
-//    while( xCount-- )
-//    {
-//        ulIndex <<= 1;
-//        ulIndex |= ( ulCrc & 1 );
-//        ulCrc >>= 1;
-//    }
-//
-//    /* This is the has value of 'ucAddress' */
-//    return ulIndex;
-//}
-/*-----------------------------------------------------------*/
-
-//static void prvAddMACAddress( const uint8_t* ucMacAddress )
-//{
-//BaseType_t xIndex;
-//
-//    xIndex = prvGetHashIndex( ucMacAddress );
-//    if( xIndex >= 32 )
-//    {
-//        LPC_ETHERNET->MAC_HASHTABLE_HIGH |= ( 1u << ( xIndex - 32 ) );
-//    }
-//    else
-//    {
-//        LPC_ETHERNET->MAC_HASHTABLE_LOW |= ( 1u << xIndex );
-//    }
-//}
-/*-----------------------------------------------------------*/
 
 configPLACE_IN_SECTION_RAM
 static void prvEMACHandlerTask( void *pvParameters )
@@ -1047,7 +992,7 @@ static void prvEMACHandlerTask( void *pvParameters )
     //UBaseType_t uxCurrentCount;
     BaseType_t xResult = 0;
     uint32_t ulStatus;
-    const TickType_t xBlockTime = pdMS_TO_TICKS( 5000ul );
+    const TickType_t xBlockTime = pdMS_TO_TICKS( EMAC_MAX_BLOCK_TIME_MS ); //5000
 
     /* Remove compiler warning about unused parameter. */
     ( void ) pvParameters;
@@ -1060,36 +1005,13 @@ static void prvEMACHandlerTask( void *pvParameters )
 
     for( ;; )
     {
+        //ulTaskNotifyTake( pdTRUE, xBlockTime );
+        if( ( ulISREvents & EMAC_IF_ALL_EVENT ) == 0 )
+        {
+            /* No events to process now, wait for the next. */
+            ulTaskNotifyTake( pdFALSE, xBlockTime );
+        }
 
-        //can now view lowest from M122 now
-//        uxCurrentCount = uxGetMinimumFreeNetworkBuffers();
-//        if( uxLastMinBufferCount != uxCurrentCount )
-//        {
-//            /* The logging produced below may be helpful
-//            while tuning +TCP: see how many buffers are in use. */
-//            uxLastMinBufferCount = uxCurrentCount;
-//
-//            //SD::ensure EMAC Task Stack is large enough to use printf here
-//            FreeRTOS_debug_printf( ( "Network buffers: %lu lowest %lu\n", uxGetNumberOfFreeNetworkBuffers(), uxCurrentCount ) );
-//
-//        }
-//
-//        #if( ipconfigCHECK_IP_QUEUE_SPACE != 0 )
-//        {
-//        static UBaseType_t uxLastMinQueueSpace = 0;
-//
-//            uxCurrentCount = uxGetMinimumIPQueueSpace();
-//            if( uxLastMinQueueSpace != uxCurrentCount )
-//            {
-//                /* The logging produced below may be helpful
-//                while tuning +TCP: see how many buffers are in use. */
-//                uxLastMinQueueSpace = uxCurrentCount;
-//                FreeRTOS_debug_printf( ( "Queue space: lowest %lu\n", uxCurrentCount ) );
-//            }
-//        }
-//        #endif /* ipconfigCHECK_IP_QUEUE_SPACE */
-
-        ulTaskNotifyTake( pdTRUE, xBlockTime );
 
         xResult = ( BaseType_t ) 0;
 

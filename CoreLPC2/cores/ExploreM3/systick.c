@@ -216,7 +216,9 @@ uint64_t millis64( void ){
 
 
 #ifdef RTOS
-void vApplicationTickHook(void)
+//void vApplicationTickHook(void)
+void CoreSysTick(void)
+
 #else
 void SysTick_Handler(void)
 #endif

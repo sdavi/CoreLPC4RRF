@@ -1,5 +1,5 @@
 /*
- * FreeRTOS+TCP V2.0.1
+ * FreeRTOS+TCP V2.0.11
  * Copyright (C) 2017 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -19,10 +19,8 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * http://www.FreeRTOS.org
  * http://aws.amazon.com/freertos
- *
- * 1 tab == 4 spaces!
+ * http://www.FreeRTOS.org
  */
 
 /* Standard includes. */
@@ -213,7 +211,10 @@ uint32_t ulTargetProtocolAddress, ulSenderProtocolAddress;
 
 void vARPRefreshCacheEntry( const MACAddress_t * pxMACAddress, const uint32_t ulIPAddress )
 {
-BaseType_t x, xIpEntry = -1, xMacEntry = -1, xUseEntry = 0;
+BaseType_t x = 0;
+BaseType_t xIpEntry = -1;
+BaseType_t xMacEntry = -1;
+BaseType_t xUseEntry = 0;
 uint8_t ucMinAgeFound = 0U;
 
 	#if( ipconfigARP_STORES_REMOTE_ADDRESSES == 0 )
@@ -601,7 +602,7 @@ ARPPacket_t *pxARPPacket;
 		xARPHeader.usOperation;
 		xARPHeader.xTargetHardwareAddress;
 	*/
-	memcpy( ( void * ) &( pxARPPacket->xEthernetHeader ), ( void * ) xDefaultPartARPPacketHeader, sizeof( xDefaultPartARPPacketHeader ) );
+	memcpy( ( void * ) pxARPPacket, ( void * ) xDefaultPartARPPacketHeader, sizeof( xDefaultPartARPPacketHeader ) );
 	memcpy( ( void * ) pxARPPacket->xEthernetHeader.xSourceAddress.ucBytes , ( void * ) ipLOCAL_MAC_ADDRESS, ( size_t ) ipMAC_ADDRESS_LENGTH_BYTES );
 	memcpy( ( void * ) pxARPPacket->xARPHeader.xSenderHardwareAddress.ucBytes, ( void * ) ipLOCAL_MAC_ADDRESS, ( size_t ) ipMAC_ADDRESS_LENGTH_BYTES );
 
