@@ -35,6 +35,8 @@ public:
     SDCard(uint8_t SSPSlot, Pin cs);
     ~SDCard() {};
     void ReInit(Pin cs, uint32_t frequency);
+    void SetSSPChannel(SSPChannel channel);
+
     CARD_TYPE card_type(void);
     
     void unmount();

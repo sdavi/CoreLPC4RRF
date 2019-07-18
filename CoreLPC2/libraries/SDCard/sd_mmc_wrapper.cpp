@@ -29,6 +29,14 @@ void sd_mmc_reinit_slot(uint8_t slot, Pin csPin, uint32_t spiFrequency)
     }
 }
 
+void sd_mmc_setSSPChannel(uint8_t slot, SSPChannel channel)
+{
+    if(slot < _DRIVES)
+    {
+        _ffs[slot]->SetSSPChannel(channel);
+    }
+}
+
 
 void sd_mmc_unmount(uint8_t slot)
 {

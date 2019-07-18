@@ -39,6 +39,7 @@ uint32_t sd_mmc_get_interface_speed(uint8_t slot);
 
 
 void sd_mmc_reinit_slot(uint8_t slot, Pin csPin, uint32_t spiFrequency);
+void sd_mmc_setSSPChannel(uint8_t slot, SSPChannel channel);
 
 
 #endif

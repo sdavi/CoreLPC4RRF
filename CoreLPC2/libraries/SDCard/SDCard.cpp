@@ -84,6 +84,12 @@ SDCard::SDCard(uint8_t SSPSlot, Pin cs) {
     status = STA_NOINIT;
 }
 
+//call before ReInit
+void SDCard::SetSSPChannel(SSPChannel channel)
+{
+    _sspi_device.sspChannel = channel;
+}
+
 
 void SDCard::ReInit(Pin cs, uint32_t freq)
 {
