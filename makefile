@@ -7,8 +7,8 @@ MBED = true
 
 BUILD_DIR = $(PWD)/build
 
-#BUILD = Debug
-BUILD = Release
+BUILD = Debug
+#BUILD = Release
 
 #compile in Ethernet Networking?
 NETWORKING = true
@@ -196,7 +196,7 @@ endif
 
 
 #---RepRapFirmware---
-RRF_SRC_DIRS  = FilamentMonitors GCodes Heating Movement Movement/BedProbing Movement/Kinematics 
+RRF_SRC_DIRS  = FilamentMonitors GCodes GCodes/GCodeBuffer Heating Movement Movement/BedProbing Movement/Kinematics 
 RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries/sha1
 RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel Endstops Hardware
 RRF_SRC_DIRS += LPC LPC/MCP4461

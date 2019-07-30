@@ -194,6 +194,8 @@ void SDCard::deselect (void)
 
 int SDCard::select (void)    /* 1:OK, 0:Timeout */
 {
+    sspi_master_setup_device(&_sspi_device);
+    
     sspi_select_device(&_sspi_device);
     xchg_spi(0xFF);    /* Dummy clock (force DO enabled) */
     
