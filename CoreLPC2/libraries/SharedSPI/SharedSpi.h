@@ -73,6 +73,7 @@ uint8_t sspi_transceive_a_packet(uint8_t buf);
 spi_status_t sspi_transceive_packet_16(const uint8_t *tx_data, uint8_t *rx_data, size_t len);
 
     
+void sspi_setPinsForChannel(SSPChannel channel, Pin sck, Pin miso, Pin mosi);
     
 #ifdef __cplusplus
 }

@@ -43,6 +43,7 @@ public:
     uint32_t disk_blocksize() { return sdcardBlockSize; };
     uint32_t disk_highSpeedMode() {return isHighSpeed; };
     
+    void SetSSPChannel(SSPChannel channel);
     
     
     //DiskIO

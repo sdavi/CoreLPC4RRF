@@ -84,6 +84,11 @@ SDCard::SDCard(uint8_t SSPSlot, Pin cs) {
     status = STA_NOINIT;
 }
 
+//call before ReInit
+void SDCard::SetSSPChannel(SSPChannel channel)
+{
+    _sspi_device.sspChannel = channel;
+}
 
 void SDCard::ReInit(Pin cs, uint32_t freq)
 {
@@ -188,6 +193,8 @@ void SDCard::deselect (void)
 
 int SDCard::select (void)    /* 1:OK, 0:Timeout */
 {
+    sspi_master_setup_device(&_sspi_device);
+    
     sspi_select_device(&_sspi_device);
     xchg_spi(0xFF);    /* Dummy clock (force DO enabled) */
     

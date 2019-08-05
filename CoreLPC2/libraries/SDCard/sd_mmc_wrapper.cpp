@@ -20,6 +20,15 @@ void sd_mmc_init(Pin const wpPins[_DRIVES],Pin const spiCsPins[_DRIVES]){
     }
 }
 
+//change the SSP channel for slot
+void sd_mmc_setSSPChannel(uint8_t slot, SSPChannel channel)
+{
+    if(slot < _DRIVES)
+    {
+        _ffs[slot]->SetSSPChannel(channel);
+    }
+}
+
 //reinit to support setting cs/freq from config
 void sd_mmc_reinit_slot(uint8_t slot, Pin csPin, uint32_t spiFrequency)
 {

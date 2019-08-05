@@ -114,12 +114,15 @@ struct PinDescription{
 extern const PinDescription g_APinDescription[];
 
 
-enum SSPChannel {
+enum SSPChannel : uint8_t {
+    //Hardware SSP
     SSP0 = 0,
-    SSP1
+    SSP1,
+    
+    //Software SPI
+    SWSPI0,
+    
 };
-
-
 
 
 //#include "platform_memory.h"
