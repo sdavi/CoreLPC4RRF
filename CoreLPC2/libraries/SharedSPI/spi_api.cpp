@@ -20,6 +20,61 @@
 #define SPI0_FUNCTION  PINSEL_FUNC_2 //SD updated to use SSP instead of SPI
 #define SPI1_FUNCTION  PINSEL_FUNC_2
 
+
+//SSPChannel is 0 for SSP0 and 1 for SSP1
+
+//void spi_init(spi_t *obj, uint8_t SSPChannel) {
+//    // determine the SPI to use
+//
+//    if(SSPChannel == 0 ){
+//        obj->spi = LPC_SSP0;
+//    } else if(SSPChannel == 1) {
+//        obj->spi = LPC_SSP1;
+//    }else {
+//        //TODO:: error.....
+//        return;
+//    }
+//
+//
+//    // enable power and clocking
+//    if( obj->spi == LPC_SSP0){
+//        LPC_SC->PCONP |= 1 << 21;
+//
+//        GPIO_PinFunction(SPI0_SCK,SPI0_FUNCTION);   /* Configure the Pinfunctions for SPI */
+//        GPIO_PinFunction(SPI0_MOSI,SPI0_FUNCTION);
+//        GPIO_PinFunction(SPI0_MISO,SPI0_FUNCTION);
+//
+//        GPIO_PinDirection(SPI0_SCK,OUTPUT);        /* Configure SCK,MOSI,SSEl as Output and MISO as Input */
+//        GPIO_PinDirection(SPI0_MOSI,OUTPUT);
+//        GPIO_PinDirection(SPI0_MISO,INPUT);
+//
+//    }else if (obj->spi == LPC_SSP1){
+//
+//        LPC_SC->PCONP |= 1 << 10;
+//
+//        GPIO_PinFunction(SPI1_SCK,SPI1_FUNCTION);   /* Configure the Pinfunctions for SPI */
+//        GPIO_PinFunction(SPI1_MOSI,SPI1_FUNCTION);
+//        GPIO_PinFunction(SPI1_MISO,SPI1_FUNCTION);
+//
+//        GPIO_PinDirection(SPI1_SCK,OUTPUT);        /* Configure SCK,MOSI,SSEl as Output and MISO as Input */
+//        GPIO_PinDirection(SPI1_MOSI,OUTPUT);
+//        GPIO_PinDirection(SPI1_MISO,INPUT);
+//    }
+//
+//
+//    // set default format and frequency
+//    //if (ssel == NC) {
+//        spi_format(obj, 8, 0, 0);  // 8 bits, mode 0, master
+//    //} else {
+//    //    spi_format(obj, 8, 0, 1);  // 8 bits, mode 0, slave
+//   // }
+//    spi_frequency(obj, 1000000);
+//
+//    // enable the ssp channel
+//    obj->spi->CR1 |= 1 << 1;
+//
+//}
+
 void spi_free(spi_t *obj) {}
 
 static inline int ssp_disable(spi_t *obj);

@@ -104,8 +104,12 @@ extern const PinDescription g_APinDescription[MaxPinNumber];
 
 
 enum SSPChannel : uint8_t {
+    //Hardware SPI
     SSP0 = 0,
-    SSP1
+    SSP1,
+    
+    //Software SPI
+    SWSPI0,
 };
 
 

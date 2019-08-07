@@ -648,6 +648,12 @@ bool ConfigurePinForPWM(Pin pin, uint16_t frequency)
             //the pin is HWPWM, check HWPWM is running at the requested frequency
             if(HardwarePWMFrequency == frequency)
             {
+                
+                if(UsedHardwarePWMChannel[PinMap_PWM[i].pwmChannelNumber] == pin)
+                {
+                    //pin already configured
+                    return true;
+                }
                 //some PWM pins share the same pwm channel, so check another pin on same channel is not in use
                 if(UsedHardwarePWMChannel[PinMap_PWM[i].pwmChannelNumber] == NoPin){
                     UsedHardwarePWMChannel[PinMap_PWM[i].pwmChannelNumber] = pin; //Pin will use HW PWM
@@ -670,6 +676,12 @@ bool ConfigurePinForPWM(Pin pin, uint16_t frequency)
             //Timer running at correct frequency, check for free slots
             for(uint8_t t=0; t<MaxTimerEntries; t++)
             {
+                if(TimerPWMs[i].timerPins[t] == pin)
+                {
+                    //pin already on the timer, return true
+                    return true;
+                }
+                
                 if(TimerPWMs[i].timerPins[t] == NoPin)
                 {
                     //Timer has slot free, add pin to the timerPins array
