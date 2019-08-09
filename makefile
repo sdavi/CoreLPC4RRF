@@ -5,7 +5,7 @@ PROCESSOR = LPC17xx
 #and select direct ld script
 #MBED = true
 
-BUILD_DIR = $(PWD)/build
+BUILD_DIR = ./build
 
 #BUILD = Debug
 BUILD = Release
@@ -123,7 +123,7 @@ CXXFLAGS = $(FLAGS) -std=gnu++17  -fno-threadsafe-statics -fno-exceptions -fno-r
 #Core
 CORE_SRC_DIRS  = cores system variants/LPC libraries/WIRE libraries/SDCard libraries/SharedSPI
 CORE_SRC_DIRS += cores/ExploreM3 cores/ExploreM3/ExploreM3_lib cores/arduino cores/smoothie
-CORE_SRC_DIRS += cores/smoothie/USBDevice cores/smoothie/USBDevice/USBDevice cores/smoothie/USBDevice/USBSerial/ cores/smoothie/DFU
+CORE_SRC_DIRS += cores/smoothie/USBDevice cores/smoothie/USBDevice/USBDevice cores/smoothie/USBDevice/USBSerial cores/smoothie/DFU
 CORE_SRC_DIRS += cores/lpcopen/src
 
 CORE_SRC = $(CORE) $(addprefix $(CORE)/, $(CORE_SRC_DIRS))
