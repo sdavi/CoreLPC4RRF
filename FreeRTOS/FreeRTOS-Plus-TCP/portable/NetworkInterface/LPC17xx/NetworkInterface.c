@@ -55,6 +55,20 @@ typedef void (*p_msDelay_func_t)(uint32_t);
 
 TaskHandle_t RRfInitialiseEMACTask(TaskFunction_t pxTaskCode); // defined in RTOSPlusTCPEthernetInterface
 
+///Debugging
+#if defined(COLLECT_NETDRIVER_ERROR_STATS)
+    volatile uint32_t numNetworkRXIntOverrunErrors = 0; //hardware producted overrun error
+    uint32_t numNetworkDroppedPacketsDueToNoBuffer = 0;
+
+    uint32_t numNetworkCRCErrors = 0; //ENET_RINFO_CRC_ERR
+    uint32_t numNetworkSYMErrors = 0; //ENET_RINFO_SYM_ERR
+    uint32_t numNetworkLENErrors = 0; //ENET_RINFO_LEN_ERR
+    uint32_t numNetworkALIGNErrors = 0; //ENET_RINFO_ALIGN_ERR
+    uint32_t numNetworkOVERRUNErrors = 0; //ENET_RINFO_OVERRUN
+
+    uint32_t numRejectedStackPackets = 0;
+
+#endif
 
 
 //****************
@@ -71,7 +85,6 @@ TaskHandle_t RRfInitialiseEMACTask(TaskFunction_t pxTaskCode); // defined in RTO
 #ifndef    EMAC_MAX_BLOCK_TIME_MS
     #define    EMAC_MAX_BLOCK_TIME_MS    100ul
 #endif
-
 
 #ifndef	PHY_LS_HIGH_CHECK_TIME_MS
 	/* Check if the LinkSStatus in the PHY is still high after 5 seconds of not
@@ -98,11 +111,6 @@ TaskHandle_t RRfInitialiseEMACTask(TaskFunction_t pxTaskCode); // defined in RTO
 
 #ifndef NETWORK_IRQHandler
 	#error NETWORK_IRQHandler must be defined to the name of the function that is installed in the interrupt vector table to handle Ethernet interrupts.
-#endif
-
-#if !defined( MAC_FF_HMC )
-	/* Hash for multicast. */
-	#define MAC_FF_HMC     ( 1UL << 2UL )
 #endif
 
 #ifndef iptraceEMAC_TASK_STARTING
@@ -185,7 +193,6 @@ expansion. */
 
 /*-----------------------------------------------------------*/
 
-
 /*
  * Delay function passed into the library.  The implementation uses FreeRTOS
  * calls so the scheduler must be started before the driver can be used.
@@ -208,20 +215,7 @@ static void prvEMACHandlerTask( void *pvParameters );
  */
 static BaseType_t prvSetLinkSpeed( void );
 
-/*
- * Generates a CRC for a MAC address that is then used to generate a hash index.
- */
-//static uint32_t prvGenerateCRC32( const uint8_t *ucAddress );
-
-/*
- * Generates a hash index when setting a filter to permit a MAC address.
- */
-//static uint32_t prvGetHashIndex( const uint8_t *ucAddress );
-
-/*
- * Update the hash table to allow a MAC address.
- */
-//static void prvAddMACAddress( const uint8_t* ucMacAddress );
+void EMAC_SetHashFilter(const uint8_t dstMAC_addr[]);
 
 /*
  * Sometimes the DMA will report received data as being longer than the actual
@@ -238,7 +232,7 @@ to enable future expansion. */
 static volatile uint32_t ulISREvents;
 
 /* A copy of PHY register 1: 'PHY_REG_01_BMSR' */
-static uint32_t ulPHYLinkStatus = 0;
+uint32_t ulPHYLinkStatus = 0;
 
 /* Tx descriptors and index. */
 //SD:TX Descriptors and Statuses
@@ -264,7 +258,7 @@ the task can be notified when new packets arrive. */
 static TaskHandle_t xRxHanderTask = NULL;
 
 #if( ipconfigUSE_LLMNR == 1 )
-	static const uint8_t xLLMNR_MACAddress[] = { '\x01', '\x00', '\x5E', '\x00', '\x00', '\xFC' };
+	static const uint8_t xLLMNR_MACAddress[] = { 0x01, 0x00, 0x5E, 0x00, 0x00, 0xFC };
 #endif	/* ipconfigUSE_LLMNR == 1 */
 
 /* xTXDescriptorSemaphore is a counting semaphore with
@@ -304,6 +298,17 @@ static BaseType_t xHasInitialised = pdFALSE;
         /* Save MAC address. */
 		Chip_ENET_SetADDR( LPC_ETHERNET, ucMACAddress );
 
+        /* Clear all MAC address hash entries. */
+        LPC_ETHERNET->RXFILTER.HashFilterH = 0;
+        LPC_ETHERNET->RXFILTER.HashFilterL = 0;
+        
+        #if( ipconfigUSE_LLMNR == 1 )
+        {
+            EMAC_SetHashFilter(xLLMNR_MACAddress);
+        }
+        #endif /* ipconfigUSE_LLMNR == 1 */
+
+        
 		#if( configUSE_RMII == 1 )
 		{
 			if( lpc_phy_init( pdTRUE, prvDelay ) != SUCCESS )
@@ -325,7 +330,16 @@ static BaseType_t xHasInitialised = pdFALSE;
 		#endif
 
         
-        Chip_ENET_EnableRXFilter(LPC_ETHERNET, ENET_RXFILTERCTRL_APE | ENET_RXFILTERCTRL_ABE); //Accept broadcast and perfect match
+        uint16_t rxFilter = 0;
+        rxFilter |= ENET_RXFILTERCTRL_APE; //Accept perfect match
+        rxFilter |= ENET_RXFILTERCTRL_ABE; //Accept broadcast
+        #if (ipconfigUSE_LLMNR)
+        {
+            rxFilter |= ENET_RXFILTERCTRL_AMHE;//Accept Multicast hash
+        }
+        #endif
+
+        Chip_ENET_EnableRXFilter(LPC_ETHERNET, rxFilter);
         
         //If Hardware initialised correctly, initialise descriptors etc
 		if( xReturn == pdPASS )
@@ -701,23 +715,6 @@ BaseType_t xReturn;
 }
 /*-----------------------------------------------------------*/
 
-
-///Debugging
-#if defined(COLLECT_NETDRIVER_ERROR_STATS)
-    volatile uint32_t numNetworkRXIntOverrunErrors = 0; //hardware producted overrun error
-    uint32_t numNetworkDroppedPacketsDueToNoBuffer = 0;
-
-    uint32_t numNetworkCRCErrors = 0; //ENET_RINFO_CRC_ERR
-    uint32_t numNetworkSYMErrors = 0; //ENET_RINFO_SYM_ERR
-    uint32_t numNetworkLENErrors = 0; //ENET_RINFO_LEN_ERR
-    uint32_t numNetworkALIGNErrors = 0; //ENET_RINFO_ALIGN_ERR
-    uint32_t numNetworkOVERRUNErrors = 0; //ENET_RINFO_OVERRUN
-
-    uint32_t numRejectedStackPackets = 0;
-
-#endif
-
-
 configPLACE_IN_SECTION_RAM
 static BaseType_t prvNetworkInterfaceInput()
 {
@@ -763,6 +760,9 @@ static BaseType_t prvNetworkInterfaceInput()
 
             eResult = ipCONSIDER_FRAME_FOR_PROCESSING( ( const uint8_t * const ) ( xDMARxDescriptors[ consumeIdx ].Packet ) );
 
+            
+            
+            
             if( eResult == eProcessBuffer )
             {
                 if( ( ulPHYLinkStatus & PHY_LINK_CONNECTED ) == 0 )
@@ -944,7 +944,7 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
     vTaskPrioritySet( NULL, tskIDLE_PRIORITY+1 );// IDLE is never called so idle + 1
 
 	xTimeOnEntering = xTaskGetTickCount();
-
+    
     do
 	{
 		ulPhyStatus = lpcPHYStsPoll();
@@ -973,7 +973,7 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 			xReturn = pdPASS;
 			break;
         } else {
-            
+            //Phy Not Connected
         }
 	} while( ( xTaskGetTickCount() - xTimeOnEntering ) < xAutoNegotiateDelay );
 
@@ -981,6 +981,91 @@ const TickType_t xAutoNegotiateDelay = pdMS_TO_TICKS( 5000UL );
 	vTaskPrioritySet( NULL, ipconfigIP_TASK_PRIORITY );
 
 	return xReturn;
+}
+
+/*********************************************************************
+ From lpc17xx_emac.c
+
+ * @brief        Calculates CRC code for number of bytes in the frame
+* @param[in]    frame_no_fcs    Pointer to the first byte of the frame
+* @param[in]    frame_len        length of the frame without the FCS
+* @return        the CRC as a 32 bit integer
+**********************************************************************/
+static int32_t emac_CRCCalc(const uint8_t frame_no_fcs[], int32_t frame_len)
+{
+    int i;         // iterator
+    int j;         // another iterator
+    char byte;     // current byte
+    int crc;     // CRC result
+    int q0, q1, q2, q3; // temporary variables
+    crc = 0xFFFFFFFF;
+    for (i = 0; i < frame_len; i++) {
+        byte = *frame_no_fcs++;
+        for (j = 0; j < 2; j++) {
+            if (((crc >> 28) ^ (byte >> 3)) & 0x00000001) {
+                q3 = 0x04C11DB7;
+            } else {
+                q3 = 0x00000000;
+            }
+            if (((crc >> 29) ^ (byte >> 2)) & 0x00000001) {
+                q2 = 0x09823B6E;
+            } else {
+                q2 = 0x00000000;
+            }
+            if (((crc >> 30) ^ (byte >> 1)) & 0x00000001) {
+                q1 = 0x130476DC;
+            } else {
+                q1 = 0x00000000;
+            }
+            if (((crc >> 31) ^ (byte >> 0)) & 0x00000001) {
+                q0 = 0x2608EDB8;
+            } else {
+                q0 = 0x00000000;
+            }
+            crc = (crc << 4) ^ q3 ^ q2 ^ q1 ^ q0;
+            byte >>= 4;
+        }
+    }
+    return crc;
+}
+/*********************************************************************
+ 
+ From lpc17xx_emac.c
+ 
+    * @brief        Enable hash filter functionality for specified destination
+    *               MAC address in EMAC module
+    * @param[in]    dstMAC_addr        Pointer to the first MAC destination address, should
+    *                                  be 6-bytes length, in order LSB to the MSB
+    * @return        None
+    *
+    * Note:
+    * The standard Ethernet cyclic redundancy check (CRC) function is calculated from
+    * the 6 byte destination address in the Ethernet frame (this CRC is calculated
+    * anyway as part of calculating the CRC of the whole frame), then bits [28:23] out of
+    * the 32 bits CRC result are taken to form the hash. The 6 bit hash is used to access
+    * the hash table: it is used as an index in the 64 bit HashFilter register that has been
+    * programmed with accept values. If the selected accept value is 1, the frame is
+    * accepted.
+    **********************************************************************/
+void EMAC_SetHashFilter(const uint8_t dstMAC_addr[])
+{
+    uint32_t tmp;
+    int32_t crc;
+    
+    // Calculate the CRC from the destination MAC address
+    crc = emac_CRCCalc(dstMAC_addr, 6);
+    // Extract the value from CRC to get index value for hash filter table
+    crc = (crc >> 23) & 0x3F;
+    tmp = (crc > 31) ? (crc - 32) : crc;
+    
+    if(crc > 31)
+    {
+        LPC_ETHERNET->RXFILTER.HashFilterH |= (1UL << tmp);
+    }
+    else
+    {
+        LPC_ETHERNET->RXFILTER.HashFilterL |= (1UL << tmp);
+    }
 }
 
 configPLACE_IN_SECTION_RAM

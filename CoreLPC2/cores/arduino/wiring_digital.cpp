@@ -165,15 +165,20 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
              break;
              
          case OUTPUT_PWM_LOW:
-             //AnalogOut will set the correct pin function depending on pwm/timerpwm/digital
-             AnalogOut(pin, 0.0, 0);
+             ConfigurePinForPWM(pin, false);
              break;
              
          case OUTPUT_PWM_HIGH:
-             //AnalogOut will set the correct pin function depending on pwm/timerpwm/digital
-             AnalogOut(pin, 1.0, 0);
+            ConfigurePinForPWM(pin, true);
              break;
-             
+
+         case OUTPUT_SERVO_LOW:
+             ConfigurePinForServo(pin, false);
+             break;
+         case OUTPUT_SERVO_HIGH:
+             ConfigurePinForServo(pin, true);
+             break;
+
          case AIN:
              //analog in
              GPIO_PinInputMode(pin, LPC_INPUT_NOPULLUP_NOPULLDOWN); //no pull up or down

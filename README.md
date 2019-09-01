@@ -14,8 +14,6 @@ Clone this repository, along with the following:
 
 The ARM toolchain needs to be installed to build the firmware. An example makefile has been included and should be edited to suit your settings, board selection, check all paths etc are correct before running make. If all is successful you should get a firmware.bin file in the same directory as the makefile.
 
-*Note: it does not currently detect when header files are modified so it is required to clean the build files and run make again after modifying them.*
-
 Built upon open source projects including [Explore-M3](https://github.com/ExploreEmbedded/Explore-M3), [CoreNG](https://github.com/dc42/CoreNG), [MBED](https://github.com/ARMmbed/mbed-os), [Smoothieware](https://github.com/Smoothieware/Smoothieware), [FreeRTOS](https://www.freertos.org/), [FreeRTOS+TCP](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_TCP/index.html) and [LPCOpen](https://www.nxp.com/support/developer-resources/software-development-tools/lpc-developer-resources-/lpcopen-libraries-and-examples/lpcopen-software-development-platform-lpc17xx:LPCOPEN-SOFTWARE-FOR-LPC17XX)
 
 License: GPLv3, see http://www.gnu.org/licenses/gpl-3.0.en.html. This project includes source code from the above 3rd party projects and are covered by their respective licenses.

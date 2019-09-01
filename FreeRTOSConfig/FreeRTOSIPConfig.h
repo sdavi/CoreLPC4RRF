@@ -42,7 +42,7 @@
 
 //SD: Enable this to enable Networking Driver to collect stats on all the errors
 //Debugging
-#define ipconfigCHECK_IP_QUEUE_SPACE ( 1 )
+#define ipconfigCHECK_IP_QUEUE_SPACE ( 0 )
 #define COLLECT_NETDRIVER_ERROR_STATS 1
 
 extern void IPTaskWatchDogTimer();

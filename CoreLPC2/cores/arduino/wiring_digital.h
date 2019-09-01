@@ -30,19 +30,23 @@
 
 enum PinMode
  {
-     PIN_MODE_NOT_CONFIGURED = -1,    // used in Platform class to record that the mode for a pin has not been set yet
-     INPUT = 0,                        // pin is a digital input
-     INPUT_PULLUP,                    // pin is a digital input with pullup enabled
-     INPUT_PULLDOWN,                    // pin is a digital input with pulldown enabled
-     OUTPUT_LOW,                        // pin is an output with initial state LOW
+     PIN_MODE_NOT_CONFIGURED = -1,   // used in Platform class to record that the mode for a pin has not been set yet
+     INPUT = 0,                      // pin is a digital input
+     INPUT_PULLUP,                   // pin is a digital input with pullup enabled
+     INPUT_PULLDOWN,                 // pin is a digital input with pulldown enabled
+     OUTPUT_LOW,                     // pin is an output with initial state LOW
      OUTPUT_HIGH,                    // pin is an output with initial state HIGH
      AIN,                            // pin is an analog input, digital input buffer is disabled if possible
      SPECIAL,                        // pin is used for the special function defined for it in the variant.cpp file
-     OUTPUT_PWM_LOW,                    // PWM output mode, initially low
+     OUTPUT_PWM_LOW,                 // PWM output mode, initially low
      OUTPUT_PWM_HIGH,                // PWM output mode, initially high
-     OUTPUT_LOW_OPEN_DRAIN,            // used in SX1509B expansion driver to put the pin in open drain output mode
-     OUTPUT_HIGH_OPEN_DRAIN,            // used in SX1509B expansion driver to put the pin in open drain output mode
-     OUTPUT_PWM_OPEN_DRAIN            // used in SX1509B expansion driver to put the pin in PWM output mode
+     OUTPUT_LOW_OPEN_DRAIN,          // used in SX1509B expansion driver to put the pin in open drain output mode
+     OUTPUT_HIGH_OPEN_DRAIN,         // used in SX1509B expansion driver to put the pin in open drain output mode
+     OUTPUT_PWM_OPEN_DRAIN,          // used in SX1509B expansion driver to put the pin in PWM output mode
+     
+     OUTPUT_SERVO_LOW,
+     OUTPUT_SERVO_HIGH
+     
  };
 
  
@@ -54,7 +58,7 @@ enum PinMode
       * \param ulMode Either INPUT or OUTPUT
       * \param debounceCutoff Debounce cutoff frequency (only one can be set per PIO)
       */
-     extern void pinModeDuet(Pin pin, enum PinMode dwMode, uint32_t debounceCutoff);
+     void pinModeDuet(Pin pin, enum PinMode dwMode, uint32_t debounceCutoff);
      
      static inline void pinMode(Pin pin, enum PinMode dwMode)
      {

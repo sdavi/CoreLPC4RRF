@@ -124,7 +124,7 @@ CXXFLAGS = $(FLAGS) -std=gnu++17  -fno-threadsafe-statics -fno-exceptions -fno-r
 CORE_SRC_DIRS  = cores system variants/LPC libraries/WIRE libraries/SDCard libraries/SharedSPI
 CORE_SRC_DIRS += cores/ExploreM3 cores/ExploreM3/ExploreM3_lib cores/arduino cores/smoothie
 CORE_SRC_DIRS += cores/smoothie/USBDevice cores/smoothie/USBDevice/USBDevice cores/smoothie/USBDevice/USBSerial cores/smoothie/DFU
-CORE_SRC_DIRS += cores/lpcopen/src
+CORE_SRC_DIRS += cores/lpcopen/src cores/mbed libraries/SoftwarePWM
 
 CORE_SRC = $(CORE) $(addprefix $(CORE)/, $(CORE_SRC_DIRS))
 CORE_INCLUDES = $(addprefix -I, $(CORE_SRC))
@@ -198,7 +198,7 @@ endif
 #---RepRapFirmware---
 RRF_SRC_DIRS  = FilamentMonitors GCodes GCodes/GCodeBuffer Heating Movement Movement/BedProbing Movement/Kinematics 
 RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries/sha1
-RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel Endstops Hardware
+RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel Endstops Hardware Linux
 RRF_SRC_DIRS += LPC LPC/MCP4461
 
 RRF_SRC_DIRS += Display Display/ST7920

@@ -19,6 +19,8 @@
 #ifndef ANALOGOUT_H
 #define ANALOGOUT_H
 
+#include "Core.h"
+
 // Initialise this module
 void AnalogOutInit();
 
@@ -30,40 +32,31 @@ void AnalogOutInit();
  * \param freq (optional)
  */
 
-struct LPCPWMInfo
-{
-    uint16_t hwPWMFreq;
-    uint16_t tim1Freq;
-    uint16_t tim2Freq;
-    uint16_t tim3Freq;
-};
+
+constexpr uint8_t NumPwmChannels = 6;
+constexpr uint8_t MaxNumberSoftwarePWMPins = 8;
+constexpr size_t MaxTimerEntries = 3; //MR0 for the Frequency and MR1-3 for the Timer PWM
+
+
+//extern Pin UsedHardwarePWMChannel[NumPwmChannels];
+//extern uint16_t HardwarePWMFrequency;
+
+
 
 void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000);
-void GetTimerInfo( LPCPWMInfo *pwmInfo );
-void ConfigureTimerForPWM(uint8_t timerChannel, uint16_t frequency);
 bool IsPwmCapable(Pin pin);
+bool ConfigurePinForPWM(Pin pin, bool outputHigh);
+void ReleasePWMPin(Pin pin);
+
+
 bool IsServoCapable(Pin pin);
-bool ConfigurePinForPWM(Pin pin, uint16_t frequency);
+bool ConfigurePinForServo(Pin pin, bool outputHigh);
+void ReleaseServoPin(Pin pin);
+bool AnalogWriteServo(float ulValue, uint16_t freq, Pin pin);
 
-
-
-//Timer PWM
-#define TimerPWM_Slot1 (0x01)
-#define TimerPWM_Slot2 (0x02)
-#define TimerPWM_Slot3 (0x04)
-
-
-static const size_t MaxTimerEntries = 3; //MR0 for the Frequency and MR1-3 for the Timer PWM
-static const uint8_t NumPwmChannels = 6;
-
-
-extern uint32_t pinsOnATimer[5]; // 5 Ports
-extern Pin Timer1PWMPins[MaxTimerEntries];
-extern Pin Timer2PWMPins[MaxTimerEntries];
-extern Pin Timer3PWMPins[MaxTimerEntries];
-extern Pin UsedHardwarePWMChannel[NumPwmChannels];
-extern uint16_t HardwarePWMFrequency;
-
-
+bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin);
+bool CanDoSoftwarePWM(Pin pin);
+bool ConfigurePinForSoftwarePWM(Pin pin);
+void ReleaseSoftwarePWMPin(Pin pin);
 
 #endif // ANALOGOUT_H
