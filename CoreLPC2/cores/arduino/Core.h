@@ -78,6 +78,7 @@ enum AnalogChannelNumber : int8_t
     ADC7
 };
 
+constexpr uint8_t NumPwmChannels = 6;
 // Definitions for PWM channels
 enum EPWMChannel : int8_t
 {

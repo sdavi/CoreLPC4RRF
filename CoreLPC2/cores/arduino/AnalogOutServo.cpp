@@ -13,17 +13,14 @@ extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf
 struct TimerPwm_t
 {
     LPC_TIM_TypeDef *timer;
-    //IRQn irqNumber;
     Pin* const timerPins;
     uint16_t frequency;
 };
 
-static Pin Timer2PWMPins[MaxTimerEntries] = {NoPin, NoPin, NoPin};
-
-
+Pin Timer2PWMPins[MaxTimerEntries] = {NoPin, NoPin, NoPin};
 static uint8_t servoOutputUsed = 0;
-static bool servoTimerInitialised = 0; // bitmask of timers that have been initialised
-static const TimerPwm_t ServoTimerPWM = {LPC_TIM2, /*TIMER2_IRQn,*/ Timer2PWMPins, 50};
+static bool servoTimerInitialised = false;
+static const TimerPwm_t ServoTimerPWM = {LPC_TIM2, Timer2PWMPins, 50};
 static uint32_t pinsOnATimer[5] = {0}; // 5 Ports
 
 
@@ -34,10 +31,14 @@ bool IsServoCapable(Pin pin)
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
     uint8_t count = 0;
 
-    if (pin > MaxPinNumber || port > 4) return false;
+    if(pin > MaxPinNumber || port > 4) return false;
     
-    if( (pinsOnATimer[port] & portPinPosition) ) return true; //already setup as a servo
+    //First see if the pin can use the HWPWM
+    if(HardwarePWMFrequency == 50 && CanDoHWPWM(pin)) return true; //HWPWM configured at servo freq and is PWM capable
     
+    //Check if there is a free slot on the Timer
+    
+    if( (pinsOnATimer[port] & portPinPosition) ) return true; //already setup as a Timer servo
     for(uint8_t t=0; t<MaxTimerEntries; t++)
     {
         if(ServoTimerPWM.timerPins[t] == NoPin)
@@ -54,8 +55,12 @@ void ReleaseServoPin(Pin pin)
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
 
-    if( !(pinsOnATimer[port] & portPinPosition) ) return; //pin not configured as Servo
     
+    //First check if pin was running on HWPWM
+    if(ReleaseHWPWMPin(pin)) return; //Servo was running on HWPWM and was released
+
+
+    if( !(pinsOnATimer[port] & portPinPosition) ) return; //pin not configured as Timer Servo
     //Send one more AnalogWriteServo with value 0 to turn off the match interrupt for that slot
     AnalogWriteServo(0.0, ServoTimerPWM.frequency, pin);
     
@@ -76,11 +81,19 @@ bool ConfigurePinForServo(Pin pin, bool outputHigh)
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
     
-    if (pin > MaxPinNumber || port > 4) return false;
-    if( (pinsOnATimer[port] & portPinPosition) ) return true; // This pin is already configured to be a Servo
-
-    //debugPrintf("[AnalogOutServo] ConfigurePinForServo %d.%d\n", (pin >> 5), (pin & 0x1f));
+    if (pin == NoPin || pin > MaxPinNumber || port > 4) return false;
     
+    
+    //First try HW PWM for servo
+    if(ConfigurePinForHWPWM(pin, outputHigh))
+    {
+        return true; //Pin was configured to use HWPWM
+    }
+
+    
+    //Next try Servo PWM on Timer
+    
+    if( (pinsOnATimer[port] & portPinPosition) ) return true; // This pin is already configured to be a Timer Servo
     //get next free Slot
     for(uint8_t t=0; t<MaxTimerEntries; t++)
     {
@@ -122,12 +135,12 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
 
-    
     if( !(pinsOnATimer[port] & portPinPosition) )
     {
-        return false; // This pin is not configured to be a Servo
+        return false; // This pin is not configured to be a TimerServo
     }
 
+    
     //find the pin (this pin has already been checked if it's on a timer)
     for(size_t j=0; j<MaxTimerEntries; j++)
     {
@@ -141,7 +154,8 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
     if(slot == 0) return false; // failed to find slot
 
     //once timers are turned on, we dont turn off again. We only turn them on when first requested.
-    if( !servoTimerInitialised ){
+    if( !servoTimerInitialised )
+    {
         initServoTimer();
     }
     

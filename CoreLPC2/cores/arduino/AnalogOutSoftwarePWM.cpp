@@ -6,7 +6,7 @@
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 
-static SoftwarePWM* softwarePWMEntries[MaxNumberSoftwarePWMPins] = {};
+SoftwarePWM* softwarePWMEntries[MaxNumberSoftwarePWMPins] = {};
 static uint32_t pinsOnSoftPWM[5] = {0}; //5 ports;
 
 
