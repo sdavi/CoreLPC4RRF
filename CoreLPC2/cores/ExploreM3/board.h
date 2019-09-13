@@ -50,42 +50,18 @@ extern "C" {
 #define BOARD_MAX_GPIO_PINS  42
 #define C_MaxAdcChannels_U8  8u
 
-
-/************************************
-             ADC pins
-************************************/             
-static unsigned const int A0 = P0_23;
-static unsigned const int A1 = P0_24;
-static unsigned const int A2 = P0_25;
-static unsigned const int A3 = P0_26;
-static unsigned const int A4 = P1_30;
-static unsigned const int A5 = P1_31;
-static unsigned const int A6 = P0_3;
-static unsigned const int A7 = P0_2;
-    
-    
-    
-    
-#define ANALOG_ZERO  A0
-#define ANALOG_MAX   A7
-/**********End of ADC pins********/
-
-
-
-
-
 //External SPI
 static const Pin SPI0_MOSI = P0_18;
 static const Pin SPI0_MISO = P0_17;
 static const Pin SPI0_SCK  = P0_15;
-//static const Pin SPI0_SSEL = P0_16;
+static const Pin SPI0_SSEL = P0_16;
 
 
 //Internal SDCard
 static const Pin SPI1_MOSI = P0_9;
 static const Pin SPI1_MISO = P0_8;
 static const Pin SPI1_SCK  = P0_7;
-//static const Pin SPI1_SSEL = P0_6
+static const Pin SPI1_SSEL = P0_6;
 
     
 

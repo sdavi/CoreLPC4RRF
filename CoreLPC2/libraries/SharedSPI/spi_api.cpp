@@ -117,11 +117,11 @@ void spi_format(spi_t *obj, int bits, int mode, int slave) {
 void spi_frequency(spi_t *obj, int hz) {
     ssp_disable(obj);
 
-    // setup the spi clock diveder to /1
+    // setup the spi clock divider to /1
     if( obj == LPC_SSP0){
         LPC_SC->PCLKSEL1 &= ~(3 << 10);
         LPC_SC->PCLKSEL1 |=  (1 << 10);
-    }else if( obj == LPC_SSP0){
+    }else if( obj == LPC_SSP1){
         LPC_SC->PCLKSEL0 &= ~(3 << 20);
         LPC_SC->PCLKSEL0 |=  (1 << 20);
     }
