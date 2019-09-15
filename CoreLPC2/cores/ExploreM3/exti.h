@@ -41,7 +41,7 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #ifdef __cplusplus
 
 #include "Core.h"
-#include "lpc17xx.h"
+#include "chip.h"
 #include "stdutils.h"
 #include "stdlib.h"
 

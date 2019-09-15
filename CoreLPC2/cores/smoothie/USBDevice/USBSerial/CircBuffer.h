@@ -20,7 +20,7 @@
 #define CIRCBUFFER_H
 
 #include <stdlib.h>
-#include "LPC17xx.h"
+#include "chip.h"
 #include <FreeRTOS.h>
 
 template <class T>

@@ -30,6 +30,7 @@
  * @brief Wirish serial port implementation.
  */
 
+#include "chip.h"
 #include "lpc_types.h"
 #include "HardwareSerial.h"
 #include "usart.h"
@@ -158,7 +159,7 @@ void HardwareSerial::flush(void) {
 
 void HardwareSerial::IRQHandler(){
     //call the LPCOpen Interrupt Handler
-    Chip_UART_IRQRBHandler(LPCOPEN_LPC_UART0, &this->rxRingBuffer, &this->txRingBuffer);
+    Chip_UART_IRQRBHandler(LPC_UART0, &this->rxRingBuffer, &this->txRingBuffer);
 
 }
 

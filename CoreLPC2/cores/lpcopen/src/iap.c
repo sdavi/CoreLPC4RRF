@@ -29,7 +29,7 @@
  * this code.
  */
 
-#include "lpc17xx.h"
+#include "chip.h"
 #include "iap.h"
 
 

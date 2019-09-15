@@ -22,19 +22,6 @@
 
 #include "WMath.h"
 
-#if SAM3XA || SAME70
-
-// SAM3X and SAME70 have a true random number generator
-#include "trng/trng.h"
-
-extern "C" uint32_t trueRandom()
-{
-	while (! (TRNG->TRNG_ISR & TRNG_ISR_DATRDY)) {}
-	return (uint32_t)TRNG->TRNG_ODATA;
-}
-
-#endif
-
 extern int32_t random(int32_t howbig)
 {
 	if (howbig <= 0)
@@ -42,9 +29,6 @@ extern int32_t random(int32_t howbig)
 		return 0;
 	}
 
-#if SAM3XA || SAME70
-	return trueRandom() % (uint32_t)howbig;
-#else
 	static bool isInitialised = false;
 
 	if (!isInitialised)
@@ -54,7 +38,6 @@ extern int32_t random(int32_t howbig)
 	}
 
 	return rand() % (uint32_t)howbig;
-#endif
 
 }
 

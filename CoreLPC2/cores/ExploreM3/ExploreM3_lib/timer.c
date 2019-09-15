@@ -36,7 +36,7 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
  
 **************************************************************************************************/
 
-#include "lpc17xx.h"
+#include "chip.h"
 #include "timer.h"
 #include "stdutils.h"
 
@@ -62,11 +62,11 @@ uint32_t getPrescalarForUs(uint8_t timerPclkBit_u8)
 
     if(timerPclkBit_u8<=4)
     {
-        pclk = (LPC_SC->PCLKSEL0 >> timerPclkBit_u8) & 0x03;  /* get the pclk info for required timer0/1 */
+        pclk = (LPC_SYSCTL->PCLKSEL[0] >> timerPclkBit_u8) & 0x03;  /* get the pclk info for required timer0/1 */
     }
     else
     {
-        pclk = (LPC_SC->PCLKSEL1 >> timerPclkBit_u8) & 0x03;  /* get the pclk info for required timer2/3 */
+        pclk = (LPC_SYSCTL->PCLKSEL[1] >> timerPclkBit_u8) & 0x03;  /* get the pclk info for required timer2/3 */
     }
     switch ( pclk )                                    /* Decode the bits to determine the pclk*/
     {
@@ -101,11 +101,11 @@ uint32_t getPclk(uint8_t timerPclkBit_u8){
     
     if(timerPclkBit_u8<=4)
     {
-        pclk = (LPC_SC->PCLKSEL0 >> timerPclkBit_u8) & 0x03;  /* get the pclk info for required timer0/1 */
+        pclk = (LPC_SYSCTL->PCLKSEL[0] >> timerPclkBit_u8) & 0x03;  /* get the pclk info for required timer0/1 */
     }
     else
     {
-        pclk = (LPC_SC->PCLKSEL1 >> timerPclkBit_u8) & 0x03;  /* get the pclk info for required timer2/3 */
+        pclk = (LPC_SYSCTL->PCLKSEL[1] >> timerPclkBit_u8) & 0x03;  /* get the pclk info for required timer2/3 */
     }
     switch ( pclk )                                    /* Decode the bits to determine the pclk*/
     {

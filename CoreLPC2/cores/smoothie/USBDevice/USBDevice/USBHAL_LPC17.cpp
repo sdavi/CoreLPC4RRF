@@ -24,7 +24,7 @@
 #include "USBHAL.h"
 
 #include <cstdio>
-#include <LPC17xx.h>
+#include <chip.h>
 
 
 
@@ -195,24 +195,24 @@ uint32_t endpointStallState;
 
 static void SIECommand(uint32_t command) {
     // The command phase of a SIE transaction
-    LPC_USB->USBDevIntClr = CCEMPTY;
-    LPC_USB->USBCmdCode = SIE_CMD_CODE(SIE_COMMAND, command);
-    setled(4, 1); while (!(LPC_USB->USBDevIntSt & CCEMPTY)); setled(4, 0);
+    LPC_USB->DevIntClr = CCEMPTY;
+    LPC_USB->CmdCode = SIE_CMD_CODE(SIE_COMMAND, command);
+    setled(4, 1); while (!(LPC_USB->DevIntSt & CCEMPTY)); setled(4, 0);
 }
 
 static void SIEWriteData(uint8_t data) {
     // The data write phase of a SIE transaction
-    LPC_USB->USBDevIntClr = CCEMPTY;
-    LPC_USB->USBCmdCode = SIE_CMD_CODE(SIE_WRITE, data);
-    setled(4, 1); while (!(LPC_USB->USBDevIntSt & CCEMPTY)); setled(4, 0);
+    LPC_USB->DevIntClr = CCEMPTY;
+    LPC_USB->CmdCode = SIE_CMD_CODE(SIE_WRITE, data);
+    setled(4, 1); while (!(LPC_USB->DevIntSt & CCEMPTY)); setled(4, 0);
 }
 
 static uint8_t SIEReadData(uint32_t command) {
     // The data read phase of a SIE transaction
-    LPC_USB->USBDevIntClr = CDFULL;
-    LPC_USB->USBCmdCode = SIE_CMD_CODE(SIE_READ, command);
-    setled(4, 1); while (!(LPC_USB->USBDevIntSt & CDFULL)); setled(4, 0);
-    return (uint8_t)LPC_USB->USBCmdData;
+    LPC_USB->DevIntClr = CDFULL;
+    LPC_USB->CmdCode = SIE_CMD_CODE(SIE_READ, command);
+    setled(4, 1); while (!(LPC_USB->DevIntSt & CDFULL)); setled(4, 0);
+    return (uint8_t)LPC_USB->CmdData;
 }
 
 static void SIEsetDeviceStatus(uint8_t status) {
@@ -317,16 +317,16 @@ static uint8_t selectEndpointClearInterrupt(uint8_t bEP) {
     uint8_t endpoint = EP2IDX(bEP);
 
     // Implemented using using EP_INT_CL
-    LPC_USB->USBEpIntClr = EP(endpoint);
-    setled(4, 1); while (!(LPC_USB->USBDevIntSt & CDFULL)); setled(4, 0);
-    return (uint8_t)LPC_USB->USBCmdData;
+    LPC_USB->EpIntClr = EP(endpoint);
+    setled(4, 1); while (!(LPC_USB->DevIntSt & CDFULL)); setled(4, 0);
+    return (uint8_t)LPC_USB->CmdData;
 }
 
 static void enableEndpointEvent(uint8_t bEP) {
     uint8_t endpoint = EP2IDX(bEP);
 
     // Enable an endpoint interrupt
-    LPC_USB->USBEpIntEn |= EP(endpoint);
+    LPC_USB->EpIntEn |= EP(endpoint);
 }
 
 static void disableEndpointEvent(uint8_t bEP) __attribute__ ((unused));
@@ -334,7 +334,7 @@ static void disableEndpointEvent(uint8_t bEP) {
     uint8_t endpoint = EP2IDX(bEP);
 
     // Disable an endpoint interrupt
-    LPC_USB->USBEpIntEn &= ~EP(endpoint);
+    LPC_USB->EpIntEn &= ~EP(endpoint);
 }
 
 static volatile uint32_t __attribute__((used)) dummyRead;
@@ -354,19 +354,19 @@ uint32_t USBHAL::endpointReadcore(uint8_t bEP, uint8_t *buffer)
 
 //     iprintf("epReadCore 0x%02X = %d, 0x%02X\n", bEP, endpoint, LOG_ENDPOINT(endpoint));
 
-    LPC_USB->USBCtrl = LOG_ENDPOINT(endpoint) | RD_EN;
+    LPC_USB->Ctrl = LOG_ENDPOINT(endpoint) | RD_EN;
 
-//     iprintf("0x%02lX\n", LPC_USB->USBCtrl);
+//     iprintf("0x%02lX\n", LPC_USB->Ctrl);
 
-    setled(4, 1); while (!(LPC_USB->USBRxPLen & PKT_RDY))
+    setled(4, 1); while (!(LPC_USB->RxPLen & PKT_RDY))
     {
 //         iprintf("ep not ready, Waiting for data...\n");
     }
     setled(4, 0);
 
-//     iprintf("0x%02lX 0x%02lX\n", LPC_USB->USBCtrl, LPC_USB->USBRxPLen);
+//     iprintf("0x%02lX 0x%02lX\n", LPC_USB->Ctrl, LPC_USB->RxPLen);
 
-    size = LPC_USB->USBRxPLen & PKT_LNGTH_MASK;
+    size = LPC_USB->RxPLen & PKT_LNGTH_MASK;
 
     if ((IS_ISOCHRONOUS(bEP) == 0) && (size > 64))
     {
@@ -385,7 +385,7 @@ uint32_t USBHAL::endpointReadcore(uint8_t bEP, uint8_t *buffer)
             if (offset==0)
             {
                 // Fetch up to four bytes of data as a word
-                data = LPC_USB->USBRxData;
+                data = LPC_USB->RxData;
             }
 
             // extract a byte
@@ -397,11 +397,11 @@ uint32_t USBHAL::endpointReadcore(uint8_t bEP, uint8_t *buffer)
         }
     } else
     {
-        dummyRead = LPC_USB->USBRxData;
+        dummyRead = LPC_USB->RxData;
     }
 
-    setled(4, 1); while ((LPC_USB->USBDevIntSt & RxENDPKT) == 0)
-        dummyRead = LPC_USB->USBRxData;
+    setled(4, 1); while ((LPC_USB->DevIntSt & RxENDPKT) == 0)
+        dummyRead = LPC_USB->RxData;
     setled(4, 0);
 
 //     iprintf("Read %ld\n", size);
@@ -409,7 +409,7 @@ uint32_t USBHAL::endpointReadcore(uint8_t bEP, uint8_t *buffer)
     if (can_transfer[endpoint] != 0)
         can_transfer[endpoint]--;
 
-    LPC_USB->USBCtrl = 0;
+    LPC_USB->Ctrl = 0;
 
     if (IS_ISOCHRONOUS(bEP) == 0)
     {
@@ -434,23 +434,23 @@ static void endpointWritecore(uint8_t bEP, uint8_t *buffer, uint32_t size)
 //     uint8_t offset;
     uint8_t endpoint = EP2IDX(bEP);
 
-    LPC_USB->USBCtrl = LOG_ENDPOINT(endpoint) | WR_EN;
+    LPC_USB->Ctrl = LOG_ENDPOINT(endpoint) | WR_EN;
 
-    LPC_USB->USBTxPLen = size;
+    LPC_USB->TxPLen = size;
 //         offset = 0;
 //         data = 0;
 //     iprintf("EP%d%s(%d) W:", (endpoint >> 1), ((endpoint & 1)?"IN":"OUT"), endpoint);
-    while (LPC_USB->USBCtrl & WR_EN)
+    while (LPC_USB->Ctrl & WR_EN)
     {
 //         iprintf("0x%02X 0x%02X 0x%02X 0x%02X ", buffer[0], buffer[1], buffer[2], buffer[3]);
-        LPC_USB->USBTxData = (buffer[3] << 24) | (buffer[2] << 16) | (buffer[1] << 8) | buffer[0];
+        LPC_USB->TxData = (buffer[3] << 24) | (buffer[2] << 16) | (buffer[1] << 8) | buffer[0];
         buffer += 4;
     }
 
 //     iprintf("!_(%ld)>", size);
 
     // Clear WR_EN to cover zero length packet case
-    LPC_USB->USBCtrl = 0;
+    LPC_USB->Ctrl = 0;
 
     SIEselectEndpoint(bEP);
     SIEvalidateBuffer();
@@ -469,19 +469,19 @@ void USBHAL::init() {
     NVIC_DisableIRQ(USB_IRQn);
 
     // Enable power to USB device controller
-    LPC_SC->PCONP |= PCUSB;
-
+    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_USB); //enable power and clocking
+    
     // Enable USB clocks
     LPC_USB->USBClkCtrl |= DEV_CLK_EN | AHB_CLK_EN;
     setled(4, 1); while (LPC_USB->USBClkSt != (DEV_CLK_ON | AHB_CLK_ON)); setled(4, 0);
 
     // Configure pins P0.29 and P0.30 to be USB D+ and USB D-
-    LPC_PINCON->PINSEL1 &= 0xc3ffffff;
-    LPC_PINCON->PINSEL1 |= 0x14000000;
+    LPC_IOCON->PINSEL[1] &= 0xc3ffffff;
+    LPC_IOCON->PINSEL[1] |= 0x14000000;
 
     // Configure pin P2.9 to be Connect
-    LPC_PINCON->PINSEL4 &= 0xfffcffff;
-    LPC_PINCON->PINSEL4 |= 0x00040000;
+    LPC_IOCON->PINSEL[4] &= 0xfffcffff;
+    LPC_IOCON->PINSEL[4] |= 0x00040000;
 
     // Disconnect USB device
     SIEdisconnect();
@@ -504,8 +504,8 @@ void USBHAL::init() {
     USBEpIntEn = 0x3;
 
     // Enable interrupts for device events and EP0
-//     LPC_USB->USBDevIntEn = EP_SLOW | DEV_STAT | FRAME;
-    LPC_USB->USBDevIntEn = EP_SLOW | DEV_STAT;
+//     LPC_USB->DevIntEn = EP_SLOW | DEV_STAT | FRAME;
+    LPC_USB->DevIntEn = EP_SLOW | DEV_STAT;
          enableEndpointEvent(EP0IN);
          enableEndpointEvent(EP0OUT);
 }
@@ -694,13 +694,13 @@ bool USBHAL::realiseEndpoint(uint8_t bEP, uint32_t maxPacket, uint32_t flags)
     uint8_t endpoint = EP2IDX(bEP);
 
     // Realise an endpoint
-    LPC_USB->USBDevIntClr = EP_RLZED;
-    LPC_USB->USBReEp |= EP(endpoint);
-    LPC_USB->USBEpInd = endpoint;
-    LPC_USB->USBMaxPSize = maxPacket;
+    LPC_USB->DevIntClr = EP_RLZED;
+    LPC_USB->ReEp |= EP(endpoint);
+    LPC_USB->EpInd = endpoint;
+    LPC_USB->MaxPSize = maxPacket;
 
-    setled(4, 1); while (!(LPC_USB->USBDevIntSt & EP_RLZED)); setled(4, 0);
-    LPC_USB->USBDevIntClr = EP_RLZED;
+    setled(4, 1); while (!(LPC_USB->DevIntSt & EP_RLZED)); setled(4, 0);
+    LPC_USB->DevIntClr = EP_RLZED;
 
     // Clear stall state
 //     endpointStallState &= ~EP(endpoint);
@@ -785,7 +785,7 @@ uint16_t USBHAL::lastFrame(void)
 
 extern "C" {
     __attribute__ ((interrupt)) void USB_IRQHandler() {
-//         iprintf("!0x%08lX/0x%08lX:", LPC_USB->USBDevIntSt, LPC_USB->USBDevIntEn);
+//         iprintf("!0x%08lX/0x%08lX:", LPC_USB->DevIntSt, LPC_USB->DevIntEn);
         ENTER_ISR();
         USBHAL::_usbisr();
         LEAVE_ISR();
@@ -808,7 +808,7 @@ bool USBHAL::endpointSetInterrupt(uint8_t bEP, bool enabled)
         USBEpIntEn |= EP(endpoint);
         if (can_transfer[endpoint])
             endpointTriggerInterrupt(bEP);
-//             LPC_USB->USBEpIntSet = EP(endpoint);
+//             LPC_USB->EpIntSet = EP(endpoint);
         __enable_irq();
     }
     else
@@ -830,21 +830,21 @@ void USBHAL::endpointTriggerInterrupt(uint8_t bEP)
 {
     uint8_t endpoint = EP2IDX(bEP);
 
-    LPC_USB->USBEpIntSet = EP(endpoint);
+    LPC_USB->EpIntSet = EP(endpoint);
 }
 
 void USBHAL::usbisr(void)
 {
     uint8_t devStat;
 
-    if (LPC_USB->USBDevIntSt & FRAME)
+    if (LPC_USB->DevIntSt & FRAME)
     {
 //         iprintf("F");
         // Start of frame event
 //         SOF(SIEgetFrameNumber());
         USBEvent_Frame(SIEgetFrameNumber());
         // Clear interrupt status flag
-        LPC_USB->USBDevIntClr = FRAME;
+        LPC_USB->DevIntClr = FRAME;
 
 //         static uint8_t lst;
 //         uint8_t st = SIEselectEndpoint(0x80);
@@ -855,12 +855,12 @@ void USBHAL::usbisr(void)
 //         }
     }
 
-    if (LPC_USB->USBDevIntSt & DEV_STAT)
+    if (LPC_USB->DevIntSt & DEV_STAT)
     {
         iprintf("D");
         // Device Status interrupt
         // Must clear the interrupt status flag before reading the device status from the SIE
-        LPC_USB->USBDevIntClr = DEV_STAT;
+        LPC_USB->DevIntClr = DEV_STAT;
 
         // Read device status from SIE
         devStat = SIEgetDeviceStatus();
@@ -895,12 +895,12 @@ void USBHAL::usbisr(void)
         }
     }
 
-    if (LPC_USB->USBDevIntSt & EP_SLOW)
+    if (LPC_USB->DevIntSt & EP_SLOW)
     {
         // (Slow) Endpoint Interrupt
 
         // Process each endpoint interrupt
-        if (LPC_USB->USBEpIntSt & EP(EP0OUT))
+        if (LPC_USB->EpIntSt & EP(EP0OUT))
         {
             uint8_t bEPStat = selectEndpointClearInterrupt(IDX2EP(EP0OUT));
             if (bEPStat & SIE_SE_STP)
@@ -913,7 +913,7 @@ void USBHAL::usbisr(void)
                 EP0out();
             }
         }
-        if (LPC_USB->USBEpIntSt & EP(EP0IN))
+        if (LPC_USB->EpIntSt & EP(EP0IN))
         {
             uint8_t bEPStat = selectEndpointClearInterrupt(IDX2EP(EP0IN));
             if ((bEPStat & EPSTAT_FE) == 0) // IN endpoint, FE = 0 - empty space in buffer
@@ -929,7 +929,7 @@ void USBHAL::usbisr(void)
             {
                 uint8_t bEPStat = 255;
                 uint8_t ep = IDX2EP(i);
-                if (LPC_USB->USBEpIntSt & bitmask)
+                if (LPC_USB->EpIntSt & bitmask)
                 {
                     bEPStat = selectEndpointClearInterrupt(ep);
                     if (can_transfer[i] < 2)
@@ -974,7 +974,7 @@ void USBHAL::usbisr(void)
             iprintf("\n");
         }
 
-        LPC_USB->USBDevIntClr = EP_SLOW;
+        LPC_USB->DevIntClr = EP_SLOW;
     }
 }
 

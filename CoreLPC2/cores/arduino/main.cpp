@@ -3,7 +3,7 @@
 #include "Core.h"
 #include "gpio.h"
 
-#include "lpc17xx.h"
+#include "chip.h"
 #include "stdutils.h"
 
 #include <FreeRTOS.h>

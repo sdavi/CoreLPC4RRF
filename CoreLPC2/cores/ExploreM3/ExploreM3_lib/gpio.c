@@ -33,9 +33,10 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
  **************************************************************************************************/
 
 
-#include "lpc17xx.h"
+#include "chip.h"
 #include "stdutils.h"
 #include "gpio.h"
+
 
 
 inline void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_u8)
@@ -57,7 +58,7 @@ inline void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_
     
     var_pinNumber_u8 = var_pinNumber_u8 * 2;
     
-    ptr_PINCON    = ((uint32_t *)&LPC_PINCON->PINSEL0  + var_portNumber_u8);
+    ptr_PINCON    = ((uint32_t *)&LPC_IOCON->PINSEL[0]  + var_portNumber_u8);
     
     *(uint32_t *)(ptr_PINCON) &= ~(0x03UL << var_pinNumber_u8);
 	*(uint32_t *)(ptr_PINCON) |= (((uint32_t)(var_pinFunction_u8 & 0x03)) << var_pinNumber_u8);
@@ -83,7 +84,7 @@ inline void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8)
 {
 
     uint8_t var_portNumber_u8;
-    LPC_GPIO_TypeDef *LPC_GPIO_PORT;
+    LPC_GPIO_T *LPC_GPIO_PORT;
 	uint8_t var_pinNumber_u8 = enm_pinNumber; 
 
     var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
@@ -92,8 +93,8 @@ inline void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8)
     /* Go to particular port after decoding from the pin number and 
         set the direction as specified*/
     
-    LPC_GPIO_PORT = (LPC_GPIO_TypeDef*)(LPC_GPIO_BASE + ((var_portNumber_u8) << 5));
-    util_UpdateBit(LPC_GPIO_PORT->FIODIR,var_pinNumber_u8,(var_pinDirn_u8 & 0x01));   
+    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+    util_UpdateBit(LPC_GPIO_PORT->DIR,var_pinNumber_u8,(var_pinDirn_u8 & 0x01));
 }
 
 
@@ -123,7 +124,7 @@ inline void GPIO_PinWrite(gpioPins_et enm_pinNumber, uint8_t var_pinValue_u8)
 {
 
     uint8_t var_portNumber_u8;
-    LPC_GPIO_TypeDef *LPC_GPIO_PORT;
+    LPC_GPIO_T *LPC_GPIO_PORT;
 	uint8_t var_pinNumber_u8 = enm_pinNumber; 
 
     var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
@@ -132,8 +133,8 @@ inline void GPIO_PinWrite(gpioPins_et enm_pinNumber, uint8_t var_pinValue_u8)
     /* Go to particular port after decoding from the pin number and 
         update the value of the specified pin*/
     
-    LPC_GPIO_PORT = (LPC_GPIO_TypeDef*)(LPC_GPIO_BASE + ((var_portNumber_u8) << 5));
-    util_UpdateBit(LPC_GPIO_PORT->FIOPIN,var_pinNumber_u8,(var_pinValue_u8&0x01));                
+    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+    util_UpdateBit(LPC_GPIO_PORT->PIN,var_pinNumber_u8,(var_pinValue_u8&0x01));
 }
 
 
@@ -161,7 +162,7 @@ inline uint8_t GPIO_PinRead(gpioPins_et enm_pinNumber)
 {
     uint8_t returnStatus = 0;
     uint8_t var_portNumber_u8;
-    LPC_GPIO_TypeDef *LPC_GPIO_PORT;
+    LPC_GPIO_T *LPC_GPIO_PORT;
 	uint8_t var_pinNumber_u8 = enm_pinNumber; 
 
     var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
@@ -169,8 +170,8 @@ inline uint8_t GPIO_PinRead(gpioPins_et enm_pinNumber)
 
     /* Go to particular port after decoding from the pin number and read the pins status */
 
-    LPC_GPIO_PORT = (LPC_GPIO_TypeDef*)(LPC_GPIO_BASE + ((var_portNumber_u8) << 5));    
-    returnStatus = util_IsBitSet(LPC_GPIO_PORT->FIOPIN,var_pinNumber_u8);
+    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+    returnStatus = util_IsBitSet(LPC_GPIO_PORT->PIN,var_pinNumber_u8);
                   
     return returnStatus;
 }

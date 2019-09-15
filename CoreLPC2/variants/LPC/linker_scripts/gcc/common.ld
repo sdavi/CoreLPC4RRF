@@ -53,7 +53,6 @@ SECTIONS
 		*(.bss._*mainTask)
 		*(.bss.*IdleTaskStack)
 	    *(.bss.*TimerTaskStack)
-	    //*(.bss.*emacTask) 
 	    *(.bss.*tcpPlusTask)
 		*(.bss._time_locale)
 		*(.bss.pxReadyTasksLists)
@@ -66,6 +65,12 @@ SECTIONS
 		*(.bss.*HttpResponder*)
 		*(.bss.*TaskList*)
 
+	    *(.bss.*emacTask)
+		*(.bss.*idleTask)
+		*(.bss.xARPCache)
+		*(.bss.xDHCPData)
+		*(.bss.*assembleConfigDescriptor*)
+		
         Image$$RW_IRAM2$$ZI$$Limit = .;
         PROVIDE(__AHB0_dyn_start = .);
         PROVIDE(__AHB0_end = ORIGIN(AHB_RAM) + LENGTH(AHB_RAM));

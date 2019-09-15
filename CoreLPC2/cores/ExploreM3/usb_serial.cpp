@@ -25,11 +25,9 @@
  *****************************************************************************/
 
 
-
+#include "chip.h"
 #include "usb_serial.h"
 #include <inttypes.h>
-#include "type.h"
-
 #include "wirish_time.h"
 #include "systick.h"
 

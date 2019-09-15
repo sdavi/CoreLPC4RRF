@@ -19,7 +19,6 @@
  *
  ******************************************************************************/
 #include "chip.h"
-//#include "lpc17xx.h"
 #include "core_cm3.h"
 
 #include "FreeRTOS.h"

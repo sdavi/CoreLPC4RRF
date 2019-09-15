@@ -39,8 +39,6 @@ extern "C" {
 #ifndef _SYSTICK_H_
 #define _SYSTICK_H_
 
-
-#include "lpc17xx.h"
 #include "stdutils.h"
 
 /*************************************************************************************************

@@ -32,7 +32,6 @@
 #ifndef __LPC_PHY_H_
 #define __LPC_PHY_H_
 
-#include "board.h"
 #include "chip.h"
 
 #ifdef __cplusplus

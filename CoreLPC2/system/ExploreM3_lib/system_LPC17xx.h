@@ -32,6 +32,13 @@ extern "C" {
 
 #include <stdint.h>
 
+extern const uint32_t OscRateIn;
+extern const uint32_t RTCOscRateIn;
+typedef void (*p_msDelay_func_t)(uint32_t); //required for LPCOpen
+
+
+    
+    
 extern uint32_t SystemCoreClock;     /*!< System Clock Frequency (Core Clock)  */
 
 

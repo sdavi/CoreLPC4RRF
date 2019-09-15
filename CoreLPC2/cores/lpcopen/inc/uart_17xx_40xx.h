@@ -92,12 +92,6 @@ typedef struct {					/*!< USARTn Structure       */
 } LPC_USART_T;
 
 
-//Defines for UARTS, but name change to avoid conflict
-#define LPCOPEN_LPC_UART0                 ((LPC_USART_T            *) LPC_UART0_BASE)
-#define LPCOPEN_LPC_UART1                 ((LPC_USART_T            *) LPC_UART1_BASE)
-#define LPCOPEN_LPC_UART2                 ((LPC_USART_T            *) LPC_UART2_BASE)
-#define LPCOPEN_LPC_UART3                 ((LPC_USART_T            *) LPC_UART3_BASE)
-
 /**
  * @brief Macro defines for UART Receive Buffer register
  */

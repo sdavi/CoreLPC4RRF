@@ -10,7 +10,6 @@
 
 #include "stdutils.h"
 #include "gpio.h"
-#include "adc.h"
 #include "systick.h"
 #include "timer.h"
 #include "delay.h"
@@ -41,7 +40,6 @@ typedef gpioPins_et Pin;
 static const Pin NoPin = P_NC; //which =0xff
 
 #include "exti.h"
-#include "board.h"
 #include "wiring_digital.h"
 #include "wirish_time.h"
 #include "wdt.h"
@@ -56,14 +54,6 @@ constexpr uint8_t PIN_ATTR_DIGITAL = 1 << 2;
 constexpr uint8_t PIN_ATTR_PWM = 1 << 3;
 constexpr uint8_t PIN_ATTR_TIMER = 1 << 4;
 constexpr uint8_t PIN_ATTR_DAC = 1 << 5;
-
-
-// Usage:
-// 1. Enable the channels you need by making calls to AnalogEnableChannel.
-// 2. If desired, call AnalogSetCallback to set a callback for when conversion is complete.
-// 3. Call AnalogStartConversion. This may be done e.g. in a tick interrupt if regular conversions are wanted.
-// 4. Either use the callback to determine when conversion is complete, or call AnalogCheckReady to poll the status.
-// 5. Call AnalogReadChannel to read the most recent converted result for each channel of interest.
 
 enum AnalogChannelNumber : int8_t
 {
@@ -92,7 +82,8 @@ enum EPWMChannel : int8_t
 };
 
 
-struct PinDescription{
+struct PinDescription
+{
     uint8_t pPort;
     uint8_t ulPinAttribute;
     AnalogChannelNumber ulADCChannelNumber; // ADC or DAC channel number

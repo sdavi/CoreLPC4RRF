@@ -1,5 +1,5 @@
 
-#include "lpc17xx.h"
+#include "chip.h"
 
 #include "ring_buffer.h"
 #include "uart_17xx_40xx.h"
@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include "Core.h"
 
+#include "chip.h"
 
 static const usart_channel_map USART_BASE[4]=
 {  /* TxPin RxPin UART_PinFun   PCON Bit Associated UART Structure    */
@@ -80,10 +81,10 @@ usart_dev *USART3 = &usart3;
 void serial_baud(LPC_USART_T *obj, int baudrate) {
 
     // set pclk to /1
-    if( obj == LPCOPEN_LPC_UART0) { LPC_SC->PCLKSEL0 &= ~(0x3 <<  6); LPC_SC->PCLKSEL0 |= (0x1 <<  6);}
-    else if( obj == LPCOPEN_LPC_UART1){ LPC_SC->PCLKSEL0 &= ~(0x3 <<  8); LPC_SC->PCLKSEL0 |= (0x1 <<  8); }
-    else if( obj == LPCOPEN_LPC_UART2){ LPC_SC->PCLKSEL1 &= ~(0x3 << 16); LPC_SC->PCLKSEL1 |= (0x1 << 16); }
-    else if( obj == LPCOPEN_LPC_UART0){ LPC_SC->PCLKSEL1 &= ~(0x3 << 18); LPC_SC->PCLKSEL1 |= (0x1 << 18); }
+    if( obj == LPC_UART0) { LPC_SYSCTL->PCLKSEL[0] &= ~(0x3 <<  6); LPC_SYSCTL->PCLKSEL[0] |= (0x1 <<  6);}
+    else if( obj == LPC_UART1){ LPC_SYSCTL->PCLKSEL[0] &= ~(0x3 <<  8); LPC_SYSCTL->PCLKSEL[0] |= (0x1 <<  8); }
+    else if( obj == LPC_UART2){ LPC_SYSCTL->PCLKSEL[1] &= ~(0x3 << 16); LPC_SYSCTL->PCLKSEL[1] |= (0x1 << 16); }
+    else if( obj == LPC_UART0){ LPC_SYSCTL->PCLKSEL[1] &= ~(0x3 << 18); LPC_SYSCTL->PCLKSEL[1] |= (0x1 << 18); }
     else {
         //error("serial_baud");
         return;
@@ -221,7 +222,7 @@ void usart_init(const usart_dev *dev, uint32_t baud_rate) {
 
     GPIO_PinFunction(dev->channel->TxPin,dev->channel->PinFunSel);
     GPIO_PinFunction(dev->channel->RxPin,dev->channel->PinFunSel);
-    util_BitSet(LPC_SC->PCONP,dev->channel->pconBit);
+    util_BitSet(LPC_SYSCTL->PCONP,dev->channel->pconBit);
     
     /* Enable FIFOs by default, reset them */
     Chip_UART_SetupFIFOS(dev->channel->UARTx, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS));
@@ -243,7 +244,7 @@ void usart_init(const usart_dev *dev, uint32_t baud_rate) {
     dev->channel->UARTx->RS485ADRMATCH = 0;
     
     /* Clear MCR */
-    if (dev->channel->UARTx == LPCOPEN_LPC_UART1) {
+    if (dev->channel->UARTx == LPC_UART1) {
         /* Set Modem Control to default state */
         dev->channel->UARTx->MCR = 0;
         /*Dummy Reading to Clear Status */

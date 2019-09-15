@@ -1,7 +1,7 @@
 //Hardware SPI
 
 #include "HardwareSPI.h"
-
+#include "chip.h"
 
 #define SPI0_FUNCTION  PINSEL_FUNC_2 //SSP
 #define SPI1_FUNCTION  PINSEL_FUNC_2
@@ -19,7 +19,7 @@ constexpr uint8_t SR_BSY = (1<<4); //Busy. This bit is 0 if the SSPn controller 
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 // Wait for transmitter ready returning true if timed out
-static inline bool waitForTxReady(LPC_SSP_TypeDef* sspDevice)
+static inline bool waitForTxReady(LPC_SSP_T* sspDevice)
 {
     uint32_t timeout = SPI_TIMEOUT;
     while (sspDevice->SR & SR_BSY) //check if SSP BSY flag (1=busy)
@@ -36,7 +36,7 @@ static inline bool waitForTxReady(LPC_SSP_TypeDef* sspDevice)
 
 //Make sure all the SSP FIFOs are empty, if they aren't clear them
 //returns true if ready, false if timeout
-static inline bool clearSSP(LPC_SSP_TypeDef* sspDevice)
+static inline bool clearSSP(LPC_SSP_T* sspDevice)
 {
 #ifdef SSPI_DEBUG
     if( (sspDevice->SR & SR_BSY) ) debugPrintf("SPI Busy\n");
@@ -60,7 +60,7 @@ static inline bool clearSSP(LPC_SSP_TypeDef* sspDevice)
 }
 
 //wait for SSP receive FIFO to be not empty
-static inline bool waitForReceiveNotEmpty(LPC_SSP_TypeDef* sspDevice)
+static inline bool waitForReceiveNotEmpty(LPC_SSP_T* sspDevice)
 {
     uint32_t timeout = SPI_TIMEOUT;
     
@@ -85,7 +85,7 @@ bool HardwareSPI::waitForTxEmpty()
 }
 
 // Wait for receive data available returning true if timed out
-static inline bool waitForRxReady(LPC_SSP_TypeDef* sspDevice)
+static inline bool waitForRxReady(LPC_SSP_T* sspDevice)
 {
     return ssp_readable_timeout(sspDevice, SPI_TIMEOUT);
 }
@@ -99,7 +99,8 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
     {
         if(device->sspChannel == SSP0)
         {
-            LPC_SC->PCONP |= 1 << 21;//enable Power and clocking
+            Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SSP0); //enable power and clocking
+            
             
             GPIO_PinFunction(SPI0_SCK,  SPI0_FUNCTION);   /* Configure the Pinfunctions for SPI */
             GPIO_PinFunction(SPI0_MOSI, SPI0_FUNCTION);
@@ -112,7 +113,7 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
         }
         else if (device->sspChannel == SSP1)
         {
-            LPC_SC->PCONP |= 1 << 10;//enable Power and clocking
+            Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SSP1); //enable power and clocking
             
             GPIO_PinFunction(SPI1_SCK,SPI1_FUNCTION);   /* Configure the Pinfunctions for SPI */
             GPIO_PinFunction(SPI1_MOSI,SPI1_FUNCTION);
@@ -133,7 +134,7 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
 }
 
 
-HardwareSPI::HardwareSPI(LPC_SSP_TypeDef *sspDevice):needInit(true)
+HardwareSPI::HardwareSPI(LPC_SSP_T *sspDevice):needInit(true)
 {
     selectedSSPDevice = sspDevice;
 }

@@ -20,17 +20,6 @@
 #define _WIRING_MATH_
 
 #include <stdint.h>
-//#include <compiler.h>
-
-#if SAM3XA || SAME70
-
-#ifdef __cplusplus
-extern "C" uint32_t trueRandom();
-#else
-extern uint32_t trueRandom();
-#endif
-
-#endif	// SAM3XA || SAME70
 
 #ifdef __cplusplus
 

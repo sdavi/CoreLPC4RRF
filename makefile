@@ -13,14 +13,6 @@ BUILD = Debug
 #compile in Ethernet Networking?
 NETWORKING = true
 
-#ESP Networking
-#ESP_NETWORKING = true
-
-#ESP8826_NETWORKING
-#ESP8826_NETWORKING = true
-
-
-
 #enable DFU
 USE_DFU = true
 #USE_DFU = false
@@ -103,6 +95,7 @@ FLAGS += -DRTOS -DFREERTOS_USED -DRRF_RTOSPLUS_MOD
 #
 FLAGS +=  -Wall -c -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections -march=armv7-m 
 FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant
+#FLAGS += -Wundef
 FLAGS += $(DEBUG_FLAGS)
 FLAGS += -MMD -MP 
 
@@ -116,7 +109,7 @@ endif
 
 
 CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline
-CXXFLAGS = $(FLAGS) -std=gnu++17  -fno-threadsafe-statics -fno-exceptions -fno-rtti
+CXXFLAGS = $(FLAGS) -std=gnu++17  -fno-threadsafe-statics -fno-exceptions -fno-rtti -Wno-register
 
 
 

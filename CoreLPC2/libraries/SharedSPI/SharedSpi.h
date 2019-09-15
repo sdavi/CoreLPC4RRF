@@ -2,8 +2,7 @@
 #define _SHAREDSPI_H_
 
 #include "spi_api.h"
-#include "lpc17xx.h"
-
+#include "chip.h"
 
 #define SPI_CPHA  (1 << 0) //Phase Control
 #define SPI_CPOL  (1 << 1) //Clock Polarity

@@ -16,41 +16,28 @@
 
 //SD:: Modified for use with RRF
 #include "Core.h"
-
+#include "chip.h"
 #include <stddef.h>
 #include "us_ticker_api.h"
-//#include "PeripheralNames.h"
 
 /* PORTING STEP 4:
    Implement
        * "us_ticker_init", "us_ticker_read"
        * "us_ticker_set_interrupt", "us_ticker_disable_interrupt", "us_ticker_clear_interrupt"
  */
-//#if defined(TARGET_LPC1768) || defined(TARGET_LPC2368)
-#define US_TICKER_TIMER      ((LPC_TIM_TypeDef *)LPC_TIM3_BASE)
+#define US_TICKER_TIMER      ((LPC_TIMER_T *)LPC_TIMER3_BASE)
 #define US_TICKER_TIMER_IRQn TIMER3_IRQn
-
-//#elif defined(TARGET_LPC11U24)
-//#define US_TICKER_TIMER          ((LPC_CTxxBx_Type *)LPC_CT32B1_BASE)
-//#define US_TICKER_TIMER_IRQn     TIMER_32_1_IRQn
-//
-//#endif
 
 static int us_ticker_running = 0;
 
 static inline void us_ticker_init(void) {
     us_ticker_running = 1;
-//#if defined(TARGET_LPC1768) || defined(TARGET_LPC2368)
-    LPC_SC->PCONP |= 1 << 23; // Clock TIMER_3
 
+    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_TIMER3); //enable power and clocking
+    
     US_TICKER_TIMER->CTCR = 0x0; // timer mode
     uint32_t PCLK = SystemCoreClock / 4;
 
-//#elif defined(TARGET_LPC11U24)
-//    LPC_SYSCON->SYSAHBCLKCTRL |= (1<<10); // Clock TIMER_1
-//    uint32_t PCLK = SystemCoreClock;
-//
-//#endif
     US_TICKER_TIMER->TCR = 0x2;  // reset
 
     uint32_t prescale = PCLK / 1000000; // default to 1MHz (1 us ticks)
@@ -67,7 +54,7 @@ uint32_t us_ticker_read() {
 
 static inline void us_ticker_set_interrupt(unsigned int timestamp) {
     // set match value
-    US_TICKER_TIMER->MR0 = timestamp;
+    US_TICKER_TIMER->MR[0] = timestamp;
     // enable match interrupt
     US_TICKER_TIMER->MCR |= 1;
 }

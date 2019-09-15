@@ -8,15 +8,18 @@
  *   : - Uses the "Burst" mode of the LPC to continously sample each of the selected ADC channels once enabled
  *   : - Resolution is 12bit
  */
-#include <lpc17xx.h>
-
 #include "AnalogIn.h"
+#include "chip.h"
 
-#include "adc.h"
-
+static ADC_CLOCK_SETUP_T ADCSetup;
 const unsigned int numChannels = 8; //8 channels on LPC1768
 static uint32_t activeChannels = 0;
 
+typedef struct
+{
+    gpioPins_et pinNumber;
+    uint8_t PinFunSel;
+} adcChannelConfig_st;
 
 const adcChannelConfig_st AdcConfig[numChannels]=
 {
@@ -34,8 +37,8 @@ const adcChannelConfig_st AdcConfig[numChannels]=
 // Module initialisation
 void AnalogInInit()
 {
-    ADC_Init();
-    LPC_ADC->ADINTEN = 0x00000000; //Disable interupts for ADC done for each channel, and more importantly, ensure ADGINTEN (bit 8) is 0 for BURST Mode
+    Chip_ADC_Init(LPC_ADC, &ADCSetup);
+    Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE);
 }
 
 // Enable or disable a channel.
@@ -48,13 +51,13 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
 			activeChannels |= (0x01 << channel);
             //set the pin mode for ADC
             GPIO_PinFunction(AdcConfig[channel].pinNumber,AdcConfig[channel].PinFunSel);
-            //set the channels to sample (bits 0-7 of ADCR)
-            LPC_ADC->ADCR  = (LPC_ADC->ADCR  & 0xFFFFFF00) | (activeChannels & 0x000000FF );
+            //set the channels to sample (bits 0-7 of CR)
+            LPC_ADC->CR  = (LPC_ADC->CR  & 0xFFFFFF00) | (activeChannels & 0x000000FF );
 		}
 		else
 		{
 			activeChannels &= ~(1u << channel);
-            LPC_ADC->ADCR  = (LPC_ADC->ADCR  & 0xFFFFFF00) | (activeChannels & 0x000000FF );
+            LPC_ADC->CR  = (LPC_ADC->CR  & 0xFFFFFF00) | (activeChannels & 0x000000FF );
             
 		}
 	}
@@ -64,37 +67,15 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
 // Read the most recent 12-bit result from a channel
 uint16_t AnalogInReadChannel(AnalogChannelNumber channel)
 {
-    
-	if ((unsigned int)channel < numChannels)
-	{
-        uint32_t val = 0;
-        switch(channel){
-            case 0: val = LPC_ADC->ADDR0; break;
-            case 1: val = LPC_ADC->ADDR1; break;
-            case 2: val = LPC_ADC->ADDR2; break;
-            case 3: val = LPC_ADC->ADDR3; break;
-            case 4: val = LPC_ADC->ADDR4; break;
-            case 5: val = LPC_ADC->ADDR5; break;
-            case 6: val = LPC_ADC->ADDR6; break;
-            case 7: val = LPC_ADC->ADDR7; break;
-            default:
-                break;
-        }
-    
-        return (val >> 4) & 0xFFF; //shift result into place and mask out other bits
-    }
-	return 0;
+    uint16_t val = 0;
+    Chip_ADC_ReadValue(LPC_ADC, (uint8_t)channel, &val);
+    return val;
 }
 
 
 // Start converting the enabled channels
 void AnalogInStartConversion(uint32_t channels)
 {
-    if(util_GetBitStatus(LPC_ADC->ADCR, SBIT_BURST) == 0 ){ // conversion wont start until BURST is set
-        //Enable Burst, this will continiously sample all enabled channels until this is set to 0
-        //Latest result for each channel is available in ADDRx
-        util_BitSet(LPC_ADC->ADCR,SBIT_BURST);
-    }
 }
 
 

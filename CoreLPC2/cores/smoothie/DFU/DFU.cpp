@@ -1,5 +1,5 @@
 #include "DFU.h"
-
+#include "chip.h"
 #include "Core.h"
 
 #include <stdio.h>
@@ -61,9 +61,9 @@ bool DFU::USBEvent_Request(CONTROL_TRANSFER &control)
             // flag to be set on reset so the Firmware can detect we are in DFU Mode)
             wdt_restart(WDT); // feed watchdog
 
-            LPC_WDT->WDMOD = (1<<WDEN_SBIT) | (1<<WDRESET_SBIT); //Enable Watchdog and reset CPU on watchdog timeout
+            LPC_WWDT->MOD = (1<<WDEN_SBIT) | (1<<WDRESET_SBIT); //Enable Watchdog and reset CPU on watchdog timeout
             NVIC_DisableIRQ(WDT_IRQn);
-            LPC_WDT->WDTC = SystemCoreClock / 16 / 4; // 0.25 seconds
+            LPC_WWDT->TC = SystemCoreClock / 16 / 4; // 0.25 seconds
 
            // wdt_restart(); //feed the watchdog
             //WDT_Init(WDT_CLKSRC_IRC, WDT_MODE_RESET);

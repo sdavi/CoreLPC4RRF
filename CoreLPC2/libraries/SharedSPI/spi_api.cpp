@@ -119,11 +119,11 @@ void spi_frequency(spi_t *obj, int hz) {
 
     // setup the spi clock divider to /1
     if( obj == LPC_SSP0){
-        LPC_SC->PCLKSEL1 &= ~(3 << 10);
-        LPC_SC->PCLKSEL1 |=  (1 << 10);
+        LPC_SYSCTL->PCLKSEL[1] &= ~(3 << 10);
+        LPC_SYSCTL->PCLKSEL[1] |=  (1 << 10);
     }else if( obj == LPC_SSP1){
-        LPC_SC->PCLKSEL0 &= ~(3 << 20);
-        LPC_SC->PCLKSEL0 |=  (1 << 20);
+        LPC_SYSCTL->PCLKSEL[0] &= ~(3 << 20);
+        LPC_SYSCTL->PCLKSEL[0] |=  (1 << 20);
     }
 
     uint32_t PCLK = SystemCoreClock;

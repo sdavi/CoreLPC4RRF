@@ -33,6 +33,19 @@
 
 #ifdef __cplusplus
 
+//External SPI
+constexpr Pin SPI0_MOSI = P0_18;
+constexpr Pin SPI0_MISO = P0_17;
+constexpr Pin SPI0_SCK  = P0_15;
+constexpr Pin SPI0_SSEL = P0_16;
+
+
+//Internal SDCard
+constexpr Pin SPI1_MOSI = P0_9;
+constexpr Pin SPI1_MISO = P0_8;
+constexpr Pin SPI1_SCK  = P0_7;
+constexpr Pin SPI1_SSEL = P0_6;
+
 
 //i2c for DigitalPots
 constexpr Pin SDA = P0_0;

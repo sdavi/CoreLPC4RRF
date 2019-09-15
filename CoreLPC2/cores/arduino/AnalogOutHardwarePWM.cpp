@@ -2,7 +2,7 @@
 //Author: sdavi
 
 #include "AnalogOut.h"
-
+#include "chip.h"
 
 #define TCR_CNT_EN       0x00000001
 #define TCR_RESET        0x00000002
@@ -41,6 +41,36 @@
 #define LER5_EN            (1 << 5)
 #define LER6_EN            (1 << 6)
 
+
+/*------------- Pulse-Width Modulation (PWM) ---------------------------------*/
+//from lpc17xx.h
+typedef struct
+{
+    __IO uint32_t IR;
+    __IO uint32_t TCR;
+    __IO uint32_t TC;
+    __IO uint32_t PR;
+    __IO uint32_t PC;
+    __IO uint32_t MCR;
+    __IO uint32_t MR0;
+    __IO uint32_t MR1;
+    __IO uint32_t MR2;
+    __IO uint32_t MR3;
+    __IO uint32_t CCR;
+    __I  uint32_t CR0;
+    __I  uint32_t CR1;
+    __I  uint32_t CR2;
+    __I  uint32_t CR3;
+    uint32_t RESERVED0;
+    __IO uint32_t MR4;
+    __IO uint32_t MR5;
+    __IO uint32_t MR6;
+    __IO uint32_t PCR;
+    __IO uint32_t LER;
+    uint32_t RESERVED1[7];
+    __IO uint32_t CTCR;
+} LPC_PWM_TypeDef;
+#define LPC_PWM1              ((LPC_PWM_TypeDef       *) LPC_PWM1_BASE     )
 
 
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
@@ -184,7 +214,8 @@ bool AnalogWriteHWPWM(const PinDescription& pinDesc, float ulValue, uint16_t fre
         //NOTE: pclk set to 1/4 in system_LPC17xx.c
 
         //Enable and Setup HW PWM
-        LPC_SC->PCONP |= 1 << 6; //Power on
+        Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_PWM1); //enable power and clocking
+        
         LPC_PWM1->PR = 0; // no pre-scale
         LPC_PWM1->IR = 0;// Disable all interrupt flags for PWM
         LPC_PWM1->MCR = 1 << 1; // Single PWMMode -> reset TC on match 0

@@ -24,7 +24,7 @@
 
 
 #include <stdint.h>
-#include "LPC17xx.h"
+#include "chip.h"
 
 
 /** @addtogroup LPC17xx_System
@@ -394,10 +394,16 @@
 /*----------------------------------------------------------------------------
   Define clocks
  *----------------------------------------------------------------------------*/
+
+
 #define XTAL        (12000000UL)        /* Oscillator frequency               */
 #define OSC_CLK     (      XTAL)        /* Main oscillator frequency          */
 #define RTC_CLK     (   32000UL)        /* RTC oscillator frequency           */
 #define IRC_OSC     ( 4000000UL)        /* Internal RC oscillator frequency   */
+
+const uint32_t OscRateIn = 12000000;
+const uint32_t RTCOscRateIn = 32768;
+
 
 
 /* F_cco0 = (2 * M * F_in) / N  */
@@ -461,39 +467,39 @@ uint32_t SystemCoreClock = __CORE_CLK;/*!< System Clock Frequency (Core Clock)*/
 void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
 {
   /* Determine clock frequency according to clock register values             */
-  if (((LPC_SC->PLL0STAT >> 24) & 3) == 3) { /* If PLL0 enabled and connected */
-    switch (LPC_SC->CLKSRCSEL & 0x03) {
+  if (((LPC_SYSCTL->PLL[0].PLLSTAT >> 24) & 3) == 3) { /* If PLL0 enabled and connected */
+    switch (LPC_SYSCTL->CLKSRCSEL & 0x03) {
       case 0:                                /* Int. RC oscillator => PLL0    */
       case 3:                                /* Reserved, default to Int. RC  */
         SystemCoreClock = (IRC_OSC *
-                          ((2ULL * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
-                          (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)       /
-                          ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+                          ((2ULL * ((LPC_SYSCTL->PLL[0].PLLSTAT & 0x7FFF) + 1)))  /
+                          (((LPC_SYSCTL->PLL[0].PLLSTAT >> 16) & 0xFF) + 1)       /
+                          ((LPC_SYSCTL->CCLKSEL & 0xFF)+ 1));
         break;
       case 1:                                /* Main oscillator => PLL0       */
         SystemCoreClock = (OSC_CLK *
-                          ((2ULL * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
-                          (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)       /
-                          ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+                          ((2ULL * ((LPC_SYSCTL->PLL[0].PLLSTAT & 0x7FFF) + 1)))  /
+                          (((LPC_SYSCTL->PLL[0].PLLSTAT >> 16) & 0xFF) + 1)       /
+                          ((LPC_SYSCTL->CCLKSEL & 0xFF)+ 1));
         break;
       case 2:                                /* RTC oscillator => PLL0        */
         SystemCoreClock = (RTC_CLK *
-                          ((2ULL * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
-                          (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)       /
-                          ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+                          ((2ULL * ((LPC_SYSCTL->PLL[0].PLLSTAT & 0x7FFF) + 1)))  /
+                          (((LPC_SYSCTL->PLL[0].PLLSTAT >> 16) & 0xFF) + 1)       /
+                          ((LPC_SYSCTL->CCLKSEL & 0xFF)+ 1));
         break;
     }
   } else {
-    switch (LPC_SC->CLKSRCSEL & 0x03) {
+    switch (LPC_SYSCTL->CLKSRCSEL & 0x03) {
       case 0:                                /* Int. RC oscillator => PLL0    */
       case 3:                                /* Reserved, default to Int. RC  */
-        SystemCoreClock = IRC_OSC / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+        SystemCoreClock = IRC_OSC / ((LPC_SYSCTL->CCLKSEL & 0xFF)+ 1);
         break;
       case 1:                                /* Main oscillator => PLL0       */
-        SystemCoreClock = OSC_CLK / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+        SystemCoreClock = OSC_CLK / ((LPC_SYSCTL->CCLKSEL & 0xFF)+ 1);
         break;
       case 2:                                /* RTC oscillator => PLL0        */
-        SystemCoreClock = RTC_CLK / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+        SystemCoreClock = RTC_CLK / ((LPC_SYSCTL->CCLKSEL & 0xFF)+ 1);
         break;
     }
   }
@@ -530,16 +536,16 @@ static int can_120MHz() {
 void SystemInit (void)
 {
 #if (CLOCK_SETUP)                       /* Clock Setup                        */
-  LPC_SC->SCS       = SCS_Val;
-  if (LPC_SC->SCS & (1 << 5)) {         /* If Main Oscillator is enabled      */
-    while ((LPC_SC->SCS & (1<<6)) == 0);/* Wait for Oscillator to be ready    */
+  LPC_SYSCTL->SCS       = SCS_Val;
+  if (LPC_SYSCTL->SCS & (1 << 5)) {         /* If Main Oscillator is enabled      */
+    while ((LPC_SYSCTL->SCS & (1<<6)) == 0);/* Wait for Oscillator to be ready    */
   }
 
   /* Periphral clock must be selected before PLL0 enabling and connecting
    * - according errata.lpc1768-16.March.2010 -
    */
-  LPC_SC->PCLKSEL0  = PCLKSEL0_Val;     /* Peripheral Clock Selection         */
-  LPC_SC->PCLKSEL1  = PCLKSEL1_Val;
+  LPC_SYSCTL->PCLKSEL[0]  = PCLKSEL0_Val;     /* Peripheral Clock Selection         */
+  LPC_SYSCTL->PCLKSEL[1]  = PCLKSEL1_Val;
 
   /*
    * PLL0 MUST be 275 - 550MHz
@@ -560,30 +566,30 @@ void SystemInit (void)
    *
    */
 
-  LPC_SC->CLKSRCSEL = CLKSRCSEL_Val;    /* Select Clock Source for PLL0       */
+  LPC_SYSCTL->CLKSRCSEL = CLKSRCSEL_Val;    /* Select Clock Source for PLL0       */
 
-  LPC_SC->CCLKCFG   = 0x00000002;       /* Setup CPU Clock Divider            */
+  LPC_SYSCTL->CCLKSEL   = 0x00000002;       /* Setup CPU Clock Divider            */
 
   if(can_120MHz()) {
-    LPC_SC->PLL0CFG   = 0x0000000E;     /* configure PLL0                     */
-    LPC_SC->PLL0FEED  = 0xAA;
-    LPC_SC->PLL0FEED  = 0x55;
+    LPC_SYSCTL->PLL[0].PLLCFG   = 0x0000000E;     /* configure PLL0                     */
+    LPC_SYSCTL->PLL[0].PLLFEED  = 0xAA;
+    LPC_SYSCTL->PLL[0].PLLFEED  = 0x55;
   } else {
-//     LPC_SC->PLL0CFG   = 0x0000000B;  // 96MHz
-    LPC_SC->PLL0CFG   = 0x00010018;     // 100MHz
-    LPC_SC->PLL0FEED  = 0xAA;
-    LPC_SC->PLL0FEED  = 0x55;
+//     LPC_SYSCTL->PLL0CFG   = 0x0000000B;  // 96MHz
+    LPC_SYSCTL->PLL[0].PLLCFG   = 0x00010018;     // 100MHz
+    LPC_SYSCTL->PLL[0].PLLFEED  = 0xAA;
+    LPC_SYSCTL->PLL[0].PLLFEED  = 0x55;
   }
 
-  LPC_SC->PLL0CON   = 0x01;             /* PLL0 Enable                        */
-  LPC_SC->PLL0FEED  = 0xAA;
-  LPC_SC->PLL0FEED  = 0x55;
-  while (!(LPC_SC->PLL0STAT & (1<<26)));/* Wait for PLOCK0                    */
+  LPC_SYSCTL->PLL[0].PLLCON   = 0x01;             /* PLL0 Enable                        */
+  LPC_SYSCTL->PLL[0].PLLFEED  = 0xAA;
+  LPC_SYSCTL->PLL[0].PLLFEED  = 0x55;
+  while (!(LPC_SYSCTL->PLL[0].PLLSTAT & (1<<26)));/* Wait for PLOCK0                    */
 
-  LPC_SC->PLL0CON   = 0x03;             /* PLL0 Enable & Connect              */
-  LPC_SC->PLL0FEED  = 0xAA;
-  LPC_SC->PLL0FEED  = 0x55;
-  while (!(LPC_SC->PLL0STAT & ((1<<25) | (1<<24))));/* Wait for PLLC0_STAT & PLLE0_STAT */
+  LPC_SYSCTL->PLL[0].PLLCON   = 0x03;             /* PLL0 Enable & Connect              */
+  LPC_SYSCTL->PLL[0].PLLFEED  = 0xAA;
+  LPC_SYSCTL->PLL[0].PLLFEED  = 0x55;
+  while (!(LPC_SYSCTL->PLL[0].PLLSTAT & ((1<<25) | (1<<24))));/* Wait for PLLC0_STAT & PLLE0_STAT */
 
   /*
    * USBCLK = Fin * M, where M is (1..32)
@@ -599,30 +605,30 @@ void SystemInit (void)
    *         = (1 << 5) + 3
    *         = 0x23 for a 12MHz crystal
    */
-  LPC_SC->PLL1CFG   = 0x00000023;
-  LPC_SC->PLL1FEED  = 0xAA;
-  LPC_SC->PLL1FEED  = 0x55;
+  LPC_SYSCTL->PLL[1].PLLCFG   = 0x00000023;
+  LPC_SYSCTL->PLL[1].PLLFEED  = 0xAA;
+  LPC_SYSCTL->PLL[1].PLLFEED  = 0x55;
 
-  LPC_SC->PLL1CON   = 0x01;             /* PLL1 Enable                        */
-  LPC_SC->PLL1FEED  = 0xAA;
-  LPC_SC->PLL1FEED  = 0x55;
-  while (!(LPC_SC->PLL1STAT & (1<<10)));/* Wait for PLOCK1                    */
+  LPC_SYSCTL->PLL[1].PLLCON   = 0x01;             /* PLL1 Enable                        */
+  LPC_SYSCTL->PLL[1].PLLFEED  = 0xAA;
+  LPC_SYSCTL->PLL[1].PLLFEED  = 0x55;
+  while (!(LPC_SYSCTL->PLL[1].PLLSTAT & (1<<10)));/* Wait for PLOCK1                    */
 
-  LPC_SC->PLL1CON   = 0x03;             /* PLL1 Enable & Connect              */
-  LPC_SC->PLL1FEED  = 0xAA;
-  LPC_SC->PLL1FEED  = 0x55;
-  while (!(LPC_SC->PLL1STAT & ((1<< 9) | (1<< 8))));/* Wait for PLLC1_STAT & PLLE1_STAT */
+  LPC_SYSCTL->PLL[1].PLLCON   = 0x03;             /* PLL1 Enable & Connect              */
+  LPC_SYSCTL->PLL[1].PLLFEED  = 0xAA;
+  LPC_SYSCTL->PLL[1].PLLFEED  = 0x55;
+  while (!(LPC_SYSCTL->PLL[1].PLLSTAT & ((1<< 9) | (1<< 8))));/* Wait for PLLC1_STAT & PLLE1_STAT */
 
   // this sets up {global uint32 SystemCoreClock} with the new speed
   SystemCoreClockUpdate();
 
-  LPC_SC->PCONP     = PCONP_Val;        /* Power Control for Peripherals      */
+  LPC_SYSCTL->PCONP     = PCONP_Val;        /* Power Control for Peripherals      */
 
-  LPC_SC->CLKOUTCFG = CLKOUTCFG_Val;    /* Clock Output Configuration         */
+  LPC_SYSCTL->CLKOUTCFG = CLKOUTCFG_Val;    /* Clock Output Configuration         */
 #endif
 
 #if (FLASH_SETUP == 1)                  /* Flash Accelerator Setup            */
-  LPC_SC->FLASHCFG  = (LPC_SC->FLASHCFG & ~0x0000F000) | FLASHCFG_Val;
+  LPC_SYSCTL->FLASHCFG  = (LPC_SYSCTL->FLASHCFG & ~0x0000F000) | FLASHCFG_Val;
 #endif
 
       //stdio_retargeting_module = 1;

@@ -73,16 +73,15 @@ static inline void resetENET(LPC_ENET_T *pENET)
 /* Basic Ethernet interface initialization */
 void Chip_ENET_Init(LPC_ENET_T *pENET, bool useRMII)
 {
-	//Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_ENET);
     /* Enable P1 Ethernet Pins. */
-    LPC_PINCON->PINSEL2 |=   (1 << 0) | (1 << 2) | (1 << 8) | (1 << 16) | (1 << 18) | (1 << 20) | (1 << 28) | (1 << 30);
-    LPC_PINCON->PINSEL2 &= ~((1 << 1) | (1 << 3) | (1 << 9) | (1 << 17) | (1 << 19) | (1 << 21) | (1 << 29) | (1 << 31));
-    LPC_PINCON->PINSEL3 |=   (1 << 0) | (1 << 2);
-    LPC_PINCON->PINSEL3 &= ~((1 << 1) | (1 << 3));
+    LPC_IOCON->PINSEL[2] |=   (1 << 0) | (1 << 2) | (1 << 8) | (1 << 16) | (1 << 18) | (1 << 20) | (1 << 28) | (1 << 30);
+    LPC_IOCON->PINSEL[2] &= ~((1 << 1) | (1 << 3) | (1 << 9) | (1 << 17) | (1 << 19) | (1 << 21) | (1 << 29) | (1 << 31));
+    LPC_IOCON->PINSEL[3] |=   (1 << 0) | (1 << 2);
+    LPC_IOCON->PINSEL[3] &= ~((1 << 1) | (1 << 3));
     
     
     /* Enable MII clocking */
-    LPC_SC->PCONP |= CLKPWR_PCONP_PCENET;
+    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_ENET); //enable power and clocking
     
     
     resetENET(pENET);

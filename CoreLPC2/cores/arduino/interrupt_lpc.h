@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <LPC17xx.h>
+#include "chip.h"
 
 
 

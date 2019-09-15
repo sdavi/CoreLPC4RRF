@@ -208,45 +208,15 @@ const uint8_t GPDMA_LUTPerWid[] = {
 /**
  * @brief Peripheral Source and Destination address
  */
-//volatile const void *GPDMA_LUTPerAddr[] = {
-//    (&LPC_SSP0->DR),                    // SSP0 Tx
-//    (&LPC_SSP0->DR),                    // SSP0 Rx
-//    (&LPC_SSP1->DR),                    // SSP1 Tx
-//    (&LPC_SSP1->DR),                    // SSP1 Rx
-//    (&LPC_ADC->GDR),                // ADC
-//    (&LPC_I2S->TXFIFO),                // I2S Tx
-//    (&LPC_I2S->RXFIFO),                // I2S Rx
-//    (&LPC_DAC->CR),                    // DAC
-//    (&LPC_UART0-> /*RBTHDLR.*/ THR),    // UART0 Tx
-//    (&LPC_UART0-> /*RBTHDLR.*/ RBR),    // UART0 Rx
-//    (&LPC_UART1-> /*RBTHDLR.*/ THR),    // UART1 Tx
-//    (&LPC_UART1-> /*RBTHDLR.*/ RBR),    // UART1 Rx
-//    (&LPC_UART2-> /*RBTHDLR.*/ THR),    // UART2 Tx
-//    (&LPC_UART2-> /*RBTHDLR.*/ RBR),    // UART2 Rx
-//    (&LPC_UART3-> /*RBTHDLR.*/ THR),    // UART3 Tx
-//    (&LPC_UART3-> /*RBTHDLR.*/ RBR),    // UART3 Rx
-//    (&LPC_TIMER0->MR[0]),                    // MAT0.0
-//    (&LPC_TIMER0->MR[1]),                    // MAT0.1
-//    (&LPC_TIMER1->MR[0]),                    // MAT1.0
-//    (&LPC_TIMER1->MR[1]),                    // MAT1.1
-//    (&LPC_TIMER2->MR[0]),                    // MAT2.0
-//    (&LPC_TIMER2->MR[1]),                    // MAT2.1
-//    (&LPC_TIMER3->MR[0]),                    // MAT3.0
-//    (&LPC_TIMER3->MR[1])                    // MAT3.1
-//
-//};
-
-
-//SD:: definitions from existing lib are slightly different
 volatile const void *GPDMA_LUTPerAddr[] = {
     (&LPC_SSP0->DR),                    // SSP0 Tx
     (&LPC_SSP0->DR),                    // SSP0 Rx
     (&LPC_SSP1->DR),                    // SSP1 Tx
     (&LPC_SSP1->DR),                    // SSP1 Rx
-    (&LPC_ADC->ADGDR),                // ADC
-    (&LPC_I2S->I2STXFIFO),                // I2S Tx
-    (&LPC_I2S->I2SRXFIFO),                // I2S Rx
-    (&LPC_DAC->DACR),                    // DAC
+    (&LPC_ADC->GDR),                // ADC
+    (&LPC_I2S->TXFIFO),                // I2S Tx
+    (&LPC_I2S->RXFIFO),                // I2S Rx
+    (&LPC_DAC->CR),                    // DAC
     (&LPC_UART0-> /*RBTHDLR.*/ THR),    // UART0 Tx
     (&LPC_UART0-> /*RBTHDLR.*/ RBR),    // UART0 Rx
     (&LPC_UART1-> /*RBTHDLR.*/ THR),    // UART1 Tx
@@ -255,15 +225,15 @@ volatile const void *GPDMA_LUTPerAddr[] = {
     (&LPC_UART2-> /*RBTHDLR.*/ RBR),    // UART2 Rx
     (&LPC_UART3-> /*RBTHDLR.*/ THR),    // UART3 Tx
     (&LPC_UART3-> /*RBTHDLR.*/ RBR),    // UART3 Rx
-    (&LPC_TIM0->MR0),                    // MAT0.0
-    (&LPC_TIM0->MR1),                    // MAT0.1
-    (&LPC_TIM1->MR0),                    // MAT1.0
-    (&LPC_TIM1->MR1),                    // MAT1.1
-    (&LPC_TIM2->MR0),                    // MAT2.0
-    (&LPC_TIM2->MR1),                    // MAT2.1
-    (&LPC_TIM3->MR0),                    // MAT3.0
-    (&LPC_TIM3->MR1)                    // MAT3.1
-    
+    (&LPC_TIMER0->MR[0]),                    // MAT0.0
+    (&LPC_TIMER0->MR[1]),                    // MAT0.1
+    (&LPC_TIMER1->MR[0]),                    // MAT1.0
+    (&LPC_TIMER1->MR[1]),                    // MAT1.1
+    (&LPC_TIMER2->MR[0]),                    // MAT2.0
+    (&LPC_TIMER2->MR[1]),                    // MAT2.1
+    (&LPC_TIMER3->MR[0]),                    // MAT3.0
+    (&LPC_TIMER3->MR[1])                    // MAT3.1
+
 };
 
 

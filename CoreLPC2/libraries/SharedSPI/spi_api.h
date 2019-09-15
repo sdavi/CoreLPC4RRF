@@ -17,6 +17,7 @@
 #define MBED_SPI_API_H
 
 #include "Core.h"
+#include "chip.h"
 
 #define SPI_TIMEOUT       15000
 
@@ -27,7 +28,7 @@
 extern "C" {
 #endif
 
-typedef LPC_SSP_TypeDef spi_t;
+typedef LPC_SSP_T spi_t;
     
 void spi_init(spi_t *obj, uint8_t SSPChannel);
 
@@ -41,7 +42,7 @@ void spi_slave_write  (spi_t *obj, int value);
 int  spi_busy         (spi_t *obj);
 
 //SD: added function. check if TX FIFO is not full: return true if timed out
-static inline bool waitForTxEmpty_timeout(LPC_SSP_TypeDef *ssp, uint32_t timeout) {
+static inline bool waitForTxEmpty_timeout(LPC_SSP_T *ssp, uint32_t timeout) {
     while (!(ssp->SR & (1<<1)) ) // TNF = 0 if full
     {
         if (!timeout--)
@@ -54,7 +55,7 @@ static inline bool waitForTxEmpty_timeout(LPC_SSP_TypeDef *ssp, uint32_t timeout
 }
     
 //SD as ssp_readable but with timeout for sharedSPI: returns true if timed out
-static inline bool ssp_readable_timeout(LPC_SSP_TypeDef *ssp, uint32_t timeout) {
+static inline bool ssp_readable_timeout(LPC_SSP_T *ssp, uint32_t timeout) {
     while ( !(ssp->SR & (1 << 2)) )
     {
         if (--timeout == 0) return true;

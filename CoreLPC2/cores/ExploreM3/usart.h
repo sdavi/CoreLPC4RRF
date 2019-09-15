@@ -6,7 +6,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "lpc17xx.h"
+#include "chip.h"
 #include "uart_17xx_40xx.h"
     
 #include "stdint.h"

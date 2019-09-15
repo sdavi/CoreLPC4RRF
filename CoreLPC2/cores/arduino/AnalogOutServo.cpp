@@ -1,5 +1,6 @@
 //Author: sdavi
 #include "Core.h"
+#include "chip.h"
 
 //Timer PWM
 #define TimerPWM_Slot1 (0x01)
@@ -12,7 +13,7 @@ extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf
 
 struct TimerPwm_t
 {
-    LPC_TIM_TypeDef *timer;
+    LPC_TIMER_T *timer;
     Pin* const timerPins;
     uint16_t frequency;
 };
@@ -20,7 +21,7 @@ struct TimerPwm_t
 Pin Timer2PWMPins[MaxTimerEntries] = {NoPin, NoPin, NoPin};
 static uint8_t servoOutputUsed = 0;
 static bool servoTimerInitialised = false;
-static const TimerPwm_t ServoTimerPWM = {LPC_TIM2, Timer2PWMPins, 50};
+static const TimerPwm_t ServoTimerPWM = {LPC_TIMER2, Timer2PWMPins, 50};
 static uint32_t pinsOnATimer[5] = {0}; // 5 Ports
 
 
@@ -115,11 +116,12 @@ bool ConfigurePinForServo(Pin pin, bool outputHigh)
 //Initialse a timer
 static inline void initServoTimer()
 {
-    LPC_SC->PCONP |= ((uint32_t)1<<SBIT_PCTIM2); // Ensure the Power bit is set for the Timer2
+    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_TIMER2); //enable power and clocking
+
     NVIC_EnableIRQ(TIMER2_IRQn);
 
     ServoTimerPWM.timer->PR   =  getPrescalarForUs(PCLK_TIMER2); // Prescalar for 1us... every 1us TC is incremented
-    ServoTimerPWM.timer->MR0 = 1000000/ServoTimerPWM.frequency; //The PWM Period in us
+    ServoTimerPWM.timer->MR[0] = 1000000/ServoTimerPWM.frequency; //The PWM Period in us
     ServoTimerPWM.timer->TC  = 0x00;  // Reset the Timer Count to 0
     ServoTimerPWM.timer->MCR = ((1<<SBIT_MR0I) | (1<<SBIT_MR0R));     // Int on MR0 match and Reset Timer on MR0 match
     ServoTimerPWM.timer->TCR  = (1 <<SBIT_CNTEN); //Start Timer
@@ -162,22 +164,22 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
     uint32_t onTime = 0; //default to off
     onTime = (uint32_t)((float)(1000000/ServoTimerPWM.frequency) * ulValue); //if the requested freq was not 0, but we use the fixed TimerFreq
     
-    if(onTime >= ServoTimerPWM.timer->MR0)
+    if(onTime >= ServoTimerPWM.timer->MR[0])
     {
-        onTime = ServoTimerPWM.timer->MR0+1; // set above MR0 (prevents triggering an int and briefly turning off before reset)
+        onTime = ServoTimerPWM.timer->MR[0]+1; // set above MR0 (prevents triggering an int and briefly turning off before reset)
     }
         
 
     switch(slot)
     {
         case TimerPWM_Slot1:
-            if((servoOutputUsed & TimerPWM_Slot1) && ServoTimerPWM.timer->MR1 == onTime)
+            if((servoOutputUsed & TimerPWM_Slot1) && ServoTimerPWM.timer->MR[1] == onTime)
             {
                 //already running
             }
             else
             {
-                ServoTimerPWM.timer->MR1 = onTime; //The LOW time in us
+                ServoTimerPWM.timer->MR[1] = onTime; //The LOW time in us
                 if(onTime == 0)
                 {
                     ServoTimerPWM.timer->MCR &= ~(1<<SBIT_MR1I);//  No Int on MR1 Match
@@ -191,13 +193,13 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
             break;
             
         case TimerPWM_Slot2:
-            if((servoOutputUsed & TimerPWM_Slot2) && ServoTimerPWM.timer->MR2 == onTime)
+            if((servoOutputUsed & TimerPWM_Slot2) && ServoTimerPWM.timer->MR[2] == onTime)
             {
                 //already running
             }
             else
             {
-                ServoTimerPWM.timer->MR2 = onTime; //The LOW time in us
+                ServoTimerPWM.timer->MR[2] = onTime; //The LOW time in us
                 if(onTime == 0)
                 {
                     ServoTimerPWM.timer->MCR &= ~(1<<SBIT_MR2I);//  No Int on MR2 Match
@@ -211,13 +213,13 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
             break;
 
         case TimerPWM_Slot3:
-            if((servoOutputUsed & TimerPWM_Slot3) && ServoTimerPWM.timer->MR3 == onTime)
+            if((servoOutputUsed & TimerPWM_Slot3) && ServoTimerPWM.timer->MR[3] == onTime)
             {
                 //already running
             }
             else
             {
-                ServoTimerPWM.timer->MR3 = onTime; //The LOW time in us
+                ServoTimerPWM.timer->MR[3] = onTime; //The LOW time in us
                 if(onTime == 0)
                 {
                     ServoTimerPWM.timer->MCR &= ~(1<<SBIT_MR3I);//  No Int on MR3 Match
@@ -245,7 +247,7 @@ static inline void servoFunctionResetPeriod()
     //Determine which pins need to be set High for the start of the PWM Period
     if( servoOutputUsed & TimerPWM_Slot1 ) // if output pin is enabled
     {
-        if(ServoTimerPWM.timer->MR1 > 0){
+        if(ServoTimerPWM.timer->MR[1] > 0){
             pinMode(ServoTimerPWM.timerPins[0], OUTPUT_HIGH ); //go HIGH if we have a OnTime Set
         } else {
             pinMode(ServoTimerPWM.timerPins[0], OUTPUT_LOW ); //else keep next cycle off
@@ -254,7 +256,7 @@ static inline void servoFunctionResetPeriod()
     
     if( servoOutputUsed & TimerPWM_Slot2 ) // if output pin is enabled
     {
-        if(ServoTimerPWM.timer->MR2 > 0){
+        if(ServoTimerPWM.timer->MR[2] > 0){
             pinMode(ServoTimerPWM.timerPins[1], OUTPUT_HIGH );
         } else {
             pinMode(ServoTimerPWM.timerPins[1], OUTPUT_LOW );
@@ -263,7 +265,7 @@ static inline void servoFunctionResetPeriod()
     
     if( servoOutputUsed & TimerPWM_Slot3 ) // if output pin is enabled
     {
-        if(ServoTimerPWM.timer->MR3 > 0){
+        if(ServoTimerPWM.timer->MR[3] > 0){
 
             pinMode(ServoTimerPWM.timerPins[2], OUTPUT_HIGH );
         } else {
@@ -276,7 +278,7 @@ static inline void servoFunctionResetPeriod()
 
 extern "C" void TIMER2_IRQHandler(void)
 {
-    LPC_TIM_TypeDef *timer = ServoTimerPWM.timer;
+    LPC_TIMER_T *timer = ServoTimerPWM.timer;
     uint32_t regval = timer->IR;
     
     timer->TCR  = 0; //Stop the timer

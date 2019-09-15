@@ -49,52 +49,52 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
     switch (var_pinFunction_u8){
         case LPC_INPUT_PULLUP:
             // Set the two bits for this pin as 00
-            if( port_number == 0 && pin_number < 16  ){ LPC_PINCON->PINMODE0 &= ~(3<<( pin_number    *2)); }
-            if( port_number == 0 && pin_number >= 16 ){ LPC_PINCON->PINMODE1 &= ~(3<<((pin_number-16)*2)); }
-            if( port_number == 1 && pin_number < 16  ){ LPC_PINCON->PINMODE2 &= ~(3<<( pin_number    *2)); }
-            if( port_number == 1 && pin_number >= 16 ){ LPC_PINCON->PINMODE3 &= ~(3<<((pin_number-16)*2)); }
-            if( port_number == 2 && pin_number < 16  ){ LPC_PINCON->PINMODE4 &= ~(3<<( pin_number    *2)); }
-            if( port_number == 3 && pin_number >= 16 ){ LPC_PINCON->PINMODE7 &= ~(3<<((pin_number-16)*2)); }
-            if( port_number == 4 && pin_number >= 16 ){ LPC_PINCON->PINMODE9 &= ~(3<<((pin_number-16)*2)); }
+            if( port_number == 0 && pin_number < 16  ){ LPC_IOCON->PINMODE[0] &= ~(3<<( pin_number    *2)); }
+            if( port_number == 0 && pin_number >= 16 ){ LPC_IOCON->PINMODE[1] &= ~(3<<((pin_number-16)*2)); }
+            if( port_number == 1 && pin_number < 16  ){ LPC_IOCON->PINMODE[2] &= ~(3<<( pin_number    *2)); }
+            if( port_number == 1 && pin_number >= 16 ){ LPC_IOCON->PINMODE[3] &= ~(3<<((pin_number-16)*2)); }
+            if( port_number == 2 && pin_number < 16  ){ LPC_IOCON->PINMODE[4] &= ~(3<<( pin_number    *2)); }
+            if( port_number == 3 && pin_number >= 16 ){ LPC_IOCON->PINMODE[7] &= ~(3<<((pin_number-16)*2)); }
+            if( port_number == 4 && pin_number >= 16 ){ LPC_IOCON->PINMODE[9] &= ~(3<<((pin_number-16)*2)); }
 
              break;
         case LPC_INPUT_REPEATER:
             // Set the two bits for this pin as 01
-            if( port_number == 0 && pin_number < 16  ){ LPC_PINCON->PINMODE0 |= (1<<( pin_number*2)); LPC_PINCON->PINMODE0 &= ~(2<<( pin_number    *2)); }
-            if( port_number == 0 && pin_number >= 16 ){ LPC_PINCON->PINMODE1 |= (1<<( pin_number*2)); LPC_PINCON->PINMODE1 &= ~(2<<((pin_number-16)*2)); }
-            if( port_number == 1 && pin_number < 16  ){ LPC_PINCON->PINMODE2 |= (1<<( pin_number*2)); LPC_PINCON->PINMODE2 &= ~(2<<( pin_number    *2)); }
-            if( port_number == 1 && pin_number >= 16 ){ LPC_PINCON->PINMODE3 |= (1<<( pin_number*2)); LPC_PINCON->PINMODE3 &= ~(2<<((pin_number-16)*2)); }
-            if( port_number == 2 && pin_number < 16  ){ LPC_PINCON->PINMODE4 |= (1<<( pin_number*2)); LPC_PINCON->PINMODE4 &= ~(2<<( pin_number    *2)); }
-            if( port_number == 3 && pin_number >= 16 ){ LPC_PINCON->PINMODE7 |= (1<<( pin_number*2)); LPC_PINCON->PINMODE7 &= ~(2<<((pin_number-16)*2)); }
-            if( port_number == 4 && pin_number >= 16 ){ LPC_PINCON->PINMODE9 |= (1<<( pin_number*2)); LPC_PINCON->PINMODE9 &= ~(2<<((pin_number-16)*2)); }
+            if( port_number == 0 && pin_number < 16  ){ LPC_IOCON->PINMODE[0] |= (1<<( pin_number*2)); LPC_IOCON->PINMODE[0] &= ~(2<<( pin_number    *2)); }
+            if( port_number == 0 && pin_number >= 16 ){ LPC_IOCON->PINMODE[1] |= (1<<( pin_number*2)); LPC_IOCON->PINMODE[1] &= ~(2<<((pin_number-16)*2)); }
+            if( port_number == 1 && pin_number < 16  ){ LPC_IOCON->PINMODE[2] |= (1<<( pin_number*2)); LPC_IOCON->PINMODE[2] &= ~(2<<( pin_number    *2)); }
+            if( port_number == 1 && pin_number >= 16 ){ LPC_IOCON->PINMODE[3] |= (1<<( pin_number*2)); LPC_IOCON->PINMODE[3] &= ~(2<<((pin_number-16)*2)); }
+            if( port_number == 2 && pin_number < 16  ){ LPC_IOCON->PINMODE[4] |= (1<<( pin_number*2)); LPC_IOCON->PINMODE[4] &= ~(2<<( pin_number    *2)); }
+            if( port_number == 3 && pin_number >= 16 ){ LPC_IOCON->PINMODE[7] |= (1<<( pin_number*2)); LPC_IOCON->PINMODE[7] &= ~(2<<((pin_number-16)*2)); }
+            if( port_number == 4 && pin_number >= 16 ){ LPC_IOCON->PINMODE[9] |= (1<<( pin_number*2)); LPC_IOCON->PINMODE[9] &= ~(2<<((pin_number-16)*2)); }
              break;
         case LPC_INPUT_NOPULLUP_NOPULLDOWN:
             // Set the two bits for this pin as 10
-            if( port_number == 0 && pin_number < 16  ){ LPC_PINCON->PINMODE0 |= (2<<( pin_number*2)); LPC_PINCON->PINMODE0 &= ~(1<<( pin_number    *2)); }
-            if( port_number == 0 && pin_number >= 16 ){ LPC_PINCON->PINMODE1 |= (2<<( pin_number*2)); LPC_PINCON->PINMODE1 &= ~(1<<((pin_number-16)*2)); }
-            if( port_number == 1 && pin_number < 16  ){ LPC_PINCON->PINMODE2 |= (2<<( pin_number*2)); LPC_PINCON->PINMODE2 &= ~(1<<( pin_number    *2)); }
-            if( port_number == 1 && pin_number >= 16 ){ LPC_PINCON->PINMODE3 |= (2<<( pin_number*2)); LPC_PINCON->PINMODE3 &= ~(1<<((pin_number-16)*2)); }
-            if( port_number == 2 && pin_number < 16  ){ LPC_PINCON->PINMODE4 |= (2<<( pin_number*2)); LPC_PINCON->PINMODE4 &= ~(1<<( pin_number    *2)); }
-            if( port_number == 3 && pin_number >= 16 ){ LPC_PINCON->PINMODE7 |= (2<<( pin_number*2)); LPC_PINCON->PINMODE7 &= ~(1<<((pin_number-16)*2)); }
-            if( port_number == 4 && pin_number >= 16 ){ LPC_PINCON->PINMODE9 |= (2<<( pin_number*2)); LPC_PINCON->PINMODE9 &= ~(1<<((pin_number-16)*2)); }
+            if( port_number == 0 && pin_number < 16  ){ LPC_IOCON->PINMODE[0] |= (2<<( pin_number*2)); LPC_IOCON->PINMODE[0] &= ~(1<<( pin_number    *2)); }
+            if( port_number == 0 && pin_number >= 16 ){ LPC_IOCON->PINMODE[1] |= (2<<( pin_number*2)); LPC_IOCON->PINMODE[1] &= ~(1<<((pin_number-16)*2)); }
+            if( port_number == 1 && pin_number < 16  ){ LPC_IOCON->PINMODE[2] |= (2<<( pin_number*2)); LPC_IOCON->PINMODE[2] &= ~(1<<( pin_number    *2)); }
+            if( port_number == 1 && pin_number >= 16 ){ LPC_IOCON->PINMODE[3] |= (2<<( pin_number*2)); LPC_IOCON->PINMODE[3] &= ~(1<<((pin_number-16)*2)); }
+            if( port_number == 2 && pin_number < 16  ){ LPC_IOCON->PINMODE[4] |= (2<<( pin_number*2)); LPC_IOCON->PINMODE[4] &= ~(1<<( pin_number    *2)); }
+            if( port_number == 3 && pin_number >= 16 ){ LPC_IOCON->PINMODE[7] |= (2<<( pin_number*2)); LPC_IOCON->PINMODE[7] &= ~(1<<((pin_number-16)*2)); }
+            if( port_number == 4 && pin_number >= 16 ){ LPC_IOCON->PINMODE[9] |= (2<<( pin_number*2)); LPC_IOCON->PINMODE[9] &= ~(1<<((pin_number-16)*2)); }
              break;
         case LPC_INPUT_PULLDOWN:
             // Set the two bits for this pin as 11
-            if( port_number == 0 && pin_number < 16  ){ LPC_PINCON->PINMODE0 |= (3<<( pin_number    *2)); }
-            if( port_number == 0 && pin_number >= 16 ){ LPC_PINCON->PINMODE1 |= (3<<((pin_number-16)*2)); }
-            if( port_number == 1 && pin_number < 16  ){ LPC_PINCON->PINMODE2 |= (3<<( pin_number    *2)); }
-            if( port_number == 1 && pin_number >= 16 ){ LPC_PINCON->PINMODE3 |= (3<<((pin_number-16)*2)); }
-            if( port_number == 2 && pin_number < 16  ){ LPC_PINCON->PINMODE4 |= (3<<( pin_number    *2)); }
-            if( port_number == 3 && pin_number >= 16 ){ LPC_PINCON->PINMODE7 |= (3<<((pin_number-16)*2)); }
-            if( port_number == 4 && pin_number >= 16 ){ LPC_PINCON->PINMODE9 |= (3<<((pin_number-16)*2)); }
+            if( port_number == 0 && pin_number < 16  ){ LPC_IOCON->PINMODE[0] |= (3<<( pin_number    *2)); }
+            if( port_number == 0 && pin_number >= 16 ){ LPC_IOCON->PINMODE[1] |= (3<<((pin_number-16)*2)); }
+            if( port_number == 1 && pin_number < 16  ){ LPC_IOCON->PINMODE[2] |= (3<<( pin_number    *2)); }
+            if( port_number == 1 && pin_number >= 16 ){ LPC_IOCON->PINMODE[3] |= (3<<((pin_number-16)*2)); }
+            if( port_number == 2 && pin_number < 16  ){ LPC_IOCON->PINMODE[4] |= (3<<( pin_number    *2)); }
+            if( port_number == 3 && pin_number >= 16 ){ LPC_IOCON->PINMODE[7] |= (3<<((pin_number-16)*2)); }
+            if( port_number == 4 && pin_number >= 16 ){ LPC_IOCON->PINMODE[9] |= (3<<((pin_number-16)*2)); }
 
              break;
         case LPC_OPEN_DRAIN_MODE:
-            if( port_number == 0 ){ LPC_PINCON->PINMODE_OD0 |= (1<<pin_number); }
-            if( port_number == 1 ){ LPC_PINCON->PINMODE_OD1 |= (1<<pin_number); }
-            if( port_number == 2 ){ LPC_PINCON->PINMODE_OD2 |= (1<<pin_number); }
-            if( port_number == 3 ){ LPC_PINCON->PINMODE_OD3 |= (1<<pin_number); }
-            if( port_number == 4 ){ LPC_PINCON->PINMODE_OD4 |= (1<<pin_number); }
+            if( port_number == 0 ){ LPC_IOCON->PINMODE_OD[0] |= (1<<pin_number); }
+            if( port_number == 1 ){ LPC_IOCON->PINMODE_OD[1] |= (1<<pin_number); }
+            if( port_number == 2 ){ LPC_IOCON->PINMODE_OD[2] |= (1<<pin_number); }
+            if( port_number == 3 ){ LPC_IOCON->PINMODE_OD[3] |= (1<<pin_number); }
+            if( port_number == 4 ){ LPC_IOCON->PINMODE_OD[4] |= (1<<pin_number); }
             //pull_none(); // no pull up by default
 
              break;

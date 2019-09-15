@@ -34,11 +34,10 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
  SD: Modified to handle GPIO interrupts and support RRF
  
 ***************************************************************************************************/
-#include "lpc17xx.h"
+#include "chip.h"
 #include "exti.h"
 #include "stdutils.h"
 #include "gpio.h"
-#include "board.h"
 #include "core.h"
 
 struct InterruptCallback
@@ -104,24 +103,24 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
                 
             case INTERRUPT_MODE_FALLING:
                 if(portNumber == 0){
-                    util_BitSet(LPC_GPIOINT->IO0IntEnF, var_pinNumber_u8); // set Falling Interrupt bit for pin
-                    util_BitClear(LPC_GPIOINT->IO0IntEnR, var_pinNumber_u8); //ensure Rising disabled
+                    util_BitSet(LPC_GPIOINT->IO0.ENF, var_pinNumber_u8); // set Falling Interrupt bit for pin
+                    util_BitClear(LPC_GPIOINT->IO0.ENR, var_pinNumber_u8); //ensure Rising disabled
                 }
                 if(portNumber == 2){
-                    util_BitSet(LPC_GPIOINT->IO2IntEnF, var_pinNumber_u8);
-                    util_BitClear(LPC_GPIOINT->IO2IntEnR, var_pinNumber_u8); //ensure Rising disabled
+                    util_BitSet(LPC_GPIOINT->IO2.ENF, var_pinNumber_u8);
+                    util_BitClear(LPC_GPIOINT->IO2.ENR, var_pinNumber_u8); //ensure Rising disabled
                 }
 
                 break;
                 
             case INTERRUPT_MODE_RISING:
                 if(portNumber == 0) {
-                    util_BitSet(LPC_GPIOINT->IO0IntEnR, var_pinNumber_u8);
-                    util_BitClear(LPC_GPIOINT->IO0IntEnF, var_pinNumber_u8); // ensure Falling disabled
+                    util_BitSet(LPC_GPIOINT->IO0.ENR, var_pinNumber_u8);
+                    util_BitClear(LPC_GPIOINT->IO0.ENF, var_pinNumber_u8); // ensure Falling disabled
                 }
                 if(portNumber == 2) {
-                    util_BitSet(LPC_GPIOINT->IO2IntEnR, var_pinNumber_u8);
-                    util_BitClear(LPC_GPIOINT->IO2IntEnF, var_pinNumber_u8); // ensure Falling disabled
+                    util_BitSet(LPC_GPIOINT->IO2.ENR, var_pinNumber_u8);
+                    util_BitClear(LPC_GPIOINT->IO2.ENF, var_pinNumber_u8); // ensure Falling disabled
                 }
 
                 break;
@@ -129,12 +128,12 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
             case INTERRUPT_MODE_CHANGE:
                 //Rising and Falling
                 if(portNumber == 0){
-                    util_BitSet(LPC_GPIOINT->IO0IntEnF, var_pinNumber_u8); //Falling
-                    util_BitSet(LPC_GPIOINT->IO0IntEnR, var_pinNumber_u8); //Rising
+                    util_BitSet(LPC_GPIOINT->IO0.ENF, var_pinNumber_u8); //Falling
+                    util_BitSet(LPC_GPIOINT->IO0.ENR, var_pinNumber_u8); //Rising
                 }
                 if(portNumber == 2){
-                    util_BitSet(LPC_GPIOINT->IO2IntEnF, var_pinNumber_u8); //Falling
-                    util_BitSet(LPC_GPIOINT->IO2IntEnR, var_pinNumber_u8); //Rising
+                    util_BitSet(LPC_GPIOINT->IO2.ENF, var_pinNumber_u8); //Falling
+                    util_BitSet(LPC_GPIOINT->IO2.ENR, var_pinNumber_u8); //Rising
                 }
 
                 break;
@@ -174,12 +173,12 @@ void detachInterrupt(Pin pin){
     
     //clear Rise and Fall interrupt for Pin
     if(portNumber == 0){
-        util_BitClear(LPC_GPIOINT->IO0IntEnF, var_pinNumber_u8); //Falling
-        util_BitClear(LPC_GPIOINT->IO0IntEnR, var_pinNumber_u8); //Rising
+        util_BitClear(LPC_GPIOINT->IO0.ENF, var_pinNumber_u8); //Falling
+        util_BitClear(LPC_GPIOINT->IO0.ENR, var_pinNumber_u8); //Rising
     }
     if(portNumber == 2){
-        util_BitClear(LPC_GPIOINT->IO2IntEnF, var_pinNumber_u8); //Falling
-        util_BitClear(LPC_GPIOINT->IO2IntEnR, var_pinNumber_u8); //Rising
+        util_BitClear(LPC_GPIOINT->IO2.ENF, var_pinNumber_u8); //Falling
+        util_BitClear(LPC_GPIOINT->IO2.ENR, var_pinNumber_u8); //Rising
     }
     
     cpu_irq_restore(flags);
@@ -187,19 +186,19 @@ void detachInterrupt(Pin pin){
     
 }
 
-/** \brief  Get IPSR Register
-
- This function returns the content of the IPSR Register.
-
- \return               IPSR Register value
- */
-__attribute__( ( always_inline ) ) static inline uint32_t __get_IPSR(void)
-{
-    uint32_t result;
-
-    __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
-    return(result);
-}
+///** \brief  Get IPSR Register
+//
+// This function returns the content of the IPSR Register.
+//
+// \return               IPSR Register value
+// */
+//__attribute__( ( always_inline ) ) static inline uint32_t __get_IPSR(void)
+//{
+//    uint32_t result;
+//
+//    __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
+//    return(result);
+//}
 
 
 // Return true if we are in any interrupt service routine
@@ -216,14 +215,14 @@ extern "C" void EINT3_IRQHandler(void)
     
     //Look for Rising And Falling interrupt for both ports
     //Since we dont need to do anything different for rise/fall, we treat the same
-    uint32_t isr0 = LPC_GPIOINT->IO0IntStatR | LPC_GPIOINT->IO0IntStatF; // get all pins rise and fall which triggered int
-    uint32_t isr2 = LPC_GPIOINT->IO2IntStatR | LPC_GPIOINT->IO2IntStatF; // get all pins rise and fall which triggered int
+    uint32_t isr0 = LPC_GPIOINT->IO0.STATR | LPC_GPIOINT->IO0.STATF; // get all pins rise and fall which triggered int
+    uint32_t isr2 = LPC_GPIOINT->IO2.STATR | LPC_GPIOINT->IO2.STATF; // get all pins rise and fall which triggered int
 
     //port 0
     while (isr0 != 0)
     {
         const unsigned int pos0 = LowestSetBitNumber(isr0);        // only one bit should be set
-        LPC_GPIOINT->IO0IntClr |= (1 << pos0); // clear the status
+        LPC_GPIOINT->IO0.CLR |= (1 << pos0); // clear the status
         
         //Find the slot for this pin
         const Pin pin= (Pin)(pos0);// Since this is on port 0, this is just the pin number
@@ -248,7 +247,7 @@ extern "C" void EINT3_IRQHandler(void)
     while (isr2 != 0)
     {
         const unsigned int pos2 = LowestSetBitNumber(isr2);        // only one bit should be set
-        LPC_GPIOINT->IO2IntClr |= (1 << pos2); // clear the status
+        LPC_GPIOINT->IO2.CLR |= (1 << pos2); // clear the status
 
         //Find the slot for this pin
         const Pin pin = (Pin) ((2 << 5) | (pos2));// pin on port 2

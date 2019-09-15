@@ -279,7 +279,7 @@ static BaseType_t xHasInitialised = pdFALSE;
 		xHasInitialised = pdTRUE;
 
 		/* The interrupt will be turned on when a link is established. */
-		NVIC_DisableIRQ( ENET_IRQn );
+		NVIC_DisableIRQ( ETHERNET_IRQn );
 
         #if( configUSE_RMII == 1 )
             Chip_ENET_Init(LPC_ETHERNET, true);
@@ -367,8 +367,8 @@ static BaseType_t xHasInitialised = pdFALSE;
             Chip_ENET_EnableInt(LPC_ETHERNET, nwDMA_INTERRUPT_MASK);
 
             /* Enable interrupts in the NVIC now the task is created. */
-            NVIC_SetPriority( ENET_IRQn, configMAC_INTERRUPT_PRIORITY );
-            NVIC_EnableIRQ( ENET_IRQn );
+            NVIC_SetPriority( ETHERNET_IRQn, configMAC_INTERRUPT_PRIORITY );
+            NVIC_EnableIRQ( ETHERNET_IRQn );
 
             
 			/* Guard against the task being created more than once and the

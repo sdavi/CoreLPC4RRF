@@ -31,7 +31,7 @@ GNU GENERAL PUBLIC LICENSE:
 
 Errors and omissions should be reported to codelibraries@exploreembedded.com
 **************************************************************************************************/
-#include <lpc17xx.h>
+#include "chip.h"
 #include "systick.h"
 #include "stdutils.h"
 #include "Core.h"
@@ -88,10 +88,6 @@ void SysTick_Start(void)
 }
 
 
-
-
-
-
 /***************************************************************************************************
                            void SysTick_Stop(void)
 ****************************************************************************************************
@@ -105,35 +101,6 @@ void SysTick_Stop(void)
 {
   SYSTICK_CTRL = 0x00;
 }
-
-
-
-
-
-/***************************************************************************************************
-                void SysTick_AttachInterrupt(sysTickCallBackFunPtr funPtr)
-****************************************************************************************************
- * I/P Arguments:
-               sysTickCallBackFunPtr: Function name thats needs to be called by the SysTickHandler ISR.
-                             The function parameter and return type should be void as shown below.
-                             void MyFunToBeCalledByISR(void);
-
- * Return value: none                              
-
- * description :This functions attaches/hookes the user callback function to ISR.
-                Ever time the interrupt occurs the ISR will call the user CallBack function.                 
-****************************************************************************************************/
-/*void SysTick_AttachInterrupt(sysTickCallBackFunPtr funPtr)
-{
-   sysTickCallBack = funPtr;
-}*/
-
-
-
-
-
-
-
 
 
 
@@ -159,7 +126,8 @@ uint32_t millis(void)
    return (uint32_t) V_SysTickMiliSecCount_U64;
 }
 
-uint64_t millis64( void ){
+uint64_t millis64( void )
+{
     return V_SysTickMiliSecCount_U64;
     
 }
@@ -170,66 +138,6 @@ uint64_t millis64( void ){
 
 
 
-
-//Micros commented out for RTOS as Systick is not being used.
-
-//uint32_t micros( void )
-//{
-//    uint32_t ticks, ticks2;
-//    uint32_t pend, pend2;
-//    uint32_t count, count2;
-//
-//    ticks2  = SysTick->VAL;
-//    pend2   = !!((SCB->ICSR & SCB_ICSR_PENDSTSET_Msk)||((SCB->SHCSR & SCB_SHCSR_SYSTICKACT_Msk)))  ;
-//    count2  = (uint32_t)V_SysTickMiliSecCount_U64;
-//
-//    do {
-//        ticks=ticks2;
-//        pend=pend2;
-//        count=count2;
-//        ticks2  = SysTick->VAL;
-//        pend2   = !!((SCB->ICSR & SCB_ICSR_PENDSTSET_Msk)||((SCB->SHCSR & SCB_SHCSR_SYSTICKACT_Msk)))  ;
-//        count2  = (uint32_t)V_SysTickMiliSecCount_U64;
-//    } while ((pend != pend2) || (count != count2) || (ticks < ticks2));
-//
-//    return ((count+pend) * 1000) + (((SysTick->LOAD  - ticks)*(1048576/(VARIANT_MCK/1000000)))>>20) ;
-//    // this is an optimization to turn a runtime division into two compile-time divisions and
-//    // a runtime multiplication and shift, saving a few cycles
-//}
-
-
-
-
-
-/***************************************************************************************************
-                            SysTick ISR's
-****************************************************************************************************
- desc: SysTick_Handler will be called every ms. A counter will be incremented to keep track of Ms.                 
-       If the user CallBack Function is configured then it will be called. 
-                                 
-****************************************************************************************************/
-
-
-//extern void TimeTick_Increment(void);                // in wiring.c
-
-
-
-
-//#ifdef RTOS
-//void vApplicationTickHook(void)
-//#else
-//void SysTick_Handler(void)
-//#endif
-//{
-//    V_SysTickMiliSecCount_U32++;
-//    V_SysTickMiliSecCount_U64++;
-//
-//    sysTickHook();
-//
-//    wdt_restart(WDT);                            // kick the watchdog
-//
-//}
-
 void CoreSysTick(void)
 {
     const irqflags_t flags = cpu_irq_save();    // save and disable interrupts, because under RTOS the systick interrupt is low priority
@@ -238,8 +146,3 @@ void CoreSysTick(void)
     cpu_irq_restore(flags);
 
 }
-
-
-/*************************************************************************************************
-                                    END of  ISR's 
-*************************************************************************************************/

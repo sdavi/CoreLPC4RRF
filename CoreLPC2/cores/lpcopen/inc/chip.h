@@ -33,10 +33,9 @@
 #define __CHIP_H_
 
 #include "lpc_types.h"
-//#include "sys_config.h"
-#define CHIP_LPC175X_6X //contents of sys_config.h
-
-//#include "cmsis.h"
+#include "sys_config.h"
+#include "cmsis.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

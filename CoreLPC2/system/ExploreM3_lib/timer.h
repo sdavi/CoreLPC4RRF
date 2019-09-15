@@ -41,7 +41,7 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #ifndef _TIMERS_H_
 #define _TIMERS_H_
 
-#include "lpc17xx.h"
+#include "chip.h"
 
 /*************************************************************************************************
                          SFR Bits of timers registers							   
@@ -80,45 +80,6 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 
      
 #define SBIT_CNTEN   0
-
-/*************************************************************************************************/
-
-
-
-
-
-/*************************************************************************************************
-                         Costants, Structures and Typedefs for timers 							   
-**************************************************************************************************/
-#define TIMER_0     0
-#define TIMER_1     1
-#define TIMER_2     2
-#define TIMER_3     3
-#define TIMER_MAX   4
-
-/*typedef void (*voidFuncPtr)(void);
-
-typedef struct
-{
-    voidFuncPtr userFunction;
-    LPC_TIM_TypeDef *TIMx;
-    IRQn_Type IrqNumber;
-    uint8_t pconBits;
-    uint8_t pclkBits;  
-}timer_dev;
-*/
-/*************************************************************************************************/
-
-
-
-
-/*************************************************************************************************
-                                Function Prototypes 							   
-*************************************************************************************************/
-//timer_dev *TIMER_Init(uint8_t timerNumber_u8);
-void TIMER_Init(LPC_TIM_TypeDef *TIMx, IRQn_Type IrqNumber, uint8_t pconBits, uint8_t pclkBits );
-
-/*************************************************************************************************/
 
 uint32_t getPrescalarForUs(uint8_t timerPclkBit_u8);
 uint32_t getPclk(uint8_t timerPclkBit_u8);

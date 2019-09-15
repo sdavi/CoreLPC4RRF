@@ -36,13 +36,6 @@
 extern "C" {
 #endif
 
-#include "lpc17xx.h"
-    
-    
-    
-    
-    
-    
 /** @defgroup ENET_17XX_40XX CHIP: LPC17xx/40xx Ethernet driver (2)
  * @ingroup CHIP_17XX_40XX_Drivers
  * @{

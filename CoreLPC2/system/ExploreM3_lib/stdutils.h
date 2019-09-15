@@ -54,85 +54,7 @@ extern "C" {
 
 #include <stdint.h>
 
-
-
-/***************************************************************************************************
-    Basic data types for 8051/PIC/AVR 8bit controllers
- ***************************************************************************************************/
-
-/**----------char 8-bit--------
-     char (-128 to 127)
-     signed char (-128 to 127)
-     unsigned char (0 - 255)
-	-----------------------------*/
-
-/**---------int 16-bit----------
-	 int (-32768 to 32767)
-	 signed int (-32768 to 32767)
-     unsigned int (0 to 65535)
-	 -----------------------------*/
-
-typedef signed char     sint8_t;
-typedef unsigned char   uint8_t;
-
-typedef signed short int      sint16_t;
-typedef unsigned short int    uint16_t;
-
-typedef signed  int    sint32_t;
-//typedef unsigned  int  uint32_t;
-
 typedef uint8_t boolean;
-typedef uint8_t byte;
-
-#ifndef RwReg
-typedef volatile uint32_t RwReg;
-#endif
-
-#define C_SINT8_MAX   0x7F
-#define C_SINT8_MIN  -128
-
-#define C_UINT8_MAX   0xFFu
-#define C_UINT8_MIN   0x00u
-
-#define C_SINT16_MAX  32767
-#define C_SINT16_MIN -32768
-
-#define C_UINT16_MAX  0xFFFFu
-#define C_UINT16_MIN  0x00u
-
-#define C_SINT32_MAX  2147483647
-#define C_SINT32_MIN -2147483648
-
-#define C_UINT32_MAX  0xFFFFFFFFu
-#define C_UINT32_MIN  0x00u
-/***************************************************************************************************/
-
-
-
-/***************************************************************************************************
-                           Definition of common Bit-Masks
- ***************************************************************************************************/
-#define  Mask_BIT0   0x0001u
-#define  Mask_BIT1   0x0002u
-#define  Mask_BIT2   0x0004u
-#define  Mask_BIT3   0x0008u
-#define  Mask_BIT4   0x0010u
-#define  Mask_BIT5   0x0020u
-#define  Mask_BIT6   0x0040u
-#define  Mask_BIT7   0x0080u
-#define  Mask_BIT8   0x0100u
-#define  Mask_BIT9   0x0200u
-#define  Mask_BIT10  0x0400u
-#define  Mask_BIT11  0x0800u
-#define  Mask_BIT12  0x1000u
-#define  Mask_BIT13  0x2000u
-#define  Mask_BIT14  0x4000u
-#define  Mask_BIT15  0x8000u
-/**************************************************************************************************/
-
-
-
-
 
 /***************************************************************************************************
                            Port Direction configurations
@@ -142,36 +64,17 @@ typedef volatile uint32_t RwReg;
 #define C_PortOutput_U8    0xFFFFFFFFu
 #define C_PortInput_U8     0x00u
 
-
-//SD: Remove conflicts from other includes
 #ifndef INPUT
-#define INPUT  C_PinInput_U8
+    #define INPUT  C_PinInput_U8
 #endif
+
 #ifndef OUTPUT
-#define OUTPUT C_PinOutput_U8
+    #define OUTPUT C_PinOutput_U8
 #endif
+    
 #define LOW 0x00u
 #define HIGH 0x01u
 
-#ifndef NULL
-#define NULL   0
-#endif
-
-#ifndef FALSE
-#define FASLE   0
-#endif
-
-#ifndef TRUE
-#define TRUE   1
-#endif
-
-#ifndef false
-#define false   0
-#endif
-
-#ifndef true
-#define true   1
-#endif
 /**************************************************************************************************/
 
 
@@ -182,28 +85,6 @@ typedef volatile uint32_t RwReg;
 /***************************************************************************************************
                               Commonly used constants
  **************************************************************************************************/
-#define C_ZERO_U8          0x00u
-#define C_NULL_U8          0x00u
-#define NULL_CHAR          0x00u
-
-
-//#define FALSE              0x00u
-//#define TRUE               0x01u
-
-#define C_NOTOK_U8         0x00u
-#define C_OK_U8            0x01u
-
-#define C_INVALID_U8       0x00u
-#define C_VALID_U8         0x01u
-
-#define C_FAILED_U8        0x00u
-#define C_SUCCESSFUL_U8    0x01u
-#define C_BUSY_U8          0x02u
-
-
-#define C_BINARY_U8           2u
-#define C_DECIMAL_U8         10u
-#define C_HEX_U8             16u
 
 enum BitOrder {
 	LSBFIRST = 0,
@@ -211,42 +92,6 @@ enum BitOrder {
 };
 
 /**************************************************************************************************/
-
-
-
-
-
-
-/***************************************************************************************************
-                                Standard Enumerations and Constants
-***************************************************************************************************/
-typedef enum
-{
-   E_FALSE,
-   E_TRUE   
-}Boolean_et;
-
-
-typedef enum
-{
-    E_FAILED,
-    E_SUCCESS,
-    E_BUSY,
-    E_TIMEOUT
-}Status_et;
-
-
-typedef enum
-{
-	E_BINARY=2,
-	E_DECIMAL = 10,
-	E_HEX = 16
-}NumericSystem_et;
-/**************************************************************************************************/ 
-
-
-
-
 
 
 
