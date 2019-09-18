@@ -43,9 +43,6 @@ HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint8_t *rxBuffer,
     //Setup RingBuffers
     RingBuffer_Init(&this->rxRingBuffer, rxBuffer, 1, rxRingBufferSize);
     RingBuffer_Init(&this->txRingBuffer, txBuffer, 1, txRingBufferSize);
-    
-
-    
 }
 
 void HardwareSerial::begin(uint32_t baud)
@@ -56,16 +53,16 @@ void HardwareSerial::begin(uint32_t baud)
        return;
     }
 
-//    this->usart_device->baud_rate = baud;
     usart_init(this->usart_device, baud);
-	
 }
 
-void HardwareSerial::end(void) {
+void HardwareSerial::end(void)
+{
    
 }
 
-int HardwareSerial::read(void) {
+int HardwareSerial::read(void)
+{
     //read from the Ring Buffer
     int data;
     if(RingBuffer_Pop(&this->rxRingBuffer, &data))
@@ -80,7 +77,6 @@ int HardwareSerial::read(void) {
 
 int HardwareSerial::peek(void)
 {
-
     int data;
     if(RingBuffer_Peek(&this->rxRingBuffer, &data))
     {
@@ -92,7 +88,9 @@ int HardwareSerial::peek(void)
     }
 
 }
-int HardwareSerial::available(void) {
+
+int HardwareSerial::available(void)
+{
     irqflags_t flags = cpu_irq_save();
     int avail = RingBuffer_GetCount(&this->rxRingBuffer);
     cpu_irq_restore(flags);
@@ -101,36 +99,25 @@ int HardwareSerial::available(void) {
 
 int HardwareSerial::availableForWrite(void)
 {
-///* Currently there isn't an output ring buffer, chars are sent straight to the hardware.
-// * so just return 1, meaning that 1 char can be written.
-// * This will be slower than a ring buffer implementation.
-// */
-  //return 1;
-    
     //return number for free items in the txRingBuffer
     irqflags_t flags = cpu_irq_save();
     int avail = RingBuffer_GetFree(&this->txRingBuffer);
     cpu_irq_restore(flags);
     return avail;
-
 }
+
 size_t HardwareSerial::canWrite()
 {
-//    return _tx_buffer->roomLeft();        // we may also be able to write 1 more byte direct to the UART, but this is close enough
-//    return 1;
     irqflags_t flags = cpu_irq_save();
     int avail = RingBuffer_GetFree(&this->txRingBuffer);
     cpu_irq_restore(flags);
     return avail;
-
 }
 
-size_t HardwareSerial::write(const uint8_t ch) {
-    
+size_t HardwareSerial::write(const uint8_t ch)
+{
     Chip_UART_SendRB(this->usart_device->channel->UARTx, &this->txRingBuffer, &ch, 1);
     //Chip_UART_SendBlocking(this->usart_device->channel->UARTx, &ch, 1);
-    
-
     return 1;
 }
 
@@ -149,18 +136,16 @@ size_t HardwareSerial::write(const uint8_t *buffer, size_t size)
 
 }
 
-void HardwareSerial::flush(void) {
-  //As the ring buffer is not used nothing is there to flush, Just included for compilation.
+void HardwareSerial::flush(void)
+{
     while(RingBuffer_GetFree(&this->txRingBuffer) > 0); //wait for the ring buffer to empty
-    
     //TODO:: should wait for the fifo to empty too
-    
 }
 
-void HardwareSerial::IRQHandler(){
+void HardwareSerial::IRQHandler()
+{
     //call the LPCOpen Interrupt Handler
     Chip_UART_IRQRBHandler(LPC_UART0, &this->rxRingBuffer, &this->txRingBuffer);
-
 }
 
 

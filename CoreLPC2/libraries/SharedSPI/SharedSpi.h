@@ -1,7 +1,6 @@
 #ifndef _SHAREDSPI_H_
 #define _SHAREDSPI_H_
 
-#include "spi_api.h"
 #include "chip.h"
 
 #define SPI_CPHA  (1 << 0) //Phase Control

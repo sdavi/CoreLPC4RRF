@@ -40,7 +40,7 @@ void wdt_init(uint32_t s_counter){
      WDTC. Thus the minimum time-out interval is TWDCLK x 256 x 4.
      */
      
-    LPC_WWDT->MOD = (1<<WDEN_SBIT);// | (1<<WDRESET_SBIT); //Enable Watchdog and Enable Watchdog to reset CPU on timeout
+    LPC_WWDT->MOD = (1<<WDEN_SBIT);//Enable Watchdog 
 
     NVIC_EnableIRQ(WDT_IRQn);
     NVIC_SetPriority(WDT_IRQn, 1);

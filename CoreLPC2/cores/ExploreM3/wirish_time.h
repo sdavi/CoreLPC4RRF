@@ -36,53 +36,6 @@
 #include <sys/types.h>
 
 
-#if 0
-
-
-/**
- * Returns time (in milliseconds) since the beginning of program
- * execution. On overflow, restarts at 0.
- * @see micros()
- */
-/*static inline uint32 millis(void) {
-    return systick_uptime();
-    
-}*/
-
-
-
-
-/**
- * Returns time (in microseconds) since the beginning of program
- * execution.  On overflow, restarts at 0.
- * @see millis()
- */
-/*
-static inline uint32 micros(void) {
-    uint32 ms;
-    uint32 cycle_cnt;
-
-    do {
-        ms = millis();
-        cycle_cnt = systick_get_count();
-        asm volatile("nop"); //allow interrupt to fire
-        asm volatile("nop");
-    } while (ms != millis());
-
-#define US_PER_MS               1000
-    // * SYSTICK_RELOAD_VAL is 1 less than the number of cycles it
-    //  * actually takes to complete a SysTick reload
-    return ((ms * US_PER_MS) +
-            (SYSTICK_RELOAD_VAL + 1 - cycle_cnt) / CYCLES_PER_MICROSECOND);
-#undef US_PER_MS
-}
-*/
-
-#endif
-
-
-
-
 /**
  * Delay for at least the given number of milliseconds.
  *

@@ -155,7 +155,6 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
              GPIO_PinFunction(pin,0); //configure pin as GPIO
              GPIO_PinDirection(pin, LPC_OUTPUT);
              GPIO_PinWrite(pin, 0);
-
              break;
              
          case OUTPUT_HIGH:
@@ -175,6 +174,7 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
          case OUTPUT_SERVO_LOW:
              ConfigurePinForServo(pin, false);
              break;
+             
          case OUTPUT_SERVO_HIGH:
              ConfigurePinForServo(pin, true);
              break;

@@ -57,24 +57,3 @@ void delay_us(unsigned int us_count)
     for(i=0;i<MicroSecDelayCount;i++);
   }
 }
-
-
-
-/*---------------------------------------------------------------------------------
-                       void delay_ms(unsigned int ms_count)
- ----------------------------------------------------------------------------------
- * I/P Arguments: no of ticks (multiple of 1ms)
- * Return value	: none
-
- * description  :
-    This function suspends the tasks for specified ticks(in ms).
-
------------------------------------------------------------------------------------*/
-void delay_ms(unsigned int ms_count)
-{
-	volatile unsigned int i;
-	for (i=0;i<ms_count;i++)
-	{
-		delay_us(1000);
-	}
-}

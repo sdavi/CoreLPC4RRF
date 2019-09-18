@@ -10,9 +10,8 @@
 #include <inttypes.h>
 #include "Core.h"
 
-#include "chip.h"
 
-static const usart_channel_map USART_BASE[4]=
+static const usart_channel_map USART_BASE[4] =
 {  /* TxPin RxPin UART_PinFun   PCON Bit Associated UART Structure    */
     { P0_2,  P0_3,    PINSEL_FUNC_1,  3     ,(LPC_USART_T *)LPC_UART0_BASE}, /* Configure P0_2,P0_3 for UART0 function */
     { P0_15, P0_16,   PINSEL_FUNC_1,  4     ,(LPC_USART_T *)LPC_UART1_BASE}, /* Configure P2_0,P2_1 for UART1 function */
@@ -21,12 +20,37 @@ static const usart_channel_map USART_BASE[4]=
 };
 
 
-static const usart_dev usart0 = {
-    .channel     = &USART_BASE[0],
+static const usart_dev usart0 =
+{
+    .channel = &USART_BASE[0],
     .max_baud = 4500000UL,
     .irq_NUM = UART0_IRQn,
 };
 const usart_dev *USART0 = &usart0;
+
+static const usart_dev usart1 =
+{
+    .channel = &USART_BASE[1],
+    .max_baud = 4500001UL,
+    .irq_NUM = UART1_IRQn,
+};
+const usart_dev *USART1 = &usart1;
+
+static const usart_dev usart2 =
+{
+    .channel = &USART_BASE[2],
+    .max_baud = 2250001UL,
+    .irq_NUM = UART2_IRQn,
+};
+const usart_dev *USART2 = &usart2;
+
+static const usart_dev usart3 =
+{
+    .channel     = &USART_BASE[3],
+    .max_baud = 2250002UL,
+    .irq_NUM = UART3_IRQn,
+};
+const usart_dev *USART3 = &usart3;
 
 
 //UART Interrupt Handler
@@ -35,64 +59,56 @@ extern "C" void UART0_IRQHandler(void)
     Serial0.IRQHandler();
 }
 
-
-
-
-/*
-static usart_dev usart1 = {
-    .channel     = &USART_BASE[1],
-    .baud_rate = 0,
-    .max_baud = 4500001UL,
-    .irq_NUM = UART1_IRQn,
-    .userFunction = usart1_IRQHandler,
-};
-usart_dev *USART1 = &usart1;
-
-
-
-
-static usart_dev usart2 = {
-    .channel     = &USART_BASE[2],
-    .baud_rate = 0,
-    .max_baud = 2250001UL,
-    .irq_NUM = UART2_IRQn,
-    .userFunction = usart2_IRQHandler,
-};
-usart_dev *USART2 = &usart2;
+//extern "C" void UART1_IRQHandler(void)
+//{
+//    Serial1.IRQHandler();
+//}
+//
+//extern "C" void UART2_IRQHandler(void)
+//{
+//    Serial2.IRQHandler();
+//}
+//
+//extern "C" void UART3_IRQHandler(void)
+//{
+//    Serial3.IRQHandler();
+//}
 
 
 
 
-static usart_dev usart3 = {
-    .channel     = &USART_BASE[3],
-    .baud_rate = 0,
-    .max_baud = 2250002UL,
-    .irq_NUM = UART3_IRQn,
-    .userFunction = usart3_IRQHandler,
-};
-usart_dev *USART3 = &usart3;
-
-*/
-
-
- 
 
 //Serial_baud from MBED
-void serial_baud(LPC_USART_T *obj, int baudrate) {
-
+void serial_baud(LPC_USART_T *obj, int baudrate)
+{
     // set pclk to /1
-    if( obj == LPC_UART0) { LPC_SYSCTL->PCLKSEL[0] &= ~(0x3 <<  6); LPC_SYSCTL->PCLKSEL[0] |= (0x1 <<  6);}
-    else if( obj == LPC_UART1){ LPC_SYSCTL->PCLKSEL[0] &= ~(0x3 <<  8); LPC_SYSCTL->PCLKSEL[0] |= (0x1 <<  8); }
-    else if( obj == LPC_UART2){ LPC_SYSCTL->PCLKSEL[1] &= ~(0x3 << 16); LPC_SYSCTL->PCLKSEL[1] |= (0x1 << 16); }
-    else if( obj == LPC_UART0){ LPC_SYSCTL->PCLKSEL[1] &= ~(0x3 << 18); LPC_SYSCTL->PCLKSEL[1] |= (0x1 << 18); }
-    else {
+    if( obj == LPC_UART0)
+    {
+        LPC_SYSCTL->PCLKSEL[0] &= ~(0x3 <<  6);
+        LPC_SYSCTL->PCLKSEL[0] |= (0x1 <<  6);
+    }
+    else if( obj == LPC_UART1)
+    {
+        LPC_SYSCTL->PCLKSEL[0] &= ~(0x3 <<  8);
+        LPC_SYSCTL->PCLKSEL[0] |= (0x1 <<  8);
+    }
+    else if( obj == LPC_UART2)
+    {
+        LPC_SYSCTL->PCLKSEL[1] &= ~(0x3 << 16);
+        LPC_SYSCTL->PCLKSEL[1] |= (0x1 << 16);
+    }
+    else if( obj == LPC_UART3)
+    {
+        LPC_SYSCTL->PCLKSEL[1] &= ~(0x3 << 18);
+        LPC_SYSCTL->PCLKSEL[1] |= (0x1 << 18);
+    }
+    else
+    {
         //error("serial_baud");
         return;
-        
     }
     
     if(baudrate == 0) return;
-    
     
     uint32_t PCLK = SystemCoreClock;
     
@@ -109,7 +125,8 @@ void serial_baud(LPC_USART_T *obj, int baudrate) {
     int hit = 0;
     uint16_t dlv;
     uint8_t mv, dav;
-    if ((PCLK % (16 * baudrate)) != 0) {     // Checking for zero remainder
+    if ((PCLK % (16 * baudrate)) != 0) // Checking for zero remainder
+    {
         int err_best = baudrate, b;
         for (mv = 1; mv < 16 && !hit; mv++)
         {
@@ -163,14 +180,14 @@ void serial_baud(LPC_USART_T *obj, int baudrate) {
     // set divider values
     obj->DLM = (DL >> 8) & 0xFF;
     obj->DLL = (DL >> 0) & 0xFF;
-    obj->FDR = (uint32_t) DivAddVal << 0
-    | (uint32_t) MulVal    << 4;
+    obj->FDR = (uint32_t) DivAddVal << 0 | (uint32_t) MulVal << 4;
     
     // clear LCR[DLAB]
     obj->LCR &= ~(1 << 7);
 }
 
-typedef enum {
+typedef enum
+{
     ParityNone = 0,
     ParityOdd = 1,
     ParityEven = 2,
@@ -178,9 +195,11 @@ typedef enum {
     ParityForced0 = 4
 } SerialParity;
 
-void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int stop_bits) {
+void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int stop_bits)
+{
     // 5 data bits = 0 ... 8 data bits = 3
-    if (data_bits < 5 || data_bits > 8) {
+    if (data_bits < 5 || data_bits > 8)
+    {
         //error("Invalid number of bits (%d) in serial format, should be 5..8", data_bits);
         return;
     }
@@ -188,7 +207,8 @@ void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int sto
     data_bits -= 5;
 
     int parity_enable, parity_select;
-    switch (parity) {
+    switch (parity)
+    {
         case ParityNone: parity_enable = 0; parity_select = 0; break;
         case ParityOdd : parity_enable = 1; parity_select = 0; break;
         case ParityEven: parity_enable = 1; parity_select = 1; break;
@@ -200,7 +220,8 @@ void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int sto
     }
 
     // 1 stop bits = 0, 2 stop bits = 1
-    if (stop_bits != 1 && stop_bits != 2) {
+    if (stop_bits != 1 && stop_bits != 2)
+    {
         //error("Invalid stop bits specified");
         return;
     }
@@ -209,17 +230,17 @@ void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int sto
     int break_transmission   = 0; // 0 = Disable, 1 = Enable
     int divisor_latch_access = 0; // 0 = Disable, 1 = Enable
     obj->LCR = data_bits << 0
-    | stop_bits << 2
-    | parity_enable << 3
-    | parity_select << 4
-    | break_transmission << 6
-    | divisor_latch_access << 7;
+        | stop_bits << 2
+        | parity_enable << 3
+        | parity_select << 4
+        | break_transmission << 6
+        | divisor_latch_access << 7;
 }
 
 
 
-void usart_init(const usart_dev *dev, uint32_t baud_rate) {
-
+void usart_init(const usart_dev *dev, uint32_t baud_rate)
+{
     GPIO_PinFunction(dev->channel->TxPin,dev->channel->PinFunSel);
     GPIO_PinFunction(dev->channel->RxPin,dev->channel->PinFunSel);
     util_BitSet(LPC_SYSCTL->PCONP,dev->channel->pconBit);
@@ -244,19 +265,17 @@ void usart_init(const usart_dev *dev, uint32_t baud_rate) {
     dev->channel->UARTx->RS485ADRMATCH = 0;
     
     /* Clear MCR */
-    if (dev->channel->UARTx == LPC_UART1) {
+    if (dev->channel->UARTx == LPC_UART1)
+    {
         /* Set Modem Control to default state */
         dev->channel->UARTx->MCR = 0;
         /*Dummy Reading to Clear Status */
         uint32_t tmp = dev->channel->UARTx->MSR;
         (void) tmp;
-
     }
 
-    //SD: updated use mbed function to set baud + format
     serial_baud(dev->channel->UARTx, baud_rate);
     serial_format(dev->channel->UARTx,8, ParityNone, 1);
-    
     
     /* Reset and enable FIFOs, FIFO trigger level 1 (1 chars) */
     Chip_UART_SetupFIFOS(dev->channel->UARTx, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS | UART_FCR_TRG_LEV1));
@@ -266,6 +285,5 @@ void usart_init(const usart_dev *dev, uint32_t baud_rate) {
     /* Enable receive data and line status interrupt */
     Chip_UART_IntEnable(dev->channel->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
     
-
     NVIC_EnableIRQ(dev->irq_NUM);
 }

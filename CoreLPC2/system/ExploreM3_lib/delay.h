@@ -43,7 +43,6 @@ extern "C" {
 #define MicroSecDelayCount    7
 
 void delay_us(unsigned int us_count);
-void delay_ms(unsigned int ms_count);
 
 #endif
 

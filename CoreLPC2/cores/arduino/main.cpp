@@ -18,8 +18,8 @@ extern "C" void AppMain();
 
 
 //Create the Buffers for USB
-const uint16_t rxBufSize = 256;
-const uint16_t txBufSize = 128;
+constexpr uint16_t rxBufSize = 256;
+constexpr uint16_t txBufSize = 128;
 //make sure the buffers for USB are in AHB RAM
 __attribute__ ((used,section("AHBSRAM0"))) uint8_t circularBufferTxMemory[txBufSize+8] __attribute__ ( ( aligned( 8 ) ) );;
 __attribute__ ((used,section("AHBSRAM0"))) uint8_t circularBufferRxMemory[rxBufSize+8] __attribute__ ( ( aligned( 8 ) ) );;
@@ -38,7 +38,7 @@ HardwareSerial Serial0(USART0, uartRxMemory, rxBufSize, uartTxMemory, txBufSize)
 
 //How much memory to reserve when allocating the heap space.
 //Stack size + extra 256 for SoftwareReset data + any other code that uses malloc
-const uint32_t reserveMemory = 400+256;
+constexpr uint32_t reserveMemory = 400+256;
 
 
 __attribute__ ((used)) uint8_t *ucHeap;

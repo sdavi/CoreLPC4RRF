@@ -24,8 +24,8 @@ extern "C" {
 #endif
 
 void Reset();
-//void EraseAndReset();
     
+//LPC Reset Reason definitions
 #define RSID_POR      (1<<0)  //Power On Reset
 #define RSID_EXTR     (1<<1)  //Assetion of RESET signal
 #define RSID_WDTR     (1<<2)  // Watchdog Timeout Reset

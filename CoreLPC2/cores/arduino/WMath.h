@@ -25,9 +25,9 @@
 
 #include <cmath>
 
-extern int32_t random(int32_t);
-extern int32_t random(int32_t, int32_t);
-extern int32_t map(int32_t, int32_t, int32_t, int32_t, int32_t);
+int32_t random(int32_t);
+int32_t random(int32_t, int32_t);
+int32_t map(int32_t, int32_t, int32_t, int32_t, int32_t);
 
 // std::min and std::max don't seem to work with this variant of gcc, so define our own ones here
 // We use these only with primitive types, so pass them directly instead of by const reference

@@ -54,7 +54,7 @@ static InterruptCallback callbacks[MaxExtIntEntries] __attribute__((section ("AH
 Pin ExternalInterruptPins[MaxExtIntEntries] = {NoPin, NoPin, NoPin};
 
 
-//Function from WInterrupts from RRF.
+//Function from WInterrupts from RRF adapted for LPC.
 
 
 bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptMode mode, CallbackParameter param)
@@ -70,7 +70,8 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
     for(size_t i=0; i<MaxExtIntEntries; i++)
     {
         //find a free slot
-        if(ExternalInterruptPins[i] == NoPin){
+        if(ExternalInterruptPins[i] == NoPin)
+        {
             slot = i; //found a free slot
             break;
         }
@@ -102,11 +103,13 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
                 break;
                 
             case INTERRUPT_MODE_FALLING:
-                if(portNumber == 0){
+                if(portNumber == 0)
+                {
                     util_BitSet(LPC_GPIOINT->IO0.ENF, var_pinNumber_u8); // set Falling Interrupt bit for pin
                     util_BitClear(LPC_GPIOINT->IO0.ENR, var_pinNumber_u8); //ensure Rising disabled
                 }
-                if(portNumber == 2){
+                if(portNumber == 2)
+                {
                     util_BitSet(LPC_GPIOINT->IO2.ENF, var_pinNumber_u8);
                     util_BitClear(LPC_GPIOINT->IO2.ENR, var_pinNumber_u8); //ensure Rising disabled
                 }
@@ -127,11 +130,13 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
                 
             case INTERRUPT_MODE_CHANGE:
                 //Rising and Falling
-                if(portNumber == 0){
+                if(portNumber == 0)
+                {
                     util_BitSet(LPC_GPIOINT->IO0.ENF, var_pinNumber_u8); //Falling
                     util_BitSet(LPC_GPIOINT->IO0.ENR, var_pinNumber_u8); //Rising
                 }
-                if(portNumber == 2){
+                if(portNumber == 2)
+                {
                     util_BitSet(LPC_GPIOINT->IO2.ENF, var_pinNumber_u8); //Falling
                     util_BitSet(LPC_GPIOINT->IO2.ENR, var_pinNumber_u8); //Rising
                 }
@@ -155,7 +160,8 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
 }
 
 
-void detachInterrupt(Pin pin){
+void detachInterrupt(Pin pin)
+{
  
     const uint8_t portNumber =  (pin>>5);  //Divide the pin number by 32 go get the PORT number
     const uint8_t var_pinNumber_u8  =   pin & 0x1f;  //lower 5-bits contains the bit number of a 32bit port
@@ -164,7 +170,8 @@ void detachInterrupt(Pin pin){
 
     for(size_t i=0; i<MaxExtIntEntries; i++)
     {
-        if(ExternalInterruptPins[i] == pin){
+        if(ExternalInterruptPins[i] == pin)
+        {
             ExternalInterruptPins[i] = NoPin; //remove the pin from the array
 
             break;
@@ -172,11 +179,13 @@ void detachInterrupt(Pin pin){
     }
     
     //clear Rise and Fall interrupt for Pin
-    if(portNumber == 0){
+    if(portNumber == 0)
+    {
         util_BitClear(LPC_GPIOINT->IO0.ENF, var_pinNumber_u8); //Falling
         util_BitClear(LPC_GPIOINT->IO0.ENR, var_pinNumber_u8); //Rising
     }
-    if(portNumber == 2){
+    if(portNumber == 2)
+    {
         util_BitClear(LPC_GPIOINT->IO2.ENF, var_pinNumber_u8); //Falling
         util_BitClear(LPC_GPIOINT->IO2.ENR, var_pinNumber_u8); //Rising
     }
@@ -185,21 +194,6 @@ void detachInterrupt(Pin pin){
 
     
 }
-
-///** \brief  Get IPSR Register
-//
-// This function returns the content of the IPSR Register.
-//
-// \return               IPSR Register value
-// */
-//__attribute__( ( always_inline ) ) static inline uint32_t __get_IPSR(void)
-//{
-//    uint32_t result;
-//
-//    __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
-//    return(result);
-//}
-
 
 // Return true if we are in any interrupt service routine
 bool inInterrupt()

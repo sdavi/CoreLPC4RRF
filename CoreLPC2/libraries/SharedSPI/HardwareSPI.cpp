@@ -6,6 +6,8 @@
 #define SPI0_FUNCTION  PINSEL_FUNC_2 //SSP
 #define SPI1_FUNCTION  PINSEL_FUNC_2
 
+#define SPI_TIMEOUT       15000
+
 
 //SSP Status Register Bits
 constexpr uint8_t SR_TFE = (1<<0); //Transmit FIFO Empty. This bit is 1 is the Transmit FIFO is empty, 0 if not.
@@ -36,7 +38,7 @@ static inline bool waitForTxReady(LPC_SSP_T* sspDevice)
 
 //Make sure all the SSP FIFOs are empty, if they aren't clear them
 //returns true if ready, false if timeout
-static inline bool clearSSP(LPC_SSP_T* sspDevice)
+static inline bool clearSSPTimeout(LPC_SSP_T* sspDevice)
 {
 #ifdef SSPI_DEBUG
     if( (sspDevice->SR & SR_BSY) ) debugPrintf("SPI Busy\n");
@@ -55,6 +57,8 @@ static inline bool clearSSP(LPC_SSP_T* sspDevice)
         }
     }
 
+    Chip_SSP_ClearIntPending(sspDevice, SSP_INT_CLEAR_BITMASK);
+    
     return false; //did not timeout (success)
 
 }
@@ -76,6 +80,28 @@ static inline bool waitForReceiveNotEmpty(LPC_SSP_T* sspDevice)
 }
 
 
+//SD: added function. check if TX FIFO is not full: return true if timed out
+static inline bool waitForTxEmpty_timeout(LPC_SSP_T *ssp, uint32_t timeout) {
+    while (!(ssp->SR & (1<<1)) ) // TNF = 0 if full
+    {
+        if (!timeout--)
+        {
+            return true;
+        }
+    }
+    return false;
+    
+}
+
+//SD as ssp_readable but with timeout for sharedSPI: returns true if timed out
+static inline bool ssp_readable_timeout(LPC_SSP_T *ssp, uint32_t timeout) {
+    while ( !(ssp->SR & (1 << 2)) )
+    {
+        if (--timeout == 0) return true;
+    }
+    return false;
+}
+
 
 // Wait for transmitter empty returning true if timed out
 //static inline bool waitForTxEmpty(LPC_SSP_TypeDef* sspDevice)
@@ -90,36 +116,63 @@ static inline bool waitForRxReady(LPC_SSP_T* sspDevice)
     return ssp_readable_timeout(sspDevice, SPI_TIMEOUT);
 }
 
+static inline CHIP_SSP_BITS_T getSSPBits(uint8_t bits)
+{
+    //we will only support 8 or 16bit
+    
+    if(bits == 16) return SSP_BITS_16;
+    
+    return SSP_BITS_8;
+}
 
+static inline CHIP_SSP_CLOCK_MODE_T getSSPMode(uint8_t spiMode)
+{
+    switch(spiMode)
+    {
+
+        case SPI_MODE_0: //CPOL=0, CPHA=0
+            return SSP_CLOCK_CPHA0_CPOL0;
+        case SPI_MODE_1: //CPOL=0, CPHA=1
+            return SSP_CLOCK_CPHA0_CPOL1;
+        case SPI_MODE_2: //CPOL=1, CPHA=0
+            return SSP_CLOCK_CPHA1_CPOL0;
+        case SPI_MODE_3: //CPOL=1, CPHA=1
+            return SSP_CLOCK_CPHA1_CPOL1;
+    }
+    
+    return SSP_CLOCK_CPHA0_CPOL0;
+}
 
 //setup the master device.
 void HardwareSPI::setup_device(const struct sspi_device *device)
 {
+    
+    Chip_SSP_Disable(selectedSSPDevice);
+    
     if(needInit)
     {
-        if(device->sspChannel == SSP0)
+        if(selectedSSPDevice == LPC_SSP0)
         {
             Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SSP0); //enable power and clocking
             
+            GPIO_PinFunction(SPI0_SCK, SPI0_FUNCTION);   /* Configure the Pinfunctions for SPI */
+            GPIO_PinFunction(SPI0_MOSI,SPI0_FUNCTION);
+            GPIO_PinFunction(SPI0_MISO,SPI0_FUNCTION);
             
-            GPIO_PinFunction(SPI0_SCK,  SPI0_FUNCTION);   /* Configure the Pinfunctions for SPI */
-            GPIO_PinFunction(SPI0_MOSI, SPI0_FUNCTION);
-            GPIO_PinFunction(SPI0_MISO, SPI0_FUNCTION);
-            
-            GPIO_PinDirection(SPI0_SCK,OUTPUT);        /* Configure SCK,MOSI,SSEl as Output and MISO as Input */
+            GPIO_PinDirection(SPI0_SCK, OUTPUT);        /* Configure SCK,MOSI,SSEl as Output and MISO as Input */
             GPIO_PinDirection(SPI0_MOSI,OUTPUT);
             GPIO_PinDirection(SPI0_MISO,INPUT);
             
         }
-        else if (device->sspChannel == SSP1)
+        else if (selectedSSPDevice == LPC_SSP1)
         {
             Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SSP1); //enable power and clocking
             
-            GPIO_PinFunction(SPI1_SCK,SPI1_FUNCTION);   /* Configure the Pinfunctions for SPI */
+            GPIO_PinFunction(SPI1_SCK, SPI1_FUNCTION);   /* Configure the Pinfunctions for SPI */
             GPIO_PinFunction(SPI1_MOSI,SPI1_FUNCTION);
             GPIO_PinFunction(SPI1_MISO,SPI1_FUNCTION);
             
-            GPIO_PinDirection(SPI1_SCK,OUTPUT);        /* Configure SCK,MOSI,SSEl as Output and MISO as Input */
+            GPIO_PinDirection(SPI1_SCK, OUTPUT);        /* Configure SCK,MOSI,SSEl as Output and MISO as Input */
             GPIO_PinDirection(SPI1_MOSI,OUTPUT);
             GPIO_PinDirection(SPI1_MISO,INPUT);
         }
@@ -127,10 +180,16 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
         needInit = false;
     }
 
-    spi_format(selectedSSPDevice, device->bitsPerTransferControl, device->spiMode, 0); //Set the bits, set Mode 0, and set as Master
-    spi_frequency(selectedSSPDevice, device->clockFrequency);
+    Chip_SSP_Set_Mode(selectedSSPDevice, SSP_MODE_MASTER);
+    Chip_SSP_SetFormat(selectedSSPDevice, getSSPBits(device->bitsPerTransferControl), SSP_FRAMEFORMAT_SPI, getSSPMode(device->spiMode));
+    Chip_SSP_SetBitRate(selectedSSPDevice, device->clockFrequency);
+    Chip_SSP_Enable(selectedSSPDevice);
+
     
-    clearSSP(selectedSSPDevice);
+    //spi_format(selectedSSPDevice, device->bitsPerTransferControl, device->spiMode, 0); //Set the bits, set Mode 0, and set as Master
+    //spi_frequency(selectedSSPDevice, device->clockFrequency);
+    
+    clearSSPTimeout(selectedSSPDevice);
 }
 
 
@@ -143,7 +202,7 @@ HardwareSPI::HardwareSPI(LPC_SSP_T *sspDevice):needInit(true)
 spi_status_t HardwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
 {
     if(selectedSSPDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
-    if(clearSSP(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
+    //if(clearSSPTimeout(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
 
     for (uint32_t i = 0; i < len; ++i)
 	{
@@ -171,7 +230,7 @@ spi_status_t HardwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t
 spi_status_t HardwareSPI::sspi_transceive_packet_16(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
 {
     if(selectedSSPDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
-    if(clearSSP(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
+    //if(clearSSP(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
     
     const uint32_t cr0 =  selectedSSPDevice->CR0 & 0xFFFF; // save old value
     

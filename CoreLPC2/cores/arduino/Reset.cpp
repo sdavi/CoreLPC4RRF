@@ -25,7 +25,6 @@ extern "C" {
 
 void Reset()
 {
-//	rstc_start_software_reset(RSTC);
     NVIC_SystemReset();
 }
 

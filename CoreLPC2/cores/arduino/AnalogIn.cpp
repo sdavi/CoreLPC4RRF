@@ -37,8 +37,7 @@ const adcChannelConfig_st AdcConfig[numChannels]=
 // Module initialisation
 void AnalogInInit()
 {
-    Chip_ADC_Init(LPC_ADC, &ADCSetup);
-    Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE);
+    Chip_ADC_Init(LPC_ADC, &ADCSetup); //Init ADC and setup the ADCSetup struct
 }
 
 // Enable or disable a channel.
@@ -52,7 +51,7 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
             //set the pin mode for ADC
             GPIO_PinFunction(AdcConfig[channel].pinNumber,AdcConfig[channel].PinFunSel);
             //set the channels to sample (bits 0-7 of CR)
-            LPC_ADC->CR  = (LPC_ADC->CR  & 0xFFFFFF00) | (activeChannels & 0x000000FF );
+            LPC_ADC->CR  |= (activeChannels & 0x000000FF );
 		}
 		else
 		{
@@ -60,6 +59,7 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
             LPC_ADC->CR  = (LPC_ADC->CR  & 0xFFFFFF00) | (activeChannels & 0x000000FF );
             
 		}
+        if( !(LPC_ADC->CR & ADC_CR_BURST) ) Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE); //enable burst mode is not already started
 	}
 }
 
