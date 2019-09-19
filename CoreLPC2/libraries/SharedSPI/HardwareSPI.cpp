@@ -130,13 +130,13 @@ static inline CHIP_SSP_CLOCK_MODE_T getSSPMode(uint8_t spiMode)
     switch(spiMode)
     {
 
-        case SPI_MODE_0: //CPOL=0, CPHA=0
+        case SPI_MODE_0: //CPHA=0, CPOL=0
             return SSP_CLOCK_CPHA0_CPOL0;
-        case SPI_MODE_1: //CPOL=0, CPHA=1
-            return SSP_CLOCK_CPHA0_CPOL1;
-        case SPI_MODE_2: //CPOL=1, CPHA=0
+        case SPI_MODE_1: //CPHA=1, CPOL=0
             return SSP_CLOCK_CPHA1_CPOL0;
-        case SPI_MODE_3: //CPOL=1, CPHA=1
+        case SPI_MODE_2: //CPHA=0, CPOL=1
+            return SSP_CLOCK_CPHA0_CPOL1;
+        case SPI_MODE_3: //CPHA=1, CPOL=1 
             return SSP_CLOCK_CPHA1_CPOL1;
     }
     
