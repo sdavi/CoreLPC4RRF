@@ -32,12 +32,12 @@ void SoftwarePWM::Enable()
 }
 void SoftwarePWM::Disable()
 {
+    us_ticker_remove_event(&event); //remove event from the ticker
+
     pinMode(pin, OUTPUT_LOW);
     state = PWM_OFF;
     
     pwmRunning = false;
-    
-    us_ticker_remove_event(&event); //remove event from the ticker
 }
 
 //Sets the freqneucy in Hz

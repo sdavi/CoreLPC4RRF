@@ -40,8 +40,8 @@ private:
     Pin pin;
 
     uint16_t frequency;
-    uint32_t period;
-    uint32_t onTime;
+    volatile uint32_t period;
+    volatile uint32_t onTime;
     
     ticker_event_t event;
     
