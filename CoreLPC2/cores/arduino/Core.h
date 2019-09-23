@@ -108,7 +108,7 @@ enum SSPChannel : uint8_t {
 #include "WCharacter.h"
 #include "HardwareSerial.h"
 #include "Stream.h"
-#include "usb_serial.h"
+#include "SerialUSB.h"
 #include "WMath.h"
 #include "AnalogIn.h"
 #include "AnalogOut.h"

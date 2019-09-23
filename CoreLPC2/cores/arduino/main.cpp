@@ -1,35 +1,22 @@
 
 #define ARDUINO_MAIN
-#include "Core.h"
-#include "gpio.h"
 
 #include "chip.h"
-#include "stdutils.h"
-
+#include "Core.h"
 #include <FreeRTOS.h>
-
-#include "USBDevice/USB.h"
-#include "usb_serial.h"
-
+#include "SerialUSB.h"
 
 extern "C" void UrgentInit();
 extern "C" void __libc_init_array(void);
 extern "C" void AppMain();
 
 
-//Create the Buffers for USB
-constexpr uint16_t rxBufSize = 256;
-constexpr uint16_t txBufSize = 128;
-//make sure the buffers for USB are in AHB RAM
-__attribute__ ((used,section("AHBSRAM0"))) uint8_t circularBufferTxMemory[txBufSize+8] __attribute__ ( ( aligned( 8 ) ) );;
-__attribute__ ((used,section("AHBSRAM0"))) uint8_t circularBufferRxMemory[rxBufSize+8] __attribute__ ( ( aligned( 8 ) ) );;
+SerialUSB Serial;
 
-//create the buffers - ok here as we can only have 1 USB object anyway
-CircBuffer<uint8_t> rxbuf(rxBufSize, circularBufferRxMemory);
-CircBuffer<uint8_t> txbuf(txBufSize, circularBufferTxMemory);
-SerialUSB Serial(&rxbuf, &txbuf); // our wrapper object to provide Serial over USB
+constexpr uint16_t rxBufSize = 128;
+constexpr uint16_t txBufSize = 64;
 
-//Setup the UART, ringbuffer memory in AHB RAM (same sizes as USB buffers)
+//Setup the UART, ringbuffer memory in AHB RAM
 __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory[txBufSize] __attribute__ ( ( aligned( 8 ) ) );;
 __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory[rxBufSize] __attribute__ ( ( aligned( 8 ) ) );;
 HardwareSerial Serial0(USART0, uartRxMemory, rxBufSize, uartTxMemory, txBufSize);
@@ -71,7 +58,7 @@ int main( void )
     ucHeap = (uint8_t *) malloc(freeRam); //allocate the memory so any other code using malloc etc wont corrupt our heapregion
     
     //Determine the size of memory we can use in AHB RAM
-    uint32_t ahb0_free = (uint32_t)&__AHB0_end - (uint32_t)&__AHB0_dyn_start ; //Free AHB RAM (we dont need to allocate as there is no dynamic memory being allocated in this location)
+    const uint32_t ahb0_free = (uint32_t)&__AHB0_end - (uint32_t)&__AHB0_dyn_start ; //Free AHB RAM (we dont need to allocate as there is no dynamic memory being allocated in this location)
 
     
     //Setup the FreeRTOS Heap5 management

@@ -25,7 +25,6 @@ V=@
 CC      = arm-none-eabi-gcc
 CXX     = arm-none-eabi-g++
 LD      = arm-none-eabi-gcc
-#LD      = arm-none-eabi-g++
 AR      = arm-none-eabi-ar
 AS      = arm-none-eabi-as
 OBJCOPY = arm-none-eabi-objcopy
@@ -93,6 +92,8 @@ FLAGS += -DCORE_M3
 #RTOS + enable mods to RTOS+TCP for RRF
 FLAGS += -DRTOS -DFREERTOS_USED -DRRF_RTOSPLUS_MOD
 #
+FLAGS += -DDEVICE_USBDEVICE=1 -DTARGET_LPC1768
+
 FLAGS +=  -Wall -c -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections -march=armv7-m 
 FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant
 #FLAGS += -Wundef
@@ -114,10 +115,14 @@ CXXFLAGS = $(FLAGS) -std=gnu++17  -fno-threadsafe-statics -fno-exceptions -fno-r
 
 
 #Core
-CORE_SRC_DIRS  = cores system variants/LPC libraries/WIRE libraries/SDCard libraries/SharedSPI
-CORE_SRC_DIRS += cores/ExploreM3 cores/ExploreM3/ExploreM3_lib cores/arduino cores/smoothie
-CORE_SRC_DIRS += cores/smoothie/USBDevice cores/smoothie/USBDevice/USBDevice cores/smoothie/USBDevice/USBSerial cores/smoothie/DFU
-CORE_SRC_DIRS += cores/lpcopen/src cores/mbed libraries/SoftwarePWM
+CORE_SRC_DIRS  = cores cores/arduino system variants/LPC
+CORE_SRC_DIRS += cores/ExploreM3 cores/ExploreM3/ExploreM3_lib
+CORE_SRC_DIRS += cores/lpcopen/src cores/mbed
+#Core libraries
+CORE_SRC_DIRS += libraries/WIRE libraries/SDCard libraries/SharedSPI libraries/SoftwarePWM
+#mbed
+CORE_SRC_DIRS += cores/mbed/usb/hal cores/mbed/usb/TARGET_NXP cores/mbed/usb/USBDevice cores/mbed/usb/USBPHY
+CORE_SRC_DIRS += cores/mbed/usb/USBSerial cores/mbed/usb/utilities cores/mbed/platform
 
 CORE_SRC = $(CORE) $(addprefix $(CORE)/, $(CORE_SRC_DIRS))
 CORE_INCLUDES = $(addprefix -I, $(CORE_SRC))
@@ -182,8 +187,7 @@ RTOSPLUS_CORE_OBJ_SRC_C  += $(foreach src, $(RTOSPLUS_TCP_NI_SRC), $(wildcard $(
 ifeq ($(NETWORKING), true)
 	CORE_OBJS += $(patsubst %.c,$(BUILD_DIR)/%.o,$(RTOSPLUS_CORE_OBJ_SRC_C))
 	#RTOS+TCP Includes
-	CORE_INCLUDES   += -I$(RTOSPLUS_TCP_INCLUDE) -I$(RTOSPLUS_TCP_INCLUDE)
-	
+	CORE_INCLUDES   += -I$(RTOSPLUS_TCP_INCLUDE) -I$(RTOSPLUS_TCP_INCLUDE)	
 endif
 
 
@@ -198,12 +202,8 @@ RRF_SRC_DIRS += Display Display/ST7920
 
 #build in LCD Support? only when networking is false
 #networking support?
-ifeq ($(ESP_NETWORKING), true)
-	RRF_SRC_DIRS += LPC/ESPNetworking LPC/ESPNetworking/ESP32Interface
-else ifeq ($(NETWORKING), true)
+ifeq ($(NETWORKING), true)
 	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet
-else ifeq ($(ESP8826_NETWORKING), true)
-	RRF_SRC_DIRS += Networking Networking/ESP8266WiFi
 else
 	RRF_SRC_DIRS += LPC/NoNetwork
 endif
@@ -237,7 +237,6 @@ RRF_INCLUDES += $(addprefix -I, $(RRF_LIBRARY_SRC))
 
 #all Includes (RRF + Core)
 INCLUDES = $(CORE_INCLUDES) $(RRF_INCLUDES)
-INCLUDES += -IDuetWiFiSocketServer/src/include
 
 
 DEPS = $(CORE_OBJS:.o=.d)
