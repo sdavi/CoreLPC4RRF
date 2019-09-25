@@ -100,11 +100,7 @@ FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant
 FLAGS += $(DEBUG_FLAGS)
 FLAGS += -MMD -MP 
 
-ifeq ($(ESP_NETWORKING), true)
-	FLAGS += -DESP_NETWORKING -DHAS_ESP32_NETWORKING
-else ifeq ($(ESP8826_NETWORKING), true)
-	FLAGS += -DESP8266_NETWORKING
-else ifeq ($(NETWORKING), true)
+ifeq ($(NETWORKING), true)
         FLAGS += -DLPC_NETWORKING
 endif
 

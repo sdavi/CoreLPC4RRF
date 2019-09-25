@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+//SD:: Removed MBED RTOS dependency
+
 #include "stdint.h"
 #include "USBCDC.h"
 #include "EndpointResolver.h"

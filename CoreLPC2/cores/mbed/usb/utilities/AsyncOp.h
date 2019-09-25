@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+//SD:: Remove MBED RTOS dependency
+
 #ifndef MBED_ASYNC_OP_H
 #define MBED_ASYNC_OP_H
 

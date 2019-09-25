@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+//SD:: change buffer sizes
+
+
 #ifndef USBCDC_H
 #define USBCDC_H
 

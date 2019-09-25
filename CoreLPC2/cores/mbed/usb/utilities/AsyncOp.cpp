@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+//SD:: Remove MBED RTOS dependency
+
 #include "AsyncOp.h"
 #include "mbed_critical.h"
 #include "mbed_assert.h"
