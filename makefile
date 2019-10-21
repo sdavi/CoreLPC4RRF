@@ -10,12 +10,9 @@ BUILD_DIR = ./build
 BUILD = Debug
 #BUILD = Release
 
-#compile in Ethernet Networking?
+#Only enable one
 NETWORKING = true
-
-#enable DFU
-USE_DFU = true
-#USE_DFU = false
+#ESP8266WIFI = true
 
 #Comment out to show compilation commands (verbose)
 V=@
@@ -49,9 +46,6 @@ RTOS_CONFIG_INCLUDE = FreeRTOSConfig
 OUTPUT_NAME=firmware
 
 $(info  - Firmware Filename:  $(OUTPUT_NAME).bin)
-$(info  - Building Network Support: $(NETWORKING))
-
-
 
 ifeq ($(BUILD),Debug)
 	DEBUG_FLAGS = -Og -g
@@ -59,7 +53,6 @@ else
 	DEBUG_FLAGS = -Os#-O2
 endif
 	
-
 
 #select correct linker script
 ifeq ($(MBED), true)
@@ -83,8 +76,11 @@ MKDIR = mkdir -p
 FLAGS  = -D__$(PROCESSOR)__ -D_XOPEN_SOURCE
 
 ifeq ($(MBED), true)
-$(info Building for MBED)
+        $(info  - Building for MBED)
 	FLAGS += -D__MBED__
+        ifeq ($(ESP8266WIFI), true)
+		FLAGS += -DENABLE_UART3
+        endif
 endif
 
 #lpcopen Defines
@@ -101,7 +97,17 @@ FLAGS += $(DEBUG_FLAGS)
 FLAGS += -MMD -MP 
 
 ifeq ($(NETWORKING), true)
+        $(info  - Building LPC Ethernet Support)
+
         FLAGS += -DLPC_NETWORKING
+
+else ifeq ($(ESP8266WIFI), true)
+        $(info  - Building ESP8266 WIFI Support) 
+	FLAGS += -DESP8266WIFI
+
+else
+        $(info  - No Networking Support)
+
 endif
 
 
@@ -124,11 +130,11 @@ CORE_SRC = $(CORE) $(addprefix $(CORE)/, $(CORE_SRC_DIRS))
 CORE_INCLUDES = $(addprefix -I, $(CORE_SRC))
 
 
-ifeq ($(USE_DFU), true)
-        #enable DFU
-        $(info Enabling DFU)
-        CXXFLAGS += -DENABLE_DFU
-endif
+#ifeq ($(USE_DFU), true)
+#        #enable DFU
+#        $(info Enabling DFU)
+#        CXXFLAGS += -DENABLE_DFU
+#endif
 
 #Additional Core Includes
 CORE_INCLUDES	+= -I$(CORE)/system/ExploreM3_lib/
@@ -191,8 +197,11 @@ endif
 #---RepRapFirmware---
 RRF_SRC_DIRS  = FilamentMonitors GCodes GCodes/GCodeBuffer Heating Movement Movement/BedProbing Movement/Kinematics 
 RRF_SRC_DIRS += Storage Tools Libraries/Fatfs Libraries/Fatfs/port/lpc Libraries/sha1
-RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel Endstops Hardware Linux
+RRF_SRC_DIRS += Heating/Sensors Fans ObjectModel Endstops Hardware
 RRF_SRC_DIRS += LPC LPC/MCP4461
+
+#RRF_SRC_DIRS += Linux
+
 
 RRF_SRC_DIRS += Display Display/ST7920
 
@@ -200,6 +209,8 @@ RRF_SRC_DIRS += Display Display/ST7920
 #networking support?
 ifeq ($(NETWORKING), true)
 	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet
+else ifeq ($(ESP8266WIFI), true) 
+	RRF_SRC_DIRS += Networking Networking/ESP8266WIFI
 else
 	RRF_SRC_DIRS += LPC/NoNetwork
 endif
@@ -214,6 +225,9 @@ RRF_OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(RRF_OBJ_SRC_C)) $(patsubst %.cpp,$(
 
 RRF_INCLUDES = $(addprefix -I, $(RRF_SRC))
 RRF_INCLUDES += -I$(RRF_SRC_BASE)/Libraries/
+ifeq ($(ESP8266WIFI), true)
+	RRF_INCLUDES += -IDuetWiFiSocketServer/src/include
+endif
 
 #end RRF
 

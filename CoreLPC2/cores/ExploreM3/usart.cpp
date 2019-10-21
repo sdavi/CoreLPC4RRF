@@ -59,21 +59,26 @@ extern "C" void UART0_IRQHandler(void)
     Serial0.IRQHandler();
 }
 
-//extern "C" void UART1_IRQHandler(void)
-//{
-//    Serial1.IRQHandler();
-//}
-//
-//extern "C" void UART2_IRQHandler(void)
-//{
-//    Serial2.IRQHandler();
-//}
-//
-//extern "C" void UART3_IRQHandler(void)
-//{
-//    Serial3.IRQHandler();
-//}
+#if defined(ENABLE_UART1)
+extern "C" void UART1_IRQHandler(void)
+{
+    Serial1.IRQHandler();
+}
+#endif
 
+#if defined(ENABLE_UART2)
+extern "C" void UART2_IRQHandler(void)
+{
+    Serial2.IRQHandler();
+}
+#endif
+
+#if defined(ENABLE_UART3)
+extern "C" void UART3_IRQHandler(void)
+{
+    Serial3.IRQHandler();
+}
+#endif
 
 
 

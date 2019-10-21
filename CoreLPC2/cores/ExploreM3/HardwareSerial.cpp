@@ -48,6 +48,10 @@ HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint8_t *rxBuffer,
 void HardwareSerial::begin(uint32_t baud)
 {
      
+    //Reset Ringbuffers
+    RingBuffer_Flush(&this->rxRingBuffer);
+    RingBuffer_Flush(&this->txRingBuffer);
+    
     if (baud > this->usart_device->max_baud)
     {
        return;
@@ -58,7 +62,8 @@ void HardwareSerial::begin(uint32_t baud)
 
 void HardwareSerial::end(void)
 {
-   
+    NVIC_DisableIRQ(this->usart_device->irq_NUM);
+    Chip_UART_IntDisable(this->usart_device->channel->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
 }
 
 int HardwareSerial::read(void)

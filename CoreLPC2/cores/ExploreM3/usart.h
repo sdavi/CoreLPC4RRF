@@ -37,9 +37,9 @@ void usart_init(const usart_dev *dev, uint32_t baud_rate);
 
 
 extern const usart_dev *USART0;
-//extern usart_dev *USART1;
-//extern usart_dev *USART2;
-//extern usart_dev *USART3;
+extern const usart_dev *USART1;
+extern const usart_dev *USART2;
+extern const usart_dev *USART3;
 
 
 

@@ -141,7 +141,7 @@ static inline uint8_t xchg_spi (uint8_t dat)
 /* btr - Number of bytes to receive (16, 64 or 512) */
 static inline void rcvr_spi_multi(uint8_t *buff, uint32_t btr)
 {
-    sspi_transceive_packet_16(nullptr, buff, btr); //use 16-bit transfer
+    sspi_transceive_packet(nullptr, buff, btr);
 }
 
 /* Send multiple byte */
@@ -149,7 +149,7 @@ static inline void rcvr_spi_multi(uint8_t *buff, uint32_t btr)
 /* Number of bytes to send (multiple of 16) */
 static inline void xmit_spi_multi (const uint8_t *buff, uint32_t btx)
 {
-    sspi_transceive_packet_16(buff, nullptr, btx);//use 16-bit transfer
+    sspi_transceive_packet(buff, nullptr, btx);
 }
 
 

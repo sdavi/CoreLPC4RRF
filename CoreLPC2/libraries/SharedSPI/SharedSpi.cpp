@@ -3,7 +3,6 @@
 #include "Core.h"
 #include "SharedSpi.h"
 
-#include "SPI.h"
 #include "SoftwareSPI.h"
 #include "HardwareSPI.h"
 
@@ -13,7 +12,7 @@ static SoftwareSPI swspi0;
 
 
 static SPI *selectedSPIDevice = nullptr;
-static SPI *getSSPDevice(SSPChannel channel)
+SPI *getSSPDevice(SSPChannel channel)
 {
     switch(channel)
     {
@@ -98,19 +97,6 @@ void sspi_deselect_device(const struct sspi_device *device)
 spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
 {
     if(selectedSPIDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
-    return selectedSPIDevice->sspi_transceive_packet(tx_data, rx_data, len);
-}
-
-
-//16bit version of transceive packet
-//
-// len - Number of bytes to transceive
-// (TODO: must be at least 16 bytes to use this method)
-spi_status_t sspi_transceive_packet_16(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
-{
-    if(selectedSPIDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
-    
-    //todo: add check to ensure we can use this, else fall back to sspi_transceive_packet
     return selectedSPIDevice->sspi_transceive_packet(tx_data, rx_data, len);
 }
 

@@ -21,6 +21,24 @@ __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory[txBufSize] __att
 __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory[rxBufSize] __attribute__ ( ( aligned( 8 ) ) );;
 HardwareSerial Serial0(USART0, uartRxMemory, rxBufSize, uartTxMemory, txBufSize);
 
+#if defined(ENABLE_UART1)
+    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory1[txBufSize] __attribute__ ( ( aligned( 8 ) ) );;
+    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory1[rxBufSize] __attribute__ ( ( aligned( 8 ) ) );;
+    HardwareSerial Serial1(USART1, uartRxMemory1, rxBufSize, uartTxMemory1, txBufSize);
+#endif
+
+#if defined(ENABLE_UART2)
+    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory2[txBufSize] __attribute__ ( ( aligned( 8 ) ) );;
+    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory2[rxBufSize] __attribute__ ( ( aligned( 8 ) ) );;
+    HardwareSerial Serial2(USART2, uartRxMemory2, rxBufSize, uartTxMemory2, txBufSize);
+#endif
+
+#if defined(ENABLE_UART3)
+    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory3[txBufSize] __attribute__ ( ( aligned( 8 ) ) );;
+    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory3[rxBufSize] __attribute__ ( ( aligned( 8 ) ) );;
+    HardwareSerial Serial3(USART3, uartRxMemory3, rxBufSize, uartTxMemory3, txBufSize);
+#endif
+
 
 
 //How much memory to reserve when allocating the heap space.

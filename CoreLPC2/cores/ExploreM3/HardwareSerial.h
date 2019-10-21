@@ -77,10 +77,20 @@ private:
 
 #define UARTClass HardwareSerial // compatibility with RRF
 
-extern HardwareSerial Serial0; 
-//extern HardwareSerial Serial1;
-//extern HardwareSerial Serial2;
-//extern HardwareSerial Serial3;
+extern HardwareSerial Serial0;
+
+#if defined(ENABLE_UART1)
+    extern HardwareSerial Serial1;
+#endif
+#if defined(ENABLE_UART2)
+    extern HardwareSerial Serial2;
+#endif
+#if defined(ENABLE_UART3)
+    extern HardwareSerial Serial3;
+#endif
+
+//
+//
 
 
 

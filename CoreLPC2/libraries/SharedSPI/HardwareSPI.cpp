@@ -1,7 +1,11 @@
 //Hardware SPI
-
 #include "HardwareSPI.h"
 #include "chip.h"
+
+#include "DMA.h"
+
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 #define SPI0_FUNCTION  PINSEL_FUNC_2 //SSP
 #define SPI1_FUNCTION  PINSEL_FUNC_2
@@ -143,6 +147,27 @@ static inline CHIP_SSP_CLOCK_MODE_T getSSPMode(uint8_t spiMode)
     return SSP_CLOCK_CPHA0_CPOL0;
 }
 
+
+void ssp0_dma_interrupt()
+{
+    HardwareSPI *s = (HardwareSPI *) getSSPDevice(SSP0);
+    s->interrupt();
+}
+
+void ssp1_dma_interrupt()
+{
+    HardwareSPI *s = (HardwareSPI *) getSSPDevice(SSP1);
+    s->interrupt();
+}
+
+void HardwareSPI::interrupt()
+{
+    dmaTransferComplete = true;
+
+    BaseType_t mustYield=false;
+    xSemaphoreGiveFromISR(spiTransferSemaphore, &mustYield);
+}
+
 //setup the master device.
 void HardwareSPI::setup_device(const struct sspi_device *device)
 {
@@ -151,8 +176,11 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
     
     if(needInit)
     {
+        InitialiseDMA(8);
+        
         if(selectedSSPDevice == LPC_SSP0)
         {
+            Chip_Clock_SetPCLKDiv(SYSCTL_PCLK_SSP0, SYSCTL_CLKDIV_1); //set SPP peripheral clock to PCLK/1
             Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SSP0); //enable power and clocking
             
             GPIO_PinFunction(SPI0_SCK, SPI0_FUNCTION);   /* Configure the Pinfunctions for SPI */
@@ -162,10 +190,12 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
             GPIO_PinDirection(SPI0_SCK, OUTPUT);        /* Configure SCK,MOSI,SSEl as Output and MISO as Input */
             GPIO_PinDirection(SPI0_MOSI,OUTPUT);
             GPIO_PinDirection(SPI0_MISO,INPUT);
-            
+
+            AttachDMAChannelInterruptHandler(ssp0_dma_interrupt, DMA_SSP0_RX); //attach to the RX complete DMA Intettrupt handler
         }
         else if (selectedSSPDevice == LPC_SSP1)
         {
+            Chip_Clock_SetPCLKDiv(SYSCTL_PCLK_SSP1, SYSCTL_CLKDIV_1); //set SPP peripheral clock to PCLK/1
             Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SSP1); //enable power and clocking
             
             GPIO_PinFunction(SPI1_SCK, SPI1_FUNCTION);   /* Configure the Pinfunctions for SPI */
@@ -175,6 +205,8 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
             GPIO_PinDirection(SPI1_SCK, OUTPUT);        /* Configure SCK,MOSI,SSEl as Output and MISO as Input */
             GPIO_PinDirection(SPI1_MOSI,OUTPUT);
             GPIO_PinDirection(SPI1_MISO,INPUT);
+            
+            AttachDMAChannelInterruptHandler(ssp1_dma_interrupt, DMA_SSP1_RX); //attach to the RX complete DMA Intettrupt handler
         }
         
         needInit = false;
@@ -196,114 +228,70 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
 HardwareSPI::HardwareSPI(LPC_SSP_T *sspDevice):needInit(true)
 {
     selectedSSPDevice = sspDevice;
+    dmaTransferComplete = false;
+    
+    spiTransferSemaphore = xSemaphoreCreateBinary();
 }
 
+spi_status_t HardwareSPI::sspi_transceive_packet_dma(const uint8_t *tx_data, uint8_t *rx_data, size_t len, DMA_TransferWidth_t transferWidth)
+{
+    dmaTransferComplete = false;
+    
+    uint8_t dontCareRX = 0;
+    uint8_t dontCareTX = 0xFF;
+    
+    DMA_Channel_t chanRX;
+    DMA_Channel_t chanTX;
+    
+    if(selectedSSPDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
+
+    
+    selectedSSPDevice->DMACR = SSP_DMA_TX | SSP_DMA_RX; //enable DMA
+
+    if(selectedSSPDevice == LPC_SSP0)
+    {
+        chanRX = DMA_SSP0_RX;
+        chanTX = DMA_SSP0_TX;
+    }
+    else
+    {
+        chanRX = DMA_SSP1_RX;
+        chanTX = DMA_SSP1_TX;
+    }
+    
+    if(rx_data != nullptr)
+    {
+        SspDmaRxTransfer(chanRX, rx_data, len);
+    }
+    else
+    {
+        SspDmaRxTransferNI(chanRX, &dontCareRX, len); //No Increment mode, dont care about received data, overwrite dontCareRX
+    }
+        
+    if(tx_data != nullptr)
+    {
+        SspDmaTxTransfer(chanTX, tx_data, len);
+    }
+    else
+    {
+        SspDmaTxTransferNI(chanTX, &dontCareTX, len); //No Increment mode, send 0xFF
+    }
+    
+    spi_status_t ret = SPI_OK;
+    //while not complete
+    //while(dmaTransferComplete == false)
+    const TickType_t xDelay = SPITimeoutMillis / portTICK_PERIOD_MS; //timeout
+    if( xSemaphoreTake(spiTransferSemaphore, xDelay) == pdFALSE) // timed out or failed to take semaphore
+    {
+        ret = SPI_ERROR_TIMEOUT;
+    }
+    selectedSSPDevice->DMACR &= ~(SSP_DMA_RX | SSP_DMA_TX); //disable DMA
+
+    
+    return ret;
+}
 
 spi_status_t HardwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
 {
-    if(selectedSSPDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
-    //if(clearSSPTimeout(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
-
-    for (uint32_t i = 0; i < len; ++i)
-	{
-		uint32_t dOut = (tx_data == nullptr) ? 0x000000FF : (uint32_t)*tx_data++;
-
-        //Wait for Transmit to be ready
-        if (waitForTxReady(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
-        
-        selectedSSPDevice->DR = dOut; //put data into the Data Registor to transmit
-        
-        // Wait for receive to be ready
-        if (waitForRxReady(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
-
-        uint8_t dIn = selectedSSPDevice->DR; //get received data from Data Registor
-        if(rx_data != nullptr) *rx_data++ = dIn;
-    }
-    
-	return SPI_OK;
-}
-
-
-//16bit version of transceive packet for SDCard - Sends 2x8bits in 16bit mode
-// len - Number of bytes to transceive
-// (TODO: must be at least 16 bytes to use this method)
-spi_status_t HardwareSPI::sspi_transceive_packet_16(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
-{
-    if(selectedSSPDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
-    //if(clearSSP(selectedSSPDevice)) return SPI_ERROR_TIMEOUT;
-    
-    const uint32_t cr0 =  selectedSSPDevice->CR0 & 0xFFFF; // save old value
-    
-    //change to 16 bit mode (DSS = (bits-1) dss is bits 0:3 of CR)
-    selectedSSPDevice->CR0 |= 0x000F;
-    
-    //Fill the FIFO by loading up the first 8 frames (each 16bit frame holds 2 bytes)
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        uint32_t dOut = 0x0000FFFF;
-        if(tx_data != nullptr)
-        {
-            dOut = *tx_data++;
-            dOut = (dOut << 8) | *tx_data++;
-        }
-        selectedSSPDevice->DR = dOut; //put data into the Data Register to transmit
-
-    }
-    len -= 16;
-    
-    while (len >= 2)
-    {
-        //wait until there is data in the FIFO
-        if (waitForReceiveNotEmpty(selectedSSPDevice))
-        {
-            selectedSSPDevice->CR0 = cr0; //set mode back to previous value
-            //debugPrintf("SharedSPI: Timeout Error\n");
-            return SPI_ERROR_TIMEOUT;
-        }
-
-        //Read in a Frame
-        uint32_t dIn = selectedSSPDevice->DR; //get received data from Data Register
-        if(rx_data != nullptr)
-        {
-            *rx_data++ = dIn >> 8;
-            *rx_data++ = dIn;
-        }
-            
-        //Send the next Frame
-        uint32_t dOut = 0x0000FFFF;
-        if(tx_data != nullptr)
-        {
-            dOut = *tx_data++;
-            dOut = (dOut << 8) | *tx_data++;
-        }
-
-        selectedSSPDevice->DR = dOut; //put data into the Data Register to transmit
-        
-        len -= 2;
-    }
-    
-    //get the last 8 frames from Receive FIFO
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        //wait until there is data in the FIFO
-        if (waitForReceiveNotEmpty(selectedSSPDevice))
-        {
-            selectedSSPDevice->CR0 = cr0; //set mode back to previous value
-//            debugPrintf("SharedSPI: Timeout Error\n");
-            return SPI_ERROR_TIMEOUT;
-        }
-        
-        
-        //Read Frame
-        uint32_t dIn = selectedSSPDevice->DR; //get received data from Data Register
-        if(rx_data != nullptr)
-        {
-            *rx_data++ = dIn >> 8;
-            *rx_data++ = dIn;
-        }
-    }
-    
-    selectedSSPDevice->CR0 = cr0; //set mode back to previous value
-
-    return SPI_OK;
+    return sspi_transceive_packet_dma(tx_data, rx_data, len, DMA_WIDTH_BYTE);
 }

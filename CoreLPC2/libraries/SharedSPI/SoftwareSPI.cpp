@@ -94,9 +94,3 @@ uint8_t SoftwareSPI::transfer_byte(uint8_t byte_out)
     
     return byte_in;
 }
-
-//unused for SoftwareSPI
-spi_status_t SoftwareSPI::sspi_transceive_packet_16(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
-{
-    return sspi_transceive_packet(tx_data,rx_data,len);
-}

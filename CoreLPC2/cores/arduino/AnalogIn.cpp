@@ -38,6 +38,10 @@ const adcChannelConfig_st AdcConfig[numChannels]=
 void AnalogInInit()
 {
     Chip_ADC_Init(LPC_ADC, &ADCSetup); //Init ADC and setup the ADCSetup struct
+    Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE); //enable burst mode
+    //Chip_ADC_SetSampleRate(ADC_MAX_SAMPLE_RATE); //200kHz
+    Chip_ADC_SetSampleRate(LPC_ADC, &ADCSetup, 1000); //1Hz
+    
 }
 
 // Enable or disable a channel.
@@ -59,7 +63,6 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
             LPC_ADC->CR  = (LPC_ADC->CR  & 0xFFFFFF00) | (activeChannels & 0x000000FF );
             
 		}
-        if( !(LPC_ADC->CR & ADC_CR_BURST) ) Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE); //enable burst mode is not already started
 	}
 }
 
@@ -68,6 +71,7 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
 uint16_t AnalogInReadChannel(AnalogChannelNumber channel)
 {
     uint16_t val = 0;
+    while (Chip_ADC_ReadStatus(LPC_ADC, channel, ADC_DR_DONE_STAT) != SET) {}
     Chip_ADC_ReadValue(LPC_ADC, (uint8_t)channel, &val);
     return val;
 }
