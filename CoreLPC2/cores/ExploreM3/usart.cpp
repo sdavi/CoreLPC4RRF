@@ -23,7 +23,6 @@ static const usart_channel_map USART_BASE[4] =
 static const usart_dev usart0 =
 {
     .channel = &USART_BASE[0],
-    .max_baud = 4500000UL,
     .irq_NUM = UART0_IRQn,
 };
 const usart_dev *USART0 = &usart0;
@@ -31,7 +30,6 @@ const usart_dev *USART0 = &usart0;
 static const usart_dev usart1 =
 {
     .channel = &USART_BASE[1],
-    .max_baud = 4500001UL,
     .irq_NUM = UART1_IRQn,
 };
 const usart_dev *USART1 = &usart1;
@@ -39,7 +37,6 @@ const usart_dev *USART1 = &usart1;
 static const usart_dev usart2 =
 {
     .channel = &USART_BASE[2],
-    .max_baud = 2250001UL,
     .irq_NUM = UART2_IRQn,
 };
 const usart_dev *USART2 = &usart2;
@@ -47,7 +44,6 @@ const usart_dev *USART2 = &usart2;
 static const usart_dev usart3 =
 {
     .channel     = &USART_BASE[3],
-    .max_baud = 2250002UL,
     .irq_NUM = UART3_IRQn,
 };
 const usart_dev *USART3 = &usart3;

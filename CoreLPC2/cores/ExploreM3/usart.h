@@ -29,7 +29,6 @@ typedef struct
 typedef struct usart_dev
 {
     const usart_channel_map *channel;             /*LPC1768 UART Channel Register Mapping */
-    uint32_t max_baud;
     IRQn_Type irq_NUM;  
 } usart_dev;
 

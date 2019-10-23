@@ -36,6 +36,9 @@
 #include "usart.h"
 #include "interrupt_lpc.h"
 
+constexpr uint32_t MaxBaudRate = 460800;
+
+
 HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint8_t *rxBuffer, uint16_t rxRingBufferSize, uint8_t *txBuffer, uint16_t txRingBufferSize)
 {
     this->usart_device = usart_device;
@@ -52,7 +55,7 @@ void HardwareSerial::begin(uint32_t baud)
     RingBuffer_Flush(&this->rxRingBuffer);
     RingBuffer_Flush(&this->txRingBuffer);
     
-    if (baud > this->usart_device->max_baud)
+    if (baud > MaxBaudRate)
     {
        return;
     }
@@ -122,7 +125,6 @@ size_t HardwareSerial::canWrite()
 size_t HardwareSerial::write(const uint8_t ch)
 {
     Chip_UART_SendRB(this->usart_device->channel->UARTx, &this->txRingBuffer, &ch, 1);
-    //Chip_UART_SendBlocking(this->usart_device->channel->UARTx, &ch, 1);
     return 1;
 }
 
@@ -133,7 +135,6 @@ size_t HardwareSerial::write(const uint8_t *buffer, size_t size)
     while (size != 0)
     {
         size_t written = Chip_UART_SendRB(this->usart_device->channel->UARTx, &this->txRingBuffer, buffer, size);
-        //size_t written = Chip_UART_SendBlocking(this->usart_device->channel->UARTx, buffer, size);
         buffer += written;
         size -= written;
     }
@@ -159,7 +160,6 @@ void HardwareSerial::IRQHandler()
 void HardwareSerial::setInterruptPriority(uint32_t priority)
 {
     NVIC_SetPriority(this->usart_device->irq_NUM, priority);
-    
 }
 
 uint32_t HardwareSerial::getInterruptPriority()
