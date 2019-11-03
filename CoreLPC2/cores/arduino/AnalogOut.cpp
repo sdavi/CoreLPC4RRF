@@ -281,32 +281,20 @@ static inline void initTimer(uint8_t chan)
 {
     
     //INIT TIMER
-
-    //TODO:: what priority to run int at?
-    
     if(TimerPWMs[chan].timer == LPC_TIM1){
             LPC_SC->PCONP |= ((uint32_t)1<<SBIT_PCTIM1); // Ensure the Power bit is set for the Timer1
-            NVIC_SetPriority(TIMER1_IRQn, 8); //Timer Priority
             NVIC_EnableIRQ(TIMER1_IRQn);
             TimerPWMs[chan].timer->PR   =  getPrescalarForUs(PCLK_TIMER1); // Prescalar for 1us... every 1us TC is incremented
-
     }
     else  if(TimerPWMs[chan].timer == LPC_TIM2){
             LPC_SC->PCONP |= ((uint32_t)1<<SBIT_PCTIM2); // Ensure the Power bit is set for the Timer2
-            NVIC_SetPriority(TIMER2_IRQn, 8); //Timer Priority
             NVIC_EnableIRQ(TIMER2_IRQn);
-
             TimerPWMs[chan].timer->PR   =  getPrescalarForUs(PCLK_TIMER2); // Prescalar for 1us... every 1us TC is incremented
-
     }
      else if(TimerPWMs[chan].timer == LPC_TIM3){
             LPC_SC->PCONP |= ((uint32_t)1<<SBIT_PCTIM3); // Ensure the Power bit is set for the Timer3
-            NVIC_SetPriority(TIMER3_IRQn, 8); //Timer Priority
             NVIC_EnableIRQ(TIMER3_IRQn);
-
             TimerPWMs[chan].timer->PR   =  getPrescalarForUs(PCLK_TIMER3); // Prescalar for 1us... every 1us TC is incremented
-         
-
     }
 
     TimerPWMs[chan].timer->MR0 = 1000000/TimerPWMs[chan].frequency; //The PWM Period in us
