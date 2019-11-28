@@ -77,23 +77,6 @@ bool inInterrupt();
 
 constexpr size_t MaxExtIntEntries = 3;
 
-// Find the lowest set bit. Returns the lowest set bit number, undefined if no bits are set.
-// GCC provides intrinsics, but unhelpfully they are in terms of int, long and long long instead of uint32_t, uint64_t etc.
-inline unsigned int LowestSetBitNumber(unsigned int val)
-{
-    return (unsigned int)__builtin_ctz(val);
-}
-
-inline unsigned int LowestSetBitNumber(unsigned long val)
-{
-    return (unsigned int)__builtin_ctzl(val);
-}
-
-inline unsigned int LowestSetBitNumber(unsigned long long val)
-{
-    return (unsigned int)__builtin_ctzll(val);
-}
-
 #endif //__cplusplus
 
 
