@@ -59,7 +59,7 @@ public:
     using Print::write;
     size_t canWrite();
 
-	operator bool() { return true; }
+    bool IsConnected() const { return true; }
 
     void IRQHandler();
     

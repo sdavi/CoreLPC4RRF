@@ -90,7 +90,7 @@ size_t SerialUSB::canWrite() const{
     return usbSerial->canWrite();
 }
 
-SerialUSB::operator bool() const
+bool SerialUSB::IsConnected() const
 {
     return usbSerial->isConnected();
 }
