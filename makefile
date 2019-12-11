@@ -17,8 +17,8 @@ BUILD = Debug
 #BUILD = Release
 
 #Enable only one
-NETWORKING = true
-#ESP8266WIFI = true
+#NETWORKING = true
+ESP8266WIFI = true
 
 #Comment out to show compilation commands (verbose)
 V=@
@@ -103,7 +103,7 @@ endif
 
 
 CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline
-CXXFLAGS = $(FLAGS) -std=gnu++17 -fno-threadsafe-statics -fno-exceptions -fno-rtti -Wno-register
+CXXFLAGS = $(FLAGS) -std=gnu++17 -fno-threadsafe-statics -fexceptions -fno-rtti -Wno-register
 
 
 
@@ -133,7 +133,7 @@ $(BUILD_DIR)/core.a: $(CORE_OBJS)
 $(BUILD_DIR)/$(OUTPUT_NAME).elf: $(BUILD_DIR)/core.a $(RRF_OBJS) 
 	@echo "\nCreating $(OUTPUT_NAME).bin"
 	$(V)$(MKDIR) $(dir $@)
-	$(V)$(LD) -L$(BUILD_DIR)/ -L$(CORE)/variants/LPC/linker_scripts/gcc/ -Os --specs=nano.specs -u _printf_float -u _scanf_float -Wl,--warn-section-align -Wl,--gc-sections -Wl,--fatal-warnings -march=armv7-m -mcpu=cortex-m3 -T$(LINKER_SCRIPT) -Wl,-Map,$(OUTPUT_NAME).map -o $(OUTPUT_NAME).elf  -mthumb -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-unresolved-symbols -Wl,--start-group $(BUILD_DIR)/$(CORE)/cores/arduino/syscalls.o $(BUILD_DIR)/core.a $(RRF_OBJS) -Wl,--end-group -lm
+	$(V)$(LD) -L$(BUILD_DIR)/ -L$(CORE)/variants/LPC/linker_scripts/gcc/ -Os --specs=nano.specs -u _printf_float -u _scanf_float -Wl,--warn-section-align -Wl,--gc-sections -Wl,--fatal-warnings -march=armv7-m -mcpu=cortex-m3 -T$(LINKER_SCRIPT) -Wl,-Map,$(OUTPUT_NAME).map -o $(OUTPUT_NAME).elf  -mthumb -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-unresolved-symbols -Wl,--start-group $(BUILD_DIR)/$(CORE)/cores/arduino/syscalls.o $(BUILD_DIR)/core.a $(RRF_OBJS) -Wl,--end-group -lm -lsupc++
 	$(V)$(OBJCOPY) --strip-unneeded -O binary $(OUTPUT_NAME).elf $(OUTPUT_NAME).bin
 	$(V)$(SIZE) $(OUTPUT_NAME).elf
 

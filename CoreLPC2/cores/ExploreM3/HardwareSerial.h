@@ -40,7 +40,8 @@
 #include "usart.h"
 #include "Stream.h"
 
-class HardwareSerial : public Stream {
+class HardwareSerial : public Stream
+{
 
 public:
     HardwareSerial(const struct usart_dev *usart_device, uint8_t *rxBuffer, uint16_t rxRingBufferSize, uint8_t *txBuffer, uint16_t txRingBufferSize);
@@ -59,7 +60,7 @@ public:
     using Print::write;
     size_t canWrite();
 
-	operator bool() { return true; }
+	bool IsConnected() { return true; }
 
     void IRQHandler();
     
