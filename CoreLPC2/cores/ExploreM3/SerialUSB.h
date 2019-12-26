@@ -46,10 +46,7 @@ public:
     void setInterruptPriority(uint32_t priority);
     uint32_t getInterruptPriority();
 
-    
-    operator bool() const;
-    
-    
+    bool IsConnected();
     
 };
 

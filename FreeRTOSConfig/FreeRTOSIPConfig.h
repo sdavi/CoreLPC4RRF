@@ -122,7 +122,7 @@ extern void IPTaskWatchDogTimer();
 /* Set to 1 to print out debug messages.  If ipconfigHAS_DEBUG_PRINTF is set to
 1 then FreeRTOS_debug_printf should be defined to the function used to print
 out the debugging messages. */
-extern void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
+//extern void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 #define ipconfigHAS_DEBUG_PRINTF	0
 #if( ipconfigHAS_DEBUG_PRINTF == 1 )
