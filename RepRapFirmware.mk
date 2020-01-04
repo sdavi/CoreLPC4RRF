@@ -14,7 +14,7 @@ RRF_SRC_DIRS += Display Display/ST7920
 ifeq ($(NETWORKING), true)
 	RRF_SRC_DIRS += Networking Networking/RTOSPlusTCPEthernet
 else ifeq ($(ESP8266WIFI), true) 
-	RRF_SRC_DIRS += Networking Networking/ESP8266WIFI
+	RRF_SRC_DIRS += Networking Networking/ESP8266WiFi
 else
 	RRF_SRC_DIRS += LPC/NoNetwork
 endif
