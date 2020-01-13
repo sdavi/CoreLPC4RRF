@@ -43,6 +43,7 @@ MKDIR = mkdir -p
 
 include LPCCore.mk
 include FreeRTOS.mk
+include RRFLibraries.mk
 include RepRapFirmware.mk
 
 
@@ -86,7 +87,7 @@ FLAGS += -DCORE_M3
 FLAGS += -DRTOS -DFREERTOS_USED -DRRF_RTOSPLUS_MOD
 FLAGS += -DDEVICE_USBDEVICE=1 -DTARGET_LPC1768
 FLAGS +=  -Wall -c -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections -march=armv7-m 
-FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant
+FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant 
 #FLAGS += -Wundef
 FLAGS += $(DEBUG_FLAGS)
 FLAGS += -MMD -MP 
@@ -106,14 +107,14 @@ CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline
 CXXFLAGS = $(FLAGS) -std=gnu++17 -fno-threadsafe-statics -fexceptions -fno-rtti -Wno-register
 
 
-
 #all Includes (RRF + Core)
-INCLUDES = $(CORE_INCLUDES) $(RRF_INCLUDES)
+INCLUDES = $(CORE_INCLUDES) $(RRFLIBRARIES_INCLUDES) $(RRF_INCLUDES) $(RRFLIBC_INCLUDES)
 
 
 DEPS = $(CORE_OBJS:.o=.d)
 DEPS += $(RRF_OBJS:.o=.d)
-
+DEPS += $(RRFLIBC_OBJS:.o=.d)
+DEPS += $(RRFLIBRARIES_OBJS:.o=.d)
 
 default: all
 
@@ -125,20 +126,22 @@ firmware:  $(BUILD_DIR)/$(OUTPUT_NAME).elf
 
 coreLPC: $(BUILD_DIR)/core.a
 
-$(BUILD_DIR)/core.a: $(CORE_OBJS)
-
-	@echo "\nBuilt LPCCore"
+$(BUILD_DIR)/libLPCCore.a: $(CORE_OBJS)
 	$(V)$(AR) rcs $@ $(CORE_OBJS)
-
-$(BUILD_DIR)/$(OUTPUT_NAME).elf: $(BUILD_DIR)/core.a $(RRF_OBJS) 
+	@echo "\nBuilt LPCCore\n"
+	
+$(BUILD_DIR)/libRRFLibraries.a: $(RRFLIBRARIES_OBJS)
+	$(V)$(AR) rcs $@ $(RRFLIBRARIES_OBJS)
+	@echo "\nBuilt RRF Libraries\n"
+	
+$(BUILD_DIR)/$(OUTPUT_NAME).elf: $(BUILD_DIR)/libLPCCore.a $(BUILD_DIR)/libRRFLibraries.a $(RRFLIBC_OBJS) $(RRF_OBJS)
 	@echo "\nCreating $(OUTPUT_NAME).bin"
 	$(V)$(MKDIR) $(dir $@)
-	$(V)$(LD) -L$(BUILD_DIR)/ -L$(CORE)/variants/LPC/linker_scripts/gcc/ -Os --specs=nano.specs -u _printf_float -u _scanf_float -Wl,--warn-section-align -Wl,--gc-sections -Wl,--fatal-warnings -march=armv7-m -mcpu=cortex-m3 -T$(LINKER_SCRIPT) -Wl,-Map,$(OUTPUT_NAME).map -o $(OUTPUT_NAME).elf  -mthumb -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-unresolved-symbols -Wl,--start-group $(BUILD_DIR)/$(CORE)/cores/arduino/syscalls.o $(BUILD_DIR)/core.a $(RRF_OBJS) -Wl,--end-group -lm -lsupc++
-	$(V)$(OBJCOPY) --strip-unneeded -O binary $(OUTPUT_NAME).elf $(OUTPUT_NAME).bin
-	$(V)$(SIZE) $(OUTPUT_NAME).elf
-
-	-@./staticMemStats.sh 
-
+	$(V)$(LD) -L$(BUILD_DIR)/ -L$(CORE)/variants/LPC/linker_scripts/gcc/ -Os -Wl,--warn-section-align -Wl,--fatal-warnings -march=armv7-m -mcpu=cortex-m3 -T$(LINKER_SCRIPT) -Wl,-Map,$(BUILD_DIR)/$(OUTPUT_NAME).map -o $(BUILD_DIR)/$(OUTPUT_NAME).elf  -mthumb -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--entry=Reset_Handler -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align -Wl,--warn-unresolved-symbols -Wl,--start-group  $(BUILD_DIR)/$(CORE)/cores/arduino/syscalls.o $(RRFLIBC_OBJS) -lLPCCore $(RRF_OBJS) -lsupc++ -lRRFLibraries  -Wl,--end-group -lm 
+	$(V)$(OBJCOPY) --strip-unneeded -O binary $(BUILD_DIR)/$(OUTPUT_NAME).elf $(BUILD_DIR)/$(OUTPUT_NAME).bin
+	$(V)$(SIZE) $(BUILD_DIR)/$(OUTPUT_NAME).elf
+	-@./staticMemStats.sh $(BUILD_DIR)/$(OUTPUT_NAME).elf
+	
 $(BUILD_DIR)/%.o: %.c
 	@echo "[$(CC): Compiling $<]"
 	$(V)$(MKDIR) $(dir $@)
@@ -152,15 +155,17 @@ $(BUILD_DIR)/%.o: %.cpp
 	$(V)$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -o $@ $<
 
 cleanrrf:
-	-rm -f $(RRF_OBJS)
+	-rm -f $(RRF_OBJS)  $(BUILD_DIR)/libRRFLibraries.a
 	
 cleancore:
-	-rm -f $(BUILD_DIR)/core.a $(CORE_OBJS)
+	-rm -f $(CORE_OBJS) $(BUILD_DIR)/libLPCCore.a
+
+cleanrrflibraries:
+	-rm -f $(RRFLIBRARIES_OBJS) $(BUILD_DIR)/libRRFLibraries.a
 
 clean: distclean
 
 distclean:
 	-rm -rf $(BUILD_DIR)/ 
-	-rm -f firmware.elf firmware.bin firmware.map
 
-.PHONY: all  clean distclean
+.PHONY: all firmware clean distclean $(BUILD_DIR)/$(OUTPUT_NAME).elf

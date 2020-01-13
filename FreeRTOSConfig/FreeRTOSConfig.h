@@ -30,9 +30,14 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+#ifdef __cplusplus
+# define NOEXCEPT    noexcept
+#else
+# define NOEXCEPT
+#endif
+
 /* Atmel library includes. */
 #if __LPC17xx__
-//# include <lpc17xx.h>
 
 #else
 # include <asf.h>
@@ -171,7 +176,7 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
-extern void vAssertCalled( uint32_t ulLine, const char *pcFile );
+extern void vAssertCalled( uint32_t ulLine, const char *pcFile ) NOEXCEPT;
 #define configASSERT( x ) if( ( x ) == 0 ) vAssertCalled( __LINE__, __FILE__ )
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS

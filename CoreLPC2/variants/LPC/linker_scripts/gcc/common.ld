@@ -73,6 +73,9 @@ SECTIONS
         *(.bss.*assembleConfigDescriptor*)
         *(.bss.*bufferIn)
         *(.bss.*bufferOut)
+        *(.bss.*infoParser)
+        *(.bss.*info)
+        *(.bss.*files)
 	
         Image$$RW_IRAM2$$ZI$$Limit = .;
         PROVIDE(__AHB0_dyn_start = .);
@@ -164,7 +167,7 @@ SECTIONS
     } > RAM
      . = ALIGN(4);
     _end = . ;
-
+    end = _end;
 
 /*    .heap : {
        __heap_start__ = heap;
@@ -194,6 +197,12 @@ SECTIONS
     /*ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with
      * stack")*/
 
+
+
+	/* Check if everything fits into FLASH */
+    __dataSectionSize = __data_end__ - __data_start__;
+    __textSectionSize = __etext - ORIGIN(FLASH);
+    ASSERT( __dataSectionSize + __textSectionSize <= LENGTH(FLASH), "FLASH overflowed")
 
 
 

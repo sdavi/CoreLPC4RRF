@@ -19,7 +19,6 @@
 #define USBSERIAL_H
 
 #include "USBCDC.h"
-#include "platform/Stream.h"
 #include "Callback.h"
 
 /**
@@ -42,7 +41,7 @@
 * }
 * @endcode
 */
-class USBSerial: public USBCDC, public mbed::Stream {
+class USBSerial: public USBCDC {
 public:
 
     /**

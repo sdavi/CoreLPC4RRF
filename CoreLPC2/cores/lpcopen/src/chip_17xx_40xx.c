@@ -40,7 +40,7 @@
  ****************************************************************************/
 
 /* System Clock Frequency (Core Clock) */
-uint32_t SystemCoreClock;
+extern uint32_t SystemCoreClock;
 
 /*****************************************************************************
  * Private functions
