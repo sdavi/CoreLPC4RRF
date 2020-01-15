@@ -32,7 +32,7 @@ void AnalogInStartConversion(uint32_t channels = 0xFFFFFFFF);
 // Convert a pin number to an AnalogIn channel
 extern AnalogChannelNumber PinToAdcChannel(uint32_t pin);
 
-
+void ConfigureADCPreFilter(bool enable);
 #endif
 
 #endif /* CORES_ARDUINO_ANALOGIN_H_ */
