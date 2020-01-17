@@ -15,7 +15,7 @@ RRF_SRC_DIRS += LPC LPC/MCP4461 LPC/FatFS
 
 #networking support?
 ifeq ($(NETWORKING), true)
-	RRF_SRC_DIRS += Networking LPC/LPCNetworking/RTOSPlusTCPEthernet
+	RRF_SRC_DIRS += Networking LPC/LPCNetworking LPC/LPCNetworking/RTOSPlusTCPEthernet
 else ifeq ($(ESP8266WIFI), true) 
 	RRF_SRC_DIRS += Networking Networking/ESP8266WiFi LPC/LPCNetworking/ESP8266WiFi
 else
