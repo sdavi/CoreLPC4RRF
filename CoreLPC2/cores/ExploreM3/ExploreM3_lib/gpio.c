@@ -37,12 +37,12 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #include "stdutils.h"
 #include "gpio.h"
 
-
+#include "BitBanding.h"
 
 inline void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_u8)
 {
     uint8_t var_portNumber_u8;
-	uint32_t *ptr_PINCON;
+	//uint32_t *ptr_PINCON;
 	uint8_t var_pinNumber_u8 = enm_pinNumber; 
 
     var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
@@ -58,11 +58,19 @@ inline void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_
     
     var_pinNumber_u8 = var_pinNumber_u8 * 2;
     
-    ptr_PINCON    = ((uint32_t *)&LPC_IOCON->PINSEL[0]  + var_portNumber_u8);
+//    ptr_PINCON    = ((uint32_t *)&LPC_IOCON->PINSEL[0]  + var_portNumber_u8);
+//    *(uint32_t *)(ptr_PINCON) &= ~(0x03UL << var_pinNumber_u8);
+//	  *(uint32_t *)(ptr_PINCON) |= (((uint32_t)(var_pinFunction_u8 & 0x03)) << var_pinNumber_u8);
     
-    *(uint32_t *)(ptr_PINCON) &= ~(0x03UL << var_pinNumber_u8);
-	*(uint32_t *)(ptr_PINCON) |= (((uint32_t)(var_pinFunction_u8 & 0x03)) << var_pinNumber_u8);
     
+    
+    //Each pin in PINSEL has 2 bits to configure
+    //Get the bitband alias address of both bits (IOCON is in peripheral region)
+    volatile uint32_t* bb_pin_b1 = bb_alias_periph_dword(&LPC_IOCON->PINSEL[var_portNumber_u8], var_pinNumber_u8);
+    volatile uint32_t* bb_pin_b2 = bb_alias_periph_dword(&LPC_IOCON->PINSEL[var_portNumber_u8], var_pinNumber_u8+1);
+    
+    *bb_pin_b1 = (var_pinFunction_u8 & 0x01);        //1st bit of pinFunction
+    *bb_pin_b2 = (var_pinFunction_u8 >> 1) & 0x01;   //2nd bit of pinFunction
 }
 
 
@@ -94,7 +102,12 @@ inline void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8)
         set the direction as specified*/
     
     LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
-    util_UpdateBit(LPC_GPIO_PORT->DIR,var_pinNumber_u8,(var_pinDirn_u8 & 0x01));
+    //util_UpdateBit(LPC_GPIO_PORT->DIR,var_pinNumber_u8,(var_pinDirn_u8 & 0x01));
+
+    //Get the bitband alias address
+    volatile uint32_t* bb_pin = bb_alias_sram_dword(&LPC_GPIO_PORT->DIR, var_pinNumber_u8);
+    *bb_pin = var_pinDirn_u8 & 0x01; //set the BB alias word which sets the bit in LPC_GPIO_PORT->DIR
+
 }
 
 
@@ -134,7 +147,12 @@ inline void GPIO_PinWrite(gpioPins_et enm_pinNumber, uint8_t var_pinValue_u8)
         update the value of the specified pin*/
     
     LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
-    util_UpdateBit(LPC_GPIO_PORT->PIN,var_pinNumber_u8,(var_pinValue_u8&0x01));
+    //util_UpdateBit(LPC_GPIO_PORT->PIN,var_pinNumber_u8,(var_pinValue_u8&0x01));
+        
+    //Get the bitband alias address
+    volatile uint32_t* bb_pin = bb_alias_sram_dword(&LPC_GPIO_PORT->PIN, var_pinNumber_u8);
+    *bb_pin = var_pinValue_u8 & 0x01; //set the BB alias word which sets the bit in LPC_GPIO_PORT->PIN
+    
 }
 
 

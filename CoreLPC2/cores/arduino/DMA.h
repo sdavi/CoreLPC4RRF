@@ -12,7 +12,8 @@ enum DMA_Channel_t : uint8_t
     DMA_SSP0_RX=0,
     DMA_SSP0_TX,
     DMA_SSP1_RX,
-    DMA_SSP1_TX
+    DMA_SSP1_TX,
+    DMA_TIMER_MAT1_0,
 };
 
 enum DMA_TransferWidth_t : uint8_t
@@ -24,6 +25,9 @@ enum DMA_TransferWidth_t : uint8_t
 
 void InitialiseDMA(uint32_t irqPriority);
 void AttachDMAChannelInterruptHandler(DMACallbackFunction callback, DMA_Channel_t channel);
+
+uint8_t DMAGetChannelNumber(DMA_Channel_t dma_channel);
+
 void SspDmaRxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth=DMA_WIDTH_BYTE);
 void SspDmaTxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth=DMA_WIDTH_BYTE);
 

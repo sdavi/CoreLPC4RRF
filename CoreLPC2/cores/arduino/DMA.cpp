@@ -30,9 +30,18 @@ void InitialiseDMA(uint32_t irqPriority)
         dma_channels[DMA_SSP1_RX] = Chip_GPDMA_GetFreeChannel(LPC_GPDMA, GPDMA_CONN_SSP1_Rx);
         dma_channels[DMA_SSP1_TX] = Chip_GPDMA_GetFreeChannel(LPC_GPDMA, GPDMA_CONN_SSP1_Tx);
         
+        //Timer1 MR0 Match Channel
+        dma_channels[DMA_TIMER_MAT1_0] = Chip_GPDMA_GetFreeChannel(LPC_GPDMA, GPDMA_CONN_MAT1_0);
+
         gpdmaInit = true;
     }
 
+}
+
+//Get the DMA channel number that was assigned to DMA channels we configured.
+uint8_t DMAGetChannelNumber(DMA_Channel_t dma_channel)
+{
+    return dma_channels[dma_channel];
 }
 
 
@@ -68,6 +77,13 @@ extern "C"  void DMA_IRQHandler(void)
     {
         if(dma_callbacks[DMA_SSP1_TX] != nullptr) dma_callbacks[DMA_SSP1_TX]();
     }
+    
+    //Timer1 MR0 Match channel
+    if (Chip_GPDMA_Interrupt(LPC_GPDMA, dma_channels[DMA_TIMER_MAT1_0]) == SUCCESS) //also clears the interrupt
+    {
+        if(dma_callbacks[DMA_TIMER_MAT1_0] != nullptr) dma_callbacks[DMA_TIMER_MAT1_0]();
+    }
+
 }
 
 
