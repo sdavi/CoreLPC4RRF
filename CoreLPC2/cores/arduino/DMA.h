@@ -13,7 +13,6 @@ enum DMA_Channel_t : uint8_t
     DMA_SSP0_TX,
     DMA_SSP1_RX,
     DMA_SSP1_TX,
-    DMA_TIMER_MAT1_0,
 };
 
 enum DMA_TransferWidth_t : uint8_t

@@ -22,6 +22,11 @@ else
 	RRF_SRC_DIRS += LPC/NoNetwork
 endif
 
+#TMC22XX support?
+ifeq ($(TMC22XX), true)
+	RRF_SRC_DIRS += Movement/StepperDrivers LPC/Movement/StepperDrivers
+endif
+
 #Find the c and cpp source files
 RRF_SRC = $(RRF_SRC_BASE) $(addprefix $(RRF_SRC_BASE)/, $(RRF_SRC_DIRS))
 RRF_OBJ_SRC_C	   += $(foreach src, $(RRF_SRC), $(wildcard $(src)/*.c) ) 

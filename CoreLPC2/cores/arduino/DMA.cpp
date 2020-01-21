@@ -77,13 +77,6 @@ extern "C"  void DMA_IRQHandler(void)
     {
         if(dma_callbacks[DMA_SSP1_TX] != nullptr) dma_callbacks[DMA_SSP1_TX]();
     }
-    
-    //Timer1 MR0 Match channel
-    if (Chip_GPDMA_Interrupt(LPC_GPDMA, dma_channels[DMA_TIMER_MAT1_0]) == SUCCESS) //also clears the interrupt
-    {
-        if(dma_callbacks[DMA_TIMER_MAT1_0] != nullptr) dma_callbacks[DMA_TIMER_MAT1_0]();
-    }
-
 }
 
 

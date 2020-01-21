@@ -91,7 +91,15 @@ typedef enum
 /*inline*/ void GPIO_PinWrite(gpioPins_et enm_pinNumber, uint8_t var_pinValue_u8);
 /*inline*/ uint8_t GPIO_PinRead(gpioPins_et enm_pinNumber);
 
+/*inline*/ volatile uint32_t *GPIO_BB_PinDirectionPtr(gpioPins_et enm_pinNumber);
+/*inline*/ volatile uint32_t *GPIO_BB_PinValuePtr(gpioPins_et enm_pinNumber);
+
+
+
 /**************************************************************************************************/
+
+
+
 #endif
 
 #ifdef __cplusplus

@@ -88,6 +88,23 @@ inline void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_
 
  * description :This function sets the specified direction as INPUT/OUTPUT.  
  ***************************************************************************************************/
+
+inline volatile uint32_t *GPIO_BB_PinDirectionPtr(gpioPins_et enm_pinNumber)
+{
+    uint8_t var_portNumber_u8;
+    LPC_GPIO_T *LPC_GPIO_PORT;
+    uint8_t var_pinNumber_u8 = enm_pinNumber;
+
+    var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
+    var_pinNumber_u8  =   var_pinNumber_u8 & 0x1f;  //lower 5-bits contains the bit number of a 32bit port
+    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+
+    //Get the bitband alias address
+    return bb_alias_sram_dword(&LPC_GPIO_PORT->DIR, var_pinNumber_u8);
+
+}
+
+
 inline void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8)
 {
 
@@ -109,7 +126,6 @@ inline void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8)
     *bb_pin = var_pinDirn_u8 & 0x01; //set the BB alias word which sets the bit in LPC_GPIO_PORT->DIR
 
 }
-
 
 
 
@@ -157,6 +173,20 @@ inline void GPIO_PinWrite(gpioPins_et enm_pinNumber, uint8_t var_pinValue_u8)
 
 
 
+inline volatile uint32_t *GPIO_BB_PinValuePtr(gpioPins_et enm_pinNumber)
+{
+    uint8_t var_portNumber_u8;
+    LPC_GPIO_T *LPC_GPIO_PORT;
+    uint8_t var_pinNumber_u8 = enm_pinNumber;
+
+    var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
+    var_pinNumber_u8  =   var_pinNumber_u8 & 0x1f;  //lower 5-bits contains the bit number of a 32bit port
+    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+        
+    //Get the bitband alias address
+    return bb_alias_sram_dword(&LPC_GPIO_PORT->PIN, var_pinNumber_u8);
+
+}
 
 
 
