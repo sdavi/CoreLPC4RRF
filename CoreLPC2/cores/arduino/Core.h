@@ -97,7 +97,8 @@ constexpr uint32_t MaxPinNumber = 160;// 5*32
 extern const PinDescription g_APinDescription[MaxPinNumber];
 
 
-enum SSPChannel : uint8_t {
+enum SSPChannel : uint8_t
+{
     //Hardware SPI
     SSP0 = 0,
     SSP1,

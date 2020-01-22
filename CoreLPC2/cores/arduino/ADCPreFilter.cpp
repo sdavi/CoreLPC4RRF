@@ -10,7 +10,7 @@
 #include "Median.h"
 #include "DMA.h"
 
-/*static*/ uint32_t *adcSamplesArray;
+static uint32_t *adcSamplesArray;
 static uint8_t numberADCSamples;
 static uint16_t *median_buffer;
 static uint8_t adcDmaChannel;
@@ -29,8 +29,8 @@ bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz)
     
     //create the array
     //Format will be:
-    //       CH0 CH1 CH2 CH3 CH4 CH5 CH6 CH7 CH8
-    //       CH0 CH1 CH2 CH3 CH4 CH5 CH6 CH7 CH8
+    //       CH0 CH1 CH2 CH3 CH4 CH5 CH6 CH7
+    //       CH0 CH1 CH2 CH3 CH4 CH5 CH6 CH7
     //        ...
     
     //DMA will fill in each row of samples (one sample per timer MR0 match, and when reaches last sample, goes back to beginning overwriting the oldest samples
@@ -42,12 +42,12 @@ bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz)
     median_buffer = new uint16_t[numberADCSamples];
     
     //Init Timer1
-    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_TIMER1);                          // Enable power and clocking
+    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_TIMER1);                          //Enable power and clocking
     Chip_TIMER_Reset(LPC_TIMER1);
     Chip_TIMER_Disable(LPC_TIMER1);                                             //Stop the Timer
-    Chip_TIMER_PrescaleSet(LPC_TIMER1, (getPclk(PCLK_TIMER1) / 1000000) - 1);   // Set the Prescaler to 1us
+    Chip_TIMER_PrescaleSet(LPC_TIMER1, (getPclk(PCLK_TIMER1) / 1000000) - 1);   //Set the Prescaler to 1us
     Chip_TIMER_SetMatch(LPC_TIMER1, 0, 1000000/(sampleRateHz*NumADCChannels));  //Set MR0 (will be in microseconds)
-    Chip_TIMER_ResetOnMatchEnable(LPC_TIMER1, 0);                               // Reset Timer on MR0 match
+    Chip_TIMER_ResetOnMatchEnable(LPC_TIMER1, 0);                               //Reset Timer on MR0 match
 
     NVIC_DisableIRQ(ADC_IRQn); //ensure ADC interrupts are disabled
     
@@ -87,7 +87,7 @@ static inline void PrepareADCDMA(uint32_t adcSampleBufferAddress)
 
     //Setup DMA Channel
     GPDMA_CH_T *pDMAch = (GPDMA_CH_T *) &(LPC_GPDMA->CH[adcDmaChannel]);
-    pDMAch->CONFIG = GPDMA_DMACCxConfig_H;     //halt the DMA channel - Clears DMA FIFO
+    pDMAch->CONFIG = GPDMA_DMACCxConfig_H;                          //halt the DMA channel - Clears DMA FIFO
     
     LPC_GPDMA->INTTCCLEAR = (((1UL << (adcDmaChannel)) & 0xFF));    //clear terminal count interrupt
     LPC_GPDMA->INTERRCLR = (((1UL << (adcDmaChannel)) & 0xFF));     //clear the error interrupt request

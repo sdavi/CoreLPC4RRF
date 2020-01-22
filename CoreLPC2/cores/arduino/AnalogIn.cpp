@@ -41,9 +41,9 @@ const adcChannelConfig_st AdcConfig[numChannels]=
 // Module initialisation
 void AnalogInInit()
 {
-    Chip_ADC_Init(LPC_ADC, &ADCSetup); //Init ADC and setup the ADCSetup struct
-    Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE); //enable burst mode
-    Chip_ADC_SetSampleRate(LPC_ADC, &ADCSetup, ADC_MAX_SAMPLE_RATE); //200kHz
+    Chip_ADC_Init(LPC_ADC, &ADCSetup);                                  //Init ADC and setup the ADCSetup struct
+    Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE);                              //enable burst mode
+    Chip_ADC_SetSampleRate(LPC_ADC, &ADCSetup, ADC_MAX_SAMPLE_RATE);    //200kHz
     
     LPC_ADC->INTEN = 0x00; //disable all interrupts
 }
@@ -77,26 +77,6 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
 		}
     }
 }
-
-////ADC interrupt. This is only called when the highest enabled channel has completed a conversion
-//extern "C" void ADC_IRQHandler(void)
-//{
-//    uint8_t channelsToScan = activeChannels;
-//    uint8_t currChannel = 0;
-//
-//    while(channelsToScan != 0)
-//    {
-//        if(channelsToScan & 0x01)
-//        {
-//            const uint16_t val = (LPC_ADC->DR[currChannel]>> 4) & 0xFFF;
-//            adcPreFilter.appendADCSampleFromISR(currChannel, val);
-//        }
-//
-//        channelsToScan = channelsToScan >> 1;
-//        currChannel++;
-//    }
-//}
-
 
 // Read the most recent 12-bit result from a channel
 uint16_t AnalogInReadChannel(AnalogChannelNumber channel)
