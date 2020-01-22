@@ -55,6 +55,8 @@ constexpr uint8_t PIN_ATTR_PWM = 1 << 3;
 constexpr uint8_t PIN_ATTR_TIMER = 1 << 4;
 constexpr uint8_t PIN_ATTR_DAC = 1 << 5;
 
+constexpr uint8_t NumADCChannels = 8;
+
 enum AnalogChannelNumber : int8_t
 {
     NO_ADC=-1,

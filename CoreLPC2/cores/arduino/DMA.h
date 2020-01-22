@@ -13,6 +13,7 @@ enum DMA_Channel_t : uint8_t
     DMA_SSP0_TX,
     DMA_SSP1_RX,
     DMA_SSP1_TX,
+    DMA_TIMER_MAT1_0,
 };
 
 enum DMA_TransferWidth_t : uint8_t
@@ -22,7 +23,7 @@ enum DMA_TransferWidth_t : uint8_t
     DMA_WIDTH_WORD = GPDMA_WIDTH_WORD           //4 bytes
 };
 
-void InitialiseDMA(uint32_t irqPriority);
+void InitialiseDMA();
 void AttachDMAChannelInterruptHandler(DMACallbackFunction callback, DMA_Channel_t channel);
 
 uint8_t DMAGetChannelNumber(DMA_Channel_t dma_channel);

@@ -8,7 +8,7 @@ static constexpr uint8_t NumberDMAChannels = 8;
 static DMACallbackFunction dma_callbacks[NumberDMAChannels] = {nullptr};
 static uint8_t dma_channels[NumberDMAChannels];
 
-void InitialiseDMA(uint32_t irqPriority)
+void InitialiseDMA()
 {
 
     static bool gpdmaInit = false;
@@ -17,11 +17,6 @@ void InitialiseDMA(uint32_t irqPriority)
         /* Initialize GPDMA controller */
         Chip_GPDMA_Init(LPC_GPDMA);
         
-        /* Setting GPDMA interrupt */
-        NVIC_DisableIRQ(DMA_IRQn);
-        NVIC_SetPriority(DMA_IRQn, irqPriority);
-        NVIC_EnableIRQ(DMA_IRQn);
-
         //SSP0 DMA Channels
         dma_channels[DMA_SSP0_RX] = Chip_GPDMA_GetFreeChannel(LPC_GPDMA, GPDMA_CONN_SSP0_Rx);
         dma_channels[DMA_SSP0_TX] = Chip_GPDMA_GetFreeChannel(LPC_GPDMA, GPDMA_CONN_SSP0_Tx);
@@ -30,7 +25,12 @@ void InitialiseDMA(uint32_t irqPriority)
         dma_channels[DMA_SSP1_RX] = Chip_GPDMA_GetFreeChannel(LPC_GPDMA, GPDMA_CONN_SSP1_Rx);
         dma_channels[DMA_SSP1_TX] = Chip_GPDMA_GetFreeChannel(LPC_GPDMA, GPDMA_CONN_SSP1_Tx);
         
+        //Timer1 MR0 Match Channel
+        dma_channels[DMA_TIMER_MAT1_0] = Chip_GPDMA_GetFreeChannel(LPC_GPDMA, GPDMA_CONN_MAT1_0);
+        
         gpdmaInit = true;
+        
+        NVIC_EnableIRQ(DMA_IRQn);
     }
 
 }
@@ -74,6 +74,13 @@ extern "C"  void DMA_IRQHandler(void)
     {
         if(dma_callbacks[DMA_SSP1_TX] != nullptr) dma_callbacks[DMA_SSP1_TX]();
     }
+    
+    //Timer1 MR0 Match channel
+    if (Chip_GPDMA_Interrupt(LPC_GPDMA, dma_channels[DMA_TIMER_MAT1_0]) == SUCCESS) //also clears the interrupt
+    {
+        if(dma_callbacks[DMA_TIMER_MAT1_0] != nullptr) dma_callbacks[DMA_TIMER_MAT1_0]();
+    }
+
 }
 
 

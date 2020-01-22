@@ -11,6 +11,8 @@ CORE_SRC_DIRS += libraries/WIRE libraries/SDCard libraries/SharedSPI libraries/S
 CORE_SRC_DIRS += cores/mbed/usb/hal cores/mbed/usb/TARGET_NXP cores/mbed/usb/USBDevice cores/mbed/usb/USBPHY
 CORE_SRC_DIRS += cores/mbed/usb/USBSerial cores/mbed/usb/utilities cores/mbed/platform
 
+CORE_SRC_DIRS += cores/smoothie
+
 CORE_SRC = $(CORE) $(addprefix $(CORE)/, $(CORE_SRC_DIRS))
 CORE_INCLUDES = $(addprefix -I, $(CORE_SRC))
 

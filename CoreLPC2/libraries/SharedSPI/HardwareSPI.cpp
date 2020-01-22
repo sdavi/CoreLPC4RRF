@@ -176,7 +176,7 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
     
     if(needInit)
     {
-        InitialiseDMA(8);
+        InitialiseDMA();
         
         if(selectedSSPDevice == LPC_SSP0)
         {
