@@ -41,29 +41,18 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 
 inline void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_u8)
 {
-    uint8_t var_portNumber_u8;
-	//uint32_t *ptr_PINCON;
-	uint8_t var_pinNumber_u8 = enm_pinNumber; 
-
-    var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
-    var_pinNumber_u8  =   var_pinNumber_u8 & 0x1f;  //lower 5-bits contains the bit number of a 32bit port 	
-
+    uint8_t var_portNumber_u8 =  (enm_pinNumber >> 5);  //Divide the pin number by 32 go get the PORT number
+    uint8_t var_pinNumber_u8  =  (enm_pinNumber & 0x1f);  //lower 5-bits contains the bit number of a 32bit port
     
-    var_portNumber_u8 = var_portNumber_u8*2;
-    if(var_pinNumber_u8>=16)
+    var_portNumber_u8 = var_portNumber_u8 * 2;
+    if(var_pinNumber_u8 >= 16)
     {
        var_portNumber_u8++; 
-       var_pinNumber_u8 = var_pinNumber_u8-16;
+       var_pinNumber_u8 = var_pinNumber_u8 - 16;
     }
     
     var_pinNumber_u8 = var_pinNumber_u8 * 2;
-    
-//    ptr_PINCON    = ((uint32_t *)&LPC_IOCON->PINSEL[0]  + var_portNumber_u8);
-//    *(uint32_t *)(ptr_PINCON) &= ~(0x03UL << var_pinNumber_u8);
-//	  *(uint32_t *)(ptr_PINCON) |= (((uint32_t)(var_pinFunction_u8 & 0x03)) << var_pinNumber_u8);
-    
-    
-    
+        
     //Each pin in PINSEL has 2 bits to configure
     //Get the bitband alias address of both bits (IOCON is in peripheral region)
     volatile uint32_t* bb_pin_b1 = bb_alias_periph_dword(&LPC_IOCON->PINSEL[var_portNumber_u8], var_pinNumber_u8);
@@ -91,35 +80,22 @@ inline void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_
 
 inline volatile uint32_t *GPIO_BB_PinDirectionPtr(gpioPins_et enm_pinNumber)
 {
-    uint8_t var_portNumber_u8;
-    LPC_GPIO_T *LPC_GPIO_PORT;
-    uint8_t var_pinNumber_u8 = enm_pinNumber;
-
-    var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
-    var_pinNumber_u8  =   var_pinNumber_u8 & 0x1f;  //lower 5-bits contains the bit number of a 32bit port
-    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+    const uint8_t var_portNumber_u8 =  (enm_pinNumber >> 5);          //Divide the pin number by 32 go get the PORT number
+    const uint8_t var_pinNumber_u8  =  (enm_pinNumber & 0x1f);        //lower 5-bits contains the bit number of a 32bit port
+    LPC_GPIO_T *LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
 
     //Get the bitband alias address
     return bb_alias_sram_dword(&LPC_GPIO_PORT->DIR, var_pinNumber_u8);
-
 }
 
 
 inline void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8)
 {
+    const uint8_t var_portNumber_u8 =  (enm_pinNumber >> 5);      //Divide the pin number by 32 go get the PORT number
+    const uint8_t var_pinNumber_u8  =  (enm_pinNumber & 0x1f);    //lower 5-bits contains the bit number of a 32bit port
 
-    uint8_t var_portNumber_u8;
-    LPC_GPIO_T *LPC_GPIO_PORT;
-	uint8_t var_pinNumber_u8 = enm_pinNumber; 
-
-    var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
-    var_pinNumber_u8  =   var_pinNumber_u8 & 0x1f;  //lower 5-bits contains the bit number of a 32bit port 	
-
-    /* Go to particular port after decoding from the pin number and 
-        set the direction as specified*/
-    
-    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
-    //util_UpdateBit(LPC_GPIO_PORT->DIR,var_pinNumber_u8,(var_pinDirn_u8 & 0x01));
+    /* Go to particular port after decoding from the pin number and  set the direction as specified*/
+    LPC_GPIO_T *LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
 
     //Get the bitband alias address
     volatile uint32_t* bb_pin = bb_alias_sram_dword(&LPC_GPIO_PORT->DIR, var_pinNumber_u8);
@@ -151,41 +127,30 @@ inline void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8)
 ***************************************************************************************************/
 inline void GPIO_PinWrite(gpioPins_et enm_pinNumber, uint8_t var_pinValue_u8)
 {
-
-    uint8_t var_portNumber_u8;
-    LPC_GPIO_T *LPC_GPIO_PORT;
-	uint8_t var_pinNumber_u8 = enm_pinNumber; 
-
-    var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
-    var_pinNumber_u8  =   var_pinNumber_u8 & 0x1f;  //lower 5-bits contains the bit number of a 32bit port 	
-
-    /* Go to particular port after decoding from the pin number and 
-        update the value of the specified pin*/
+    const uint8_t var_portNumber_u8 = (enm_pinNumber >> 5);       //Divide the pin number by 32 go get the PORT number
+    const uint8_t var_pinNumber_u8  = (enm_pinNumber & 0x1f);     //lower 5-bits contains the bit number of a 32bit port
+    LPC_GPIO_T *LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
     
-    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
-    //util_UpdateBit(LPC_GPIO_PORT->PIN,var_pinNumber_u8,(var_pinValue_u8&0x01));
-        
-    //Get the bitband alias address
-    volatile uint32_t* bb_pin = bb_alias_sram_dword(&LPC_GPIO_PORT->PIN, var_pinNumber_u8);
-    *bb_pin = var_pinValue_u8 & 0x01; //set the BB alias word which sets the bit in LPC_GPIO_PORT->PIN
-    
+    if (var_pinValue_u8 & 0x1)
+    {
+        LPC_GPIO_PORT->SET = 1 << var_pinNumber_u8;
+    }
+    else
+    {
+        LPC_GPIO_PORT->CLR = 1 << var_pinNumber_u8;
+    }
 }
 
 
 
 inline volatile uint32_t *GPIO_BB_PinValuePtr(gpioPins_et enm_pinNumber)
 {
-    uint8_t var_portNumber_u8;
-    LPC_GPIO_T *LPC_GPIO_PORT;
-    uint8_t var_pinNumber_u8 = enm_pinNumber;
-
-    var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
-    var_pinNumber_u8  =   var_pinNumber_u8 & 0x1f;  //lower 5-bits contains the bit number of a 32bit port
-    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+    const uint8_t var_portNumber_u8 =  (enm_pinNumber >> 5);       //Divide the pin number by 32 go get the PORT number
+    const uint8_t var_pinNumber_u8  =  (enm_pinNumber & 0x1f);     //lower 5-bits contains the bit number of a 32bit port
+    LPC_GPIO_T * LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
         
     //Get the bitband alias address
     return bb_alias_sram_dword(&LPC_GPIO_PORT->PIN, var_pinNumber_u8);
-
 }
 
 
@@ -209,16 +174,12 @@ inline volatile uint32_t *GPIO_BB_PinValuePtr(gpioPins_et enm_pinNumber)
 inline uint8_t GPIO_PinRead(gpioPins_et enm_pinNumber)
 {
     uint8_t returnStatus = 0;
-    uint8_t var_portNumber_u8;
-    LPC_GPIO_T *LPC_GPIO_PORT;
-	uint8_t var_pinNumber_u8 = enm_pinNumber; 
-
-    var_portNumber_u8 =  (enm_pinNumber>>5);  //Divide the pin number by 32 go get the PORT number
-    var_pinNumber_u8  =   var_pinNumber_u8 & 0x1f;  //lower 5-bits contains the bit number of a 32bit port 	
+    const uint8_t var_portNumber_u8 =  (enm_pinNumber >> 5);      //Divide the pin number by 32 go get the PORT number
+    const uint8_t var_pinNumber_u8  =  (enm_pinNumber & 0x1f);    //lower 5-bits contains the bit number of a 32bit port
 
     /* Go to particular port after decoding from the pin number and read the pins status */
-
-    LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+    LPC_GPIO_T * LPC_GPIO_PORT = (LPC_GPIO_T*)(LPC_GPIO0_BASE + ((var_portNumber_u8) << 5));
+    
     returnStatus = util_IsBitSet(LPC_GPIO_PORT->PIN,var_pinNumber_u8);
                   
     return returnStatus;

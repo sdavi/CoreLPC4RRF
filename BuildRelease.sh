@@ -10,15 +10,15 @@ mkdir -p releases/${VER}
 #Building Firmware + Ethernet
 make distclean
 make -j2 firmware BUILD=Release MBED=false NETWORKING=true ESP8266WIFI=false OUTPUT_NAME=firmware USE_DFU=false
-if [ -f firmware.bin ]; then
-	mv firmware.bin ${OUTPUT}
+if [ -f ./build/firmware.bin ]; then
+	mv ./build/firmware.bin ${OUTPUT}
 fi 
 
 
 #Building Firmware + WIFI
 make distclean
 make -j2 firmware BUILD=Release MBED=false NETWORKING=false ESP8266WIFI=true OUTPUT_NAME=firmware USE_DFU=false
-if [ -f firmware.bin ]; then
-        mv firmware.bin ${OUTPUT}/firmware-wifi.bin
+if [ -f ./build/firmware.bin ]; then
+        mv ./build/firmware.bin ${OUTPUT}/firmware-wifi.bin
 fi 
 
