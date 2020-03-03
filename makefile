@@ -3,7 +3,7 @@ PROCESSOR = LPC17xx
 
 #Enable when debugging on MBED to swap serial and USB 
 #and select direct ld script
-#MBED = true
+MBED = true
 
 
 
@@ -13,22 +13,22 @@ REPRAPFIRMWARE_DIR = ./RepRapFirmware
 RRFLIBRARIES_DIR = ./RRFLibraries
 CORELPC_DIR = ./CoreLPC2
 
-#BUILD = Debug
-BUILD = Release
+BUILD = Debug
+#BUILD = Release
 
 #Enable only one
 #NETWORKING = true
 ESP8266WIFI = true
+#SBC = true
 
 TMC22XX = false
 
 #Comment out to show compilation commands (verbose)
 V=@
 
+$(info Building RepRapFirmware for LPC1768/1769 based boards:)
 
 OUTPUT_NAME=firmware
-$(info  - Firmware Filename:  $(OUTPUT_NAME).bin)
-
 
 ## Cross-compilation commands 
 CC      = arm-none-eabi-gcc
@@ -48,12 +48,12 @@ include FreeRTOS.mk
 include RRFLibraries.mk
 include RepRapFirmware.mk
 
-
-
 ifeq ($(BUILD),Debug)
 	DEBUG_FLAGS = -Og -g
+        $(info - Build: Debug) 
 else
 	DEBUG_FLAGS = -Os
+        $(info - Build: Release)
 endif
 	
 
@@ -90,25 +90,29 @@ FLAGS += -DRTOS -DFREERTOS_USED -DRRF_RTOSPLUS_MOD
 FLAGS += -DDEVICE_USBDEVICE=1 -DTARGET_LPC1768
 FLAGS +=  -Wall -c -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections -march=armv7-m 
 FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant 
+#FLAGS += -Wfloat-equal
 #FLAGS += -Wundef
 FLAGS += $(DEBUG_FLAGS)
 FLAGS += -MMD -MP 
 
 ifeq ($(NETWORKING), true)
-        $(info  - Building LPC Ethernet Support)
+        $(info  - Networking: Ethernet)
         FLAGS += -DLPC_NETWORKING
 else ifeq ($(ESP8266WIFI), true)
-        $(info  - Building ESP8266 WIFI Support) 
+        $(info  - Networking: ESP8266 WIFI) 
         FLAGS += -DESP8266WIFI
+else ifeq ($(SBC), true)
+        $(info  - SBC Interface Enabled)
+        FLAGS += -DHLPC_SBC
 else
-        $(info  - No Networking Support)
+        $(info  - Networking: None)
 endif
 
 ifeq ($(TMC22XX), true)
-        $(info  - Building LPC TMC22XX support)
+        $(info  - Smart Drivers: TMC22XX)
         FLAGS += -DSUPPORT_TMC22xx
 else
-        $(info  - No TMC22xx Support)
+        $(info  - Smart Drivers: None)
 endif
 
 CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline
@@ -151,19 +155,19 @@ $(BUILD_DIR)/$(OUTPUT_NAME).elf: $(BUILD_DIR)/libLPCCore.a $(BUILD_DIR)/libRRFLi
 	-@./staticMemStats.sh $(BUILD_DIR)/$(OUTPUT_NAME).elf
 	
 $(BUILD_DIR)/%.o: %.c
-	@echo "[$(CC): Compiling $<]"
+	@echo "[$<]"
 	$(V)$(MKDIR) $(dir $@)
 	$(V)$(CC)  $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -MM -MF $(patsubst %.o,%.d,$@) $<
 	$(V)$(CC)  $(CFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -o $@ $<
 	
 $(BUILD_DIR)/%.o: %.cpp
-	@echo "[$(CXX): Compiling $<]"
+	@echo "[$<]"
 	$(V)$(MKDIR) $(dir $@)
 	$(V)$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -MM -MF $(patsubst %.o,%.d,$@) $<
 	$(V)$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -o $@ $<
 
 $(BUILD_DIR)/%.o: %.cc
-	@echo "[$(CXX): Compiling $<]"
+	@echo "[$<]"
 	$(V)$(MKDIR) $(dir $@)
 	$(V)$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -MM -MF $(patsubst %.o,%.d,$@) $<
 	$(V)$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -MMD -MP -o $@ $<

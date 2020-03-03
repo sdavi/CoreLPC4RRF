@@ -1,7 +1,7 @@
 //Author sdavi
 
 #include "SoftwarePWM.h"
-
+#include "SoftwarePWMTimer.h"
 
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
@@ -11,12 +11,18 @@ SoftwarePWM::SoftwarePWM(Pin softPWMPin)
     SetFrequency(1); //default to 1Hz
     
     pwmRunning = false;
+    lateCount = 0;
     
-    us_ticker_set_handler(&SoftwarePWM::Interrupt);
+    //us_ticker_set_handler(&SoftwarePWM::Interrupt);
     pin = softPWMPin;
     pinMode(pin, OUTPUT_LOW);
     state = PWM_OFF;
 
+}
+
+void SoftwarePWM::IncrementLateCount()
+{
+    lateCount++;
 }
 
 void SoftwarePWM::Enable()
@@ -26,13 +32,12 @@ void SoftwarePWM::Enable()
     
     pwmRunning = true;
     
-    //run the handler to kick off the PWM
-    Handler();
+    ScheduleEvent(1); //Schedule to start the PWM
 
 }
 void SoftwarePWM::Disable()
 {
-    us_ticker_remove_event(&event); //remove event from the ticker
+    softwarePWMTimer.us_ticker_remove_event(&event); //remove event from the ticker
 
     pinMode(pin, OUTPUT_LOW);
     state = PWM_OFF;
@@ -73,12 +78,27 @@ void SoftwarePWM::PWMOff()
 
 
 //Schedule next even in now+timeout microseconds
-void SoftwarePWM::ScheduleEvent(uint32_t timeout)
+inline void SoftwarePWM::ScheduleEvent(uint32_t timeout)
 {
-    us_ticker_insert_event(&event, us_ticker_read() + timeout, (uint32_t)this);
+    const uint32_t next = softwarePWMTimer.us_ticker_read() + timeout;
+    softwarePWMTimer.us_ticker_insert_event(&event, next, this);
+    nextRun = next;
 }
 
-void SoftwarePWM::Handler()
+void SoftwarePWM::Check()
+{
+    if(pwmRunning == true && (int)(nextRun - softwarePWMTimer.us_ticker_read()) < -4) // is it more than 4us overdue?
+    {
+        //PWM is overdue, has it stopped running ?
+        //TODO:: check if ticker int has not fired recently.
+        
+        PWMOff(); // Disable the PWM for protection
+        debugPrintf("PWM Overdue! (%d.%d)\n", (pin >> 5), (pin & 0x1f));
+        
+    }
+}
+
+void SoftwarePWM::Interrupt()
 {
     //handle 100% on/off
     if(onTime==0)
@@ -111,12 +131,5 @@ void SoftwarePWM::Handler()
     }
 
 }
-
-/*static*/ void SoftwarePWM::Interrupt(uint32_t id)
-{
-    SoftwarePWM *p = (SoftwarePWM*)id;
-    p->Handler();
-}
-
 
 

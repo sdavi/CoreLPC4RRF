@@ -4,7 +4,7 @@
 #define SOFTWAREPWM_H
 
 #include "Core.h"
-#include "us_ticker_api.h"
+#include "SoftwarePWMTimer.h"
 
 class SoftwarePWM
 {
@@ -21,12 +21,16 @@ public:
     void PWMOff();
     
     bool IsRunning() {return pwmRunning;}
+    void Check();
+
     
     Pin GetPin() const {return pin;}
     uint16_t GetFrequency() const {return frequency;}
 
-    static void Interrupt(uint32_t ptr);
+    void Interrupt();
 
+    void IncrementLateCount();
+    uint32_t GetLateCount(){ return lateCount; };
     
 private:
 
@@ -43,11 +47,14 @@ private:
     volatile uint32_t period;
     volatile uint32_t onTime;
     
+    volatile uint32_t nextRun;
+    volatile uint32_t lateCount;
+    
     ticker_event_t event;
     
     void ScheduleEvent(uint32_t timeout);
-    void Handler();
 
+    
 };
 
 

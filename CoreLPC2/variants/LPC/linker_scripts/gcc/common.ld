@@ -50,6 +50,8 @@ SECTIONS
         *(AHBSRAM0)
 
         /* Manually define variables to be also placed into AHB RAM */
+        *(.bss.*DataTransfer*)
+
         *(.bss.reprap)
         *(.bss._*heaterTask)
         *(.bss._*mainTask)
@@ -57,7 +59,6 @@ SECTIONS
         *(.bss.*TimerTaskStack)
         *(.bss.*tcpPlusTask)
         *(.bss._time_locale)
-        *(.bss.pxReadyTasksLists)
         *(.bss.*Mutex*)
         *(.bss.*Queue*)
         *(.bss.*TCB)
@@ -65,7 +66,6 @@ SECTIONS
         *(.bss.*networkTask)
         *(.bss.*descriptors*)
         *(.bss.*HttpResponder*)
-        *(.bss.*TaskList*)
         *(.bss.*emacTask)
         *(.bss.*idleTask)
         *(.bss.xARPCache)
@@ -87,6 +87,8 @@ SECTIONS
     {
         KEEP(*(.isr_vector))
         *(.text*)
+
+       KEEP(*freertos*/tasks.o(.rodata*)) /* FreeRTOS Debug Config */
 
         KEEP(*(.init))
         KEEP(*(.fini))
@@ -161,6 +163,15 @@ SECTIONS
     .bss ALIGN(4):
     {
         __bss_start__ = .;
+        
+        /* 
+        	Ensure that xDelayedTaskList1 is immediately after pxReadyTasksLists
+		   	so that FreeRTOS Priorities is detected in pyOCD and can enable thread debugging 
+		*/
+        KEEP(*(.bss.pxReadyTasksLists))
+        KEEP(*(.bss.xDelayedTaskList1))
+        KEEP(*(.bss.xDelayedTaskList2))
+
         *(.bss*)
         *(COMMON)
         __bss_end__ = .;

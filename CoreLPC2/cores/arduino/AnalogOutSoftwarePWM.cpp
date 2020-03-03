@@ -128,7 +128,14 @@ bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin)
         softwarePWMEntries[slot]->SetDutyCycle(ulValue);
     }
     
-    if( !softwarePWMEntries[slot]->IsRunning() ) softwarePWMEntries[slot]->Enable(); // enable if not running
+    if( !softwarePWMEntries[slot]->IsRunning() )
+    {
+        softwarePWMEntries[slot]->Enable(); // enable if not running
+    }
+    else
+    {
+        softwarePWMEntries[slot]->Check(); // check the PWM is still functioning
+    }
     
     return true;
 }

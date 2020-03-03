@@ -199,5 +199,7 @@ through the CLI interface. */
 #define configINCLUDE_DEMO_DEBUG_STATS 0
 
 
+//debugging
+#define configINCLUDE_FREERTOS_TASK_C_ADDITIONS_H     1
 
 #endif /* FREERTOS_CONFIG_H */
