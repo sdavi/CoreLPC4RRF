@@ -44,7 +44,7 @@ class HardwareSerial : public Stream
 {
 
 public:
-    HardwareSerial(const struct usart_dev *usart_device, uint8_t *rxBuffer, uint16_t rxRingBufferSize, uint8_t *txBuffer, uint16_t txRingBufferSize);
+    HardwareSerial(const struct usart_dev *usart_device, uint16_t rxRingBufferSize = 128, uint16_t txRingBufferSize = 64);
 
 
     /* Set up/tear down */
@@ -66,17 +66,26 @@ public:
     
     void setInterruptPriority(uint32_t priority);
     uint32_t getInterruptPriority();
+    
+    void SetRingBufferSizes(uint16_t rxRingBufferSize, uint16_t txRingBufferSize);
+
 
 private:
     const struct usart_dev *usart_device;
     RINGBUFF_T txRingBuffer;
     RINGBUFF_T rxRingBuffer;
+    
+    uint8_t *rxDataBuffer;
+    uint8_t *txDataBuffer;
+    
+    uint16_t rxBufferSize;
+    uint16_t txBufferSize;
+    
+    bool initialised;
 
   protected:
 };
 
-
-#define UARTClass HardwareSerial // compatibility with RRF
 
 extern HardwareSerial Serial0;
 

@@ -15,20 +15,9 @@ extern "C" {
 
 #include "ring_buffer.h"
 
-
-
-typedef struct
-{ 
-  gpioPins_et TxPin;
-  gpioPins_et RxPin;
-  uint8_t PinFunSel;
-  uint8_t pconBit;
-  LPC_USART_T *UARTx;
-} usart_channel_map;
-
 typedef struct usart_dev
 {
-    const usart_channel_map *channel;             /*LPC1768 UART Channel Register Mapping */
+    LPC_USART_T *UARTx;
     IRQn_Type irq_NUM;  
 } usart_dev;
 

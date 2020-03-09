@@ -115,6 +115,7 @@ enum SSPChannel : uint8_t
 #include "WMath.h"
 #include "AnalogIn.h"
 #include "AnalogOut.h"
+#include "ConfigurableUART.h"
 
 #endif // __cplusplus
 

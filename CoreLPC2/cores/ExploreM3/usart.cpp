@@ -10,44 +10,39 @@
 #include <inttypes.h>
 #include "Core.h"
 
-
-static const usart_channel_map USART_BASE[4] =
-{  /* TxPin RxPin UART_PinFun   PCON Bit Associated UART Structure    */
-    { P0_2,  P0_3,    PINSEL_FUNC_1,  3     ,(LPC_USART_T *)LPC_UART0_BASE}, /* Configure P0_2,P0_3 for UART0 function */
-    { P0_15, P0_16,   PINSEL_FUNC_1,  4     ,(LPC_USART_T *)LPC_UART1_BASE}, /* Configure P2_0,P2_1 for UART1 function */
-    { P0_10, P0_11,   PINSEL_FUNC_1,  24    ,(LPC_USART_T *)LPC_UART2_BASE}, /* Configure P0_10,P0_11 for UART2 function */
-    { P0_0,  P0_1,    PINSEL_FUNC_2,  25    ,(LPC_USART_T *)LPC_UART3_BASE}  /* Configure P0_0,P0_1 for UART3 function */
-};
-
-
 static const usart_dev usart0 =
 {
-    .channel = &USART_BASE[0],
+    .UARTx = LPC_UART0,
     .irq_NUM = UART0_IRQn,
 };
 const usart_dev *USART0 = &usart0;
 
-static const usart_dev usart1 =
-{
-    .channel = &USART_BASE[1],
-    .irq_NUM = UART1_IRQn,
-};
-const usart_dev *USART1 = &usart1;
+#if defined(ENABLE_UART1)
+    static const usart_dev usart1 =
+    {
+        .UARTx = LPC_UART1,
+        .irq_NUM = UART1_IRQn,
+    };
+    const usart_dev *USART1 = &usart1;
+#endif
 
-static const usart_dev usart2 =
-{
-    .channel = &USART_BASE[2],
-    .irq_NUM = UART2_IRQn,
-};
-const usart_dev *USART2 = &usart2;
+#if defined(ENABLE_UART2)
+    static const usart_dev usart2 =
+    {
+        .UARTx = LPC_UART1,
+        .irq_NUM = UART2_IRQn,
+    };
+    const usart_dev *USART2 = &usart2;
+#endif
 
-static const usart_dev usart3 =
-{
-    .channel     = &USART_BASE[3],
-    .irq_NUM = UART3_IRQn,
-};
-const usart_dev *USART3 = &usart3;
-
+#if defined(ENABLE_UART3)
+    static const usart_dev usart3 =
+    {
+        .UARTx = LPC_UART3,
+        .irq_NUM = UART3_IRQn,
+    };
+    const usart_dev *USART3 = &usart3;
+#endif
 
 //UART Interrupt Handler
 extern "C" void UART0_IRQHandler(void)
@@ -242,49 +237,69 @@ void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int sto
 
 void usart_init(const usart_dev *dev, uint32_t baud_rate)
 {
-    GPIO_PinFunction(dev->channel->TxPin,dev->channel->PinFunSel);
-    GPIO_PinFunction(dev->channel->RxPin,dev->channel->PinFunSel);
-    util_BitSet(LPC_SYSCTL->PCONP,dev->channel->pconBit);
     
+    //Enable Power and Clocking
+    if(dev->UARTx == LPC_UART0)
+    {
+        Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_UART0);
+    }
+    else if (dev->UARTx == LPC_UART1)
+    {
+        Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_UART1);
+    }
+    else if (dev->UARTx == LPC_UART2)
+    {
+        Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_UART2);
+    }
+    else if (dev->UARTx == LPC_UART3)
+    {
+        Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_UART3);
+    }
+    else
+    {
+        return;
+    }
+
+
     /* Enable FIFOs by default, reset them */
-    Chip_UART_SetupFIFOS(dev->channel->UARTx, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS));
+    Chip_UART_SetupFIFOS(dev->UARTx, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS));
 
     /* Disable Tx */
-    Chip_UART_TXDisable(dev->channel->UARTx);
+    Chip_UART_TXDisable(dev->UARTx);
     
     /* Disable interrupts */
-    dev->channel->UARTx->IER = 0;
+    dev->UARTx->IER = 0;
     /* Set LCR to default state */
-    dev->channel->UARTx->LCR = 0;
+    dev->UARTx->LCR = 0;
     /* Set ACR to default state */
-    dev->channel->UARTx->ACR = 0;
+    dev->UARTx->ACR = 0;
     /* Set RS485 control to default state */
-    dev->channel->UARTx->RS485CTRL = 0;
+    dev->UARTx->RS485CTRL = 0;
     /* Set RS485 delay timer to default state */
-    dev->channel->UARTx->RS485DLY = 0;
+    dev->UARTx->RS485DLY = 0;
     /* Set RS485 addr match to default state */
-    dev->channel->UARTx->RS485ADRMATCH = 0;
+    dev->UARTx->RS485ADRMATCH = 0;
     
     /* Clear MCR */
-    if (dev->channel->UARTx == LPC_UART1)
+    if (dev->UARTx == LPC_UART1)
     {
         /* Set Modem Control to default state */
-        dev->channel->UARTx->MCR = 0;
+        dev->UARTx->MCR = 0;
         /*Dummy Reading to Clear Status */
-        uint32_t tmp = dev->channel->UARTx->MSR;
+        uint32_t tmp = dev->UARTx->MSR;
         (void) tmp;
     }
 
-    serial_baud(dev->channel->UARTx, baud_rate);
-    serial_format(dev->channel->UARTx,8, ParityNone, 1);
+    serial_baud(dev->UARTx, baud_rate);
+    serial_format(dev->UARTx,8, ParityNone, 1);
     
     /* Reset and enable FIFOs, FIFO trigger level 1 (1 chars) */
-    Chip_UART_SetupFIFOS(dev->channel->UARTx, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS | UART_FCR_TRG_LEV1));
+    Chip_UART_SetupFIFOS(dev->UARTx, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS | UART_FCR_TRG_LEV1));
     
-    Chip_UART_TXEnable(dev->channel->UARTx);
+    Chip_UART_TXEnable(dev->UARTx);
 
     /* Enable receive data and line status interrupt */
-    Chip_UART_IntEnable(dev->channel->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
+    Chip_UART_IntEnable(dev->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
     
     NVIC_EnableIRQ(dev->irq_NUM);
 }

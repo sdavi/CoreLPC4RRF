@@ -39,18 +39,39 @@
 constexpr uint32_t MaxBaudRate = 460800;
 
 
-HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint8_t *rxBuffer, uint16_t rxRingBufferSize, uint8_t *txBuffer, uint16_t txRingBufferSize)
+HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint16_t rxRingBufferSize, uint16_t txRingBufferSize)
 {
+    initialised = false;
     this->usart_device = usart_device;
     
-    //Setup RingBuffers
-    RingBuffer_Init(&this->rxRingBuffer, rxBuffer, 1, rxRingBufferSize);
-    RingBuffer_Init(&this->txRingBuffer, txBuffer, 1, txRingBufferSize);
+    rxBufferSize = rxRingBufferSize;
+    txBufferSize = txRingBufferSize;
+    
+    rxDataBuffer = nullptr;
+    txDataBuffer = nullptr;
+    
+}
+
+void HardwareSerial::SetRingBufferSizes(uint16_t rxRingBufferSize, uint16_t txRingBufferSize)
+{
+    rxBufferSize = rxRingBufferSize;
+    txBufferSize = txRingBufferSize;
 }
 
 void HardwareSerial::begin(uint32_t baud)
 {
-     
+    if(initialised == false)
+    {
+        initialised = true;
+
+        rxDataBuffer = new uint8_t[rxBufferSize];
+        txDataBuffer = new uint8_t[txBufferSize];
+        
+        //Setup RingBuffers
+        RingBuffer_Init(&this->rxRingBuffer, rxDataBuffer, 1, rxBufferSize);
+        RingBuffer_Init(&this->txRingBuffer, txDataBuffer, 1, txBufferSize);
+    }
+    
     //Reset Ringbuffers
     RingBuffer_Flush(&this->rxRingBuffer);
     RingBuffer_Flush(&this->txRingBuffer);
@@ -66,7 +87,7 @@ void HardwareSerial::begin(uint32_t baud)
 void HardwareSerial::end(void)
 {
     NVIC_DisableIRQ(this->usart_device->irq_NUM);
-    Chip_UART_IntDisable(this->usart_device->channel->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
+    Chip_UART_IntDisable(this->usart_device->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
 }
 
 int HardwareSerial::read(void)
@@ -88,13 +109,9 @@ int HardwareSerial::peek(void)
     int data;
     if(RingBuffer_Peek(&this->rxRingBuffer, &data))
     {
-        return -1;
-    }
-    else
-    {
         return data;
     }
-
+    return -1;
 }
 
 int HardwareSerial::available(void)
@@ -124,7 +141,7 @@ size_t HardwareSerial::canWrite()
 
 size_t HardwareSerial::write(const uint8_t ch)
 {
-    Chip_UART_SendRB(this->usart_device->channel->UARTx, &this->txRingBuffer, &ch, 1);
+    Chip_UART_SendRB(this->usart_device->UARTx, &this->txRingBuffer, &ch, 1);
     return 1;
 }
 
@@ -134,7 +151,7 @@ size_t HardwareSerial::write(const uint8_t *buffer, size_t size)
     size_t ret = size;
     while (size != 0)
     {
-        size_t written = Chip_UART_SendRB(this->usart_device->channel->UARTx, &this->txRingBuffer, buffer, size);
+        size_t written = Chip_UART_SendRB(this->usart_device->UARTx, &this->txRingBuffer, buffer, size);
         buffer += written;
         size -= written;
     }

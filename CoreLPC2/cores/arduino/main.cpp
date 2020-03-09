@@ -12,31 +12,18 @@ extern "C" void AppMain();
 
 
 SerialUSB Serial;
-
-constexpr uint16_t rxBufSize = 128;
-constexpr uint16_t txBufSize = 64;
-
-//Setup the UART, ringbuffer memory in AHB RAM
-__attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory[txBufSize];
-__attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory[rxBufSize];
-HardwareSerial Serial0(USART0, uartRxMemory, rxBufSize, uartTxMemory, txBufSize);
+HardwareSerial Serial0(USART0);
 
 #if defined(ENABLE_UART1)
-    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory1[txBufSize];
-    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory1[rxBufSize];
-    HardwareSerial Serial1(USART1, uartRxMemory1, rxBufSize, uartTxMemory1, txBufSize);
+    HardwareSerial Serial1(USART1);
 #endif
 
 #if defined(ENABLE_UART2)
-    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory2[txBufSize];
-    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory2[rxBufSize];
-    HardwareSerial Serial2(USART2, uartRxMemory2, rxBufSize, uartTxMemory2, txBufSize);
+    HardwareSerial Serial2(USART2);
 #endif
 
 #if defined(ENABLE_UART3)
-    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartTxMemory3[txBufSize];
-    __attribute__ ((used,section("AHBSRAM0"))) uint8_t uartRxMemory3[rxBufSize];
-    HardwareSerial Serial3(USART3, uartRxMemory3, rxBufSize, uartTxMemory3, txBufSize);
+    HardwareSerial Serial3(USART3);
 #endif
 
 
@@ -98,6 +85,12 @@ int main( void )
     init(); // Defined in variant.cpp
 
     SysTick_Init(); 
+    
+    #if defined(__MBED__)
+        //configure UART0 pins for MBED
+        GPIO_PinFunction(P0_2, PINSEL_FUNC_1);
+        GPIO_PinFunction(P0_3, PINSEL_FUNC_1);
+    #endif
     
     AppMain();
 
