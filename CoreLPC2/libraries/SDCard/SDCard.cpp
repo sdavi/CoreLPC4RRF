@@ -18,7 +18,7 @@
 #include <stdlib.h>
 
 #include "SDCard.h"
-#include "SharedSPI.h"
+#include "SharedSpi.h"
 
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 //#define SD_DEBUG

@@ -13,7 +13,7 @@
 #include "systick.h"
 #include "timer.h"
 #include "delay.h"
-#include "reset.h"
+#include "Reset.h"
 
 
 #include "interrupt_lpc.h"

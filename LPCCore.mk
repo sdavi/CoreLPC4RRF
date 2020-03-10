@@ -6,9 +6,9 @@ CORE_SRC_DIRS  = cores cores/arduino system variants/LPC
 CORE_SRC_DIRS += cores/ExploreM3 cores/ExploreM3/ExploreM3_lib
 CORE_SRC_DIRS += cores/lpcopen/src cores/mbed
 #Core libraries
-CORE_SRC_DIRS += libraries/WIRE libraries/SDCard libraries/SharedSPI libraries/SoftwarePWM libraries/ConfigurableUART
+CORE_SRC_DIRS += libraries/Wire libraries/SDCard libraries/SharedSPI libraries/SoftwarePWM libraries/ConfigurableUART
 #mbed
-CORE_SRC_DIRS += cores/mbed/usb/hal cores/mbed/usb/TARGET_NXP cores/mbed/usb/USBDevice cores/mbed/usb/USBPHY
+CORE_SRC_DIRS += cores/mbed/usb/hal cores/mbed/usb/TARGET_NXP cores/mbed/usb/USBDevice cores/mbed/usb/USBPhy
 CORE_SRC_DIRS += cores/mbed/usb/USBSerial cores/mbed/usb/utilities cores/mbed/platform
 
 CORE_SRC_DIRS += cores/smoothie
