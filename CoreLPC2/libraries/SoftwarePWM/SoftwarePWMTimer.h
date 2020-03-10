@@ -40,17 +40,18 @@ class SoftwarePWMTimer
 public:
     SoftwarePWMTimer();
     
-    void us_ticker_insert_event(ticker_event_t *obj, unsigned int timestamp, SoftwarePWM *softPWMObject);
-    void us_ticker_remove_event(ticker_event_t *obj);
+    void ScheduleEventInMicroseconds(ticker_event_t *obj, uint32_t microseconds, SoftwarePWM *softPWMObject);
+    void RemoveEvent(ticker_event_t *obj);
     void Interrupt();
 
-    uint32_t us_ticker_read();
+    inline uint32_t TickerRead(){ return LPC_RITIMER->COUNTER; };
+    inline uint32_t TicksPerMicrosecond(){ return Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_RIT)/1000000; };
 
 private:
-    void us_ticker_set_interrupt(ticker_event_t *obj);
-    void us_ticker_disable_interrupt(void);
-    void us_ticker_clear_interrupt(void);
-    
+    void ticker_set_interrupt(ticker_event_t *obj, bool inInterrupt=false);
+    void ticker_disable_interrupt(void);
+    void ticker_clear_interrupt(void);
+    void ticker_insert_event(ticker_event_t *obj, uint32_t timestamp, SoftwarePWM *softPWMObject);
     ticker_event_t *head;
 };
 

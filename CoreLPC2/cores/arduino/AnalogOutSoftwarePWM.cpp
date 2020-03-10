@@ -102,7 +102,6 @@ bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin)
     {
         if(softwarePWMEntries[i] != nullptr && softwarePWMEntries[i]->GetPin() == pin)
         {
-            //pwmPin = softwarePWMEntries[i];
             slot = i;
             break;
         }
@@ -116,7 +115,7 @@ bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin)
     
     if(softwarePWMEntries[slot]->GetFrequency() != freq)
     {
-        //Frequency or duty has changed
+        //Frequency has changed
         softwarePWMEntries[slot]->Disable();
         softwarePWMEntries[slot]->SetFrequency(freq);
         softwarePWMEntries[slot]->SetDutyCycle(ulValue);

@@ -29,8 +29,10 @@ public:
 
     void Interrupt();
 
+#ifdef LPC_DEBUG
     void IncrementLateCount();
     uint32_t GetLateCount(){ return lateCount; };
+#endif
     
 private:
 

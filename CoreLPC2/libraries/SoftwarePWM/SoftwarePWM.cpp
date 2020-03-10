@@ -11,19 +11,21 @@ SoftwarePWM::SoftwarePWM(Pin softPWMPin)
     SetFrequency(1); //default to 1Hz
     
     pwmRunning = false;
+#ifdef LPC_DEBUG
     lateCount = 0;
-    
-    //us_ticker_set_handler(&SoftwarePWM::Interrupt);
+#endif
     pin = softPWMPin;
     pinMode(pin, OUTPUT_LOW);
     state = PWM_OFF;
 
 }
 
+#ifdef LPC_DEBUG
 void SoftwarePWM::IncrementLateCount()
 {
     lateCount++;
 }
+#endif
 
 void SoftwarePWM::Enable()
 {
@@ -37,7 +39,7 @@ void SoftwarePWM::Enable()
 }
 void SoftwarePWM::Disable()
 {
-    softwarePWMTimer.us_ticker_remove_event(&event); //remove event from the ticker
+    softwarePWMTimer.RemoveEvent(&event); //remove event from the ticker
 
     pinMode(pin, OUTPUT_LOW);
     state = PWM_OFF;
@@ -49,7 +51,7 @@ void SoftwarePWM::Disable()
 void SoftwarePWM::SetFrequency(uint16_t freq)
 {
     frequency = freq;
-    //ticker runs in microseconds, find the period in us
+    //find the period in us
     period = 1000000/freq;
     
 }
@@ -80,14 +82,13 @@ void SoftwarePWM::PWMOff()
 //Schedule next even in now+timeout microseconds
 inline void SoftwarePWM::ScheduleEvent(uint32_t timeout)
 {
-    const uint32_t next = softwarePWMTimer.us_ticker_read() + timeout;
-    softwarePWMTimer.us_ticker_insert_event(&event, next, this);
-    nextRun = next;
+    softwarePWMTimer.ScheduleEventInMicroseconds(&event, timeout, this);
+    nextRun = event.timestamp;
 }
 
 void SoftwarePWM::Check()
 {
-    if(pwmRunning == true && (int)(nextRun - softwarePWMTimer.us_ticker_read()) < -4) // is it more than 4us overdue?
+    if(pwmRunning == true && (int)(nextRun - softwarePWMTimer.TickerRead()) < -4*(int)softwarePWMTimer.TicksPerMicrosecond()) // is it more than 4us overdue?
     {
         //PWM is overdue, has it stopped running ?
         //TODO:: check if ticker int has not fired recently.

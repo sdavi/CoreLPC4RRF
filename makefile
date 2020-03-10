@@ -17,8 +17,8 @@ BUILD = Debug
 #BUILD = Release
 
 #Enable only one
-#NETWORKING = true
-ESP8266WIFI = true
+NETWORKING = true
+#ESP8266WIFI = true
 #SBC = true
 
 TMC22XX = false
@@ -49,7 +49,7 @@ include RRFLibraries.mk
 include RepRapFirmware.mk
 
 ifeq ($(BUILD),Debug)
-	DEBUG_FLAGS = -Og -g
+	DEBUG_FLAGS = -Og -g -DLPC_DEBUG
         $(info - Build: Debug) 
 else
 	DEBUG_FLAGS = -Os
@@ -89,7 +89,7 @@ FLAGS += -DCORE_M3
 FLAGS += -DRTOS -DFREERTOS_USED -DRRF_RTOSPLUS_MOD
 FLAGS += -DDEVICE_USBDEVICE=1 -DTARGET_LPC1768
 FLAGS +=  -Wall -c -mcpu=cortex-m3 -mthumb -ffunction-sections -fdata-sections -march=armv7-m 
-FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant 
+FLAGS += -nostdlib -Wdouble-promotion -fsingle-precision-constant -fstack-usage
 #FLAGS += -Wfloat-equal
 #FLAGS += -Wundef
 FLAGS += $(DEBUG_FLAGS)
@@ -103,7 +103,7 @@ else ifeq ($(ESP8266WIFI), true)
         FLAGS += -DESP8266WIFI
 else ifeq ($(SBC), true)
         $(info  - SBC Interface Enabled)
-        FLAGS += -DHLPC_SBC
+        FLAGS += -DLPC_SBC
 else
         $(info  - Networking: None)
 endif
