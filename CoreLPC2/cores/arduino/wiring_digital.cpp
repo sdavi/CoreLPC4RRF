@@ -18,11 +18,6 @@
 
 #include "Core.h"
 
-//Direction
-#define LPC_INPUT  0x00u
-#define LPC_OUTPUT 0x01u
-
-     
 //Input Pin Settings
 #define LPC_INPUT_PULLUP              0      //Pin has an on-chip pull-up resistor enabled (default on reset)
 #define LPC_INPUT_REPEATER            1      //Repeater mode - Repeater mode enables the pull-up resistor if the pin is at a logic high and enables the

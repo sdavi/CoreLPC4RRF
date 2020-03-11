@@ -168,7 +168,7 @@ void HardwareSerial::flush(void)
 void HardwareSerial::IRQHandler()
 {
     //call the LPCOpen Interrupt Handler
-    Chip_UART_IRQRBHandler(LPC_UART0, &this->rxRingBuffer, &this->txRingBuffer);
+    Chip_UART_IRQRBHandler(this->usart_device->UARTx, &this->rxRingBuffer, &this->txRingBuffer);
 }
 
 

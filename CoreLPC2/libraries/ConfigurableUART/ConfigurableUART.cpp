@@ -64,6 +64,23 @@ const uartPin_t uartPins[] =
 #endif
 };
 
+int8_t ConfigurableUART::GetUARTPortNumber()
+{
+    if(serialPort == nullptr) return -1;
+    
+    if(serialPort == &Serial0) return 0;
+#if defined(ENABLE_UART1)
+    if(serialPort == &Serial1) return 1;
+#endif
+#if defined(ENABLE_UART2)
+    if(serialPort == &Serial2) return 2;
+#endif
+#if defined(ENABLE_UART3)
+    if(serialPort == &Serial3) return 3;
+#endif
+
+    return -1;
+}
 
 bool ConfigurableUART::Configure(Pin rx, Pin tx)
 {
@@ -119,9 +136,13 @@ bool ConfigurableUART::Configure(Pin rx, Pin tx)
         }
                 
         //Configure the Pin Functions to UART
+        //TXD
+        GPIO_PinDirection(txEntry->upin, LPC_OUTPUT);
         GPIO_PinFunction(txEntry->upin, txEntry->pinselFunction);
+        //RXD
+        GPIO_PinDirection(rxEntry->upin, LPC_INPUT);
         GPIO_PinFunction(rxEntry->upin, rxEntry->pinselFunction);
-
+        
         return true; // success
     }
     
@@ -240,4 +261,11 @@ uint32_t ConfigurableUART::getInterruptPriority()
     
     return 0;
 }
+
+bool ConfigurableUART::IsConnected()
+{
+    if(serialPort != nullptr) return true;
+    return false;
+}
+
 

@@ -98,6 +98,10 @@ typedef enum
 
 /**************************************************************************************************/
 
+//Direction
+#define LPC_INPUT  0x00u
+#define LPC_OUTPUT 0x01u
+
 
 
 #endif

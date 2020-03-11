@@ -17,8 +17,8 @@ BUILD = Debug
 #BUILD = Release
 
 #Enable only one
-NETWORKING = true
-#ESP8266WIFI = true
+#NETWORKING = true
+ESP8266WIFI = true
 #SBC = true
 
 TMC22XX = false
@@ -79,7 +79,7 @@ ifeq ($(MBED), true)
         $(info  - Building for MBED)
 	    FLAGS += -D__MBED__
         ifeq ($(ESP8266WIFI), true)
-		       FLAGS += -DENABLE_UART3
+            FLAGS += -DENABLE_UART3 -DENABLE_UART2 -DENABLE_UART1
         endif
 endif
 

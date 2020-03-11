@@ -29,7 +29,7 @@ const usart_dev *USART0 = &usart0;
 #if defined(ENABLE_UART2)
     static const usart_dev usart2 =
     {
-        .UARTx = LPC_UART1,
+        .UARTx = LPC_UART2,
         .irq_NUM = UART2_IRQn,
     };
     const usart_dev *USART2 = &usart2;
