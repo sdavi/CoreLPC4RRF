@@ -115,7 +115,9 @@ else
         $(info  - Smart Drivers: None)
 endif
 
-CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline
+CFLAGS   = $(FLAGS) -std=gnu11 -fgnu89-inline 
+#Ignore noexcepts in c
+CFLAGS   += -Dnoexcept=
 CXXFLAGS = $(FLAGS) -std=gnu++17 -fno-threadsafe-statics -fexceptions -fno-rtti -Wno-register
 
 
