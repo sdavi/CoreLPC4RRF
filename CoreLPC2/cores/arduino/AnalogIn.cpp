@@ -39,7 +39,7 @@ const adcChannelConfig_st AdcConfig[numChannels]=
 
 
 // Module initialisation
-void AnalogInInit()
+void AnalogInInit() noexcept
 {
     Chip_ADC_Init(LPC_ADC, &ADCSetup);                                  //Init ADC and setup the ADCSetup struct
     Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE);                              //enable burst mode
@@ -48,7 +48,7 @@ void AnalogInInit()
     LPC_ADC->INTEN = 0x00; //disable all interrupts
 }
 
-void ConfigureADCPreFilter(bool enable, uint8_t numSamples, uint32_t sampleRateHz)
+void ConfigureADCPreFilter(bool enable, uint8_t numSamples, uint32_t sampleRateHz) noexcept
 {
     if(enable == true)
     {
@@ -58,7 +58,7 @@ void ConfigureADCPreFilter(bool enable, uint8_t numSamples, uint32_t sampleRateH
 
 
 // Enable or disable a channel.
-void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
+void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable) noexcept
 {
 	if (channel != NO_ADC && (unsigned int)channel < numChannels)
 	{
@@ -79,7 +79,7 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable)
 }
 
 // Read the most recent 12-bit result from a channel
-uint16_t AnalogInReadChannel(AnalogChannelNumber channel)
+uint16_t AnalogInReadChannel(AnalogChannelNumber channel) noexcept
 {
     uint16_t val = 0;
     if(usingPreFilter == true)
@@ -95,13 +95,13 @@ uint16_t AnalogInReadChannel(AnalogChannelNumber channel)
 
 
 // Start converting the enabled channels
-void AnalogInStartConversion(uint32_t channels)
+void AnalogInStartConversion(uint32_t channels) noexcept
 {
 }
 
 
 // Convert an  pin number to the corresponding ADC channel number
-AnalogChannelNumber PinToAdcChannel(uint32_t pin)
+AnalogChannelNumber PinToAdcChannel(uint32_t pin) noexcept
 {
     return g_APinDescription[pin].ulADCChannelNumber;
 }

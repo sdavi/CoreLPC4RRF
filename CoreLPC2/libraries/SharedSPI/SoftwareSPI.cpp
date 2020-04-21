@@ -7,13 +7,13 @@
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 
-bool SoftwareSPI::waitForTxEmpty()
+bool SoftwareSPI::waitForTxEmpty() noexcept
 {
     return false;
 }
 
 
-void SoftwareSPI::InitPins(Pin sck_pin, Pin miso_pin, Pin mosi_pin)
+void SoftwareSPI::InitPins(Pin sck_pin, Pin miso_pin, Pin mosi_pin) noexcept
 {
     sck = sck_pin;
     miso = miso_pin;
@@ -21,7 +21,7 @@ void SoftwareSPI::InitPins(Pin sck_pin, Pin miso_pin, Pin mosi_pin)
 }
 
 //setup the master device.
-void SoftwareSPI::setup_device(const struct sspi_device *device)
+void SoftwareSPI::setup_device(const struct sspi_device *device) noexcept
 {
     if(needInit)
     {
@@ -37,13 +37,14 @@ void SoftwareSPI::setup_device(const struct sspi_device *device)
 }
 
 
-SoftwareSPI::SoftwareSPI():needInit(true),sck(NoPin),mosi(NoPin),miso(NoPin)
+SoftwareSPI::SoftwareSPI() noexcept
+    :needInit(true),sck(NoPin),mosi(NoPin),miso(NoPin)
 {
 
 }
 
 
-spi_status_t SoftwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
+spi_status_t SoftwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len) noexcept
 {
     for (uint32_t i = 0; i < len; ++i)
     {
@@ -66,7 +67,7 @@ spi_status_t SoftwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t
  //WikiPedia: https://en.wikipedia.org/wiki/Serial_Peripheral_Interface#Example_of_bit-banging_the_master_protocol
  
  */
-uint8_t SoftwareSPI::transfer_byte(uint8_t byte_out)
+uint8_t SoftwareSPI::transfer_byte(uint8_t byte_out) noexcept
 {
     uint8_t byte_in = 0;
     uint8_t bit;

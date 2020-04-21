@@ -33,7 +33,7 @@ constexpr uint16_t vendor_id = 0x1d50;
 constexpr uint16_t product_id = 0x6015;
 constexpr uint16_t product_release = 0x0001;
 
-SerialUSB::SerialUSB()
+SerialUSB::SerialUSB() noexcept
 {
     this->usbSerial = new USBSerial(true, vendor_id, product_id, product_release);
     
@@ -45,17 +45,17 @@ SerialUSB::SerialUSB()
 
 
 
-void SerialUSB::begin(uint32_t baud)
+void SerialUSB::begin(uint32_t baud) noexcept
 {
     (void)baud;
 }
 
-void SerialUSB::end(void)
+void SerialUSB::end(void) noexcept
 {
  
 }
 
-int SerialUSB::available(void)
+int SerialUSB::available(void) noexcept
 {
     if (usbSerial->connected())
     {
@@ -65,13 +65,13 @@ int SerialUSB::available(void)
 }
 
 
-int SerialUSB::peek(void)
+int SerialUSB::peek(void) noexcept
 {
     return -1;// Not Supported
 }
 
 
-int SerialUSB::read(void)
+int SerialUSB::read(void) noexcept
 {
     if (usbSerial->connected())
     {
@@ -82,7 +82,7 @@ int SerialUSB::read(void)
 
 
 
-void SerialUSB::flush(void)
+void SerialUSB::flush(void) noexcept
 {
     if (usbSerial->connected())
     {
@@ -91,18 +91,18 @@ void SerialUSB::flush(void)
 }
 
 
-size_t SerialUSB::canWrite() const
+size_t SerialUSB::canWrite() const noexcept
 {
     return usbSerial->writeable();
 }
 
-bool SerialUSB::IsConnected()
+bool SerialUSB::IsConnected() noexcept
 {
     return usbSerial->connected();
 }
 
 
-size_t SerialUSB::write(uint8_t c)
+size_t SerialUSB::write(uint8_t c) noexcept
 {
     if (usbSerial->connected())
     {
@@ -112,7 +112,7 @@ size_t SerialUSB::write(uint8_t c)
 }
 
 
-size_t SerialUSB::write(const uint8_t *buffer, size_t size)
+size_t SerialUSB::write(const uint8_t *buffer, size_t size) noexcept
 {
     if (usbSerial->connected())
     {
@@ -132,12 +132,12 @@ size_t SerialUSB::write(const uint8_t *buffer, size_t size)
 
 
 
-void SerialUSB::setInterruptPriority(uint32_t priority)
+void SerialUSB::setInterruptPriority(uint32_t priority) noexcept
 {
     NVIC_SetPriority(USB_IRQn, priority);
 }
 
-uint32_t SerialUSB::getInterruptPriority()
+uint32_t SerialUSB::getInterruptPriority() noexcept
 {
     return NVIC_GetPriority(USB_IRQn);
 }

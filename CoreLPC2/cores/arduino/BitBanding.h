@@ -22,7 +22,7 @@
 #define BITBAND_SRAM_REF_END    0x200FFFFF
 #define BITBAND_PERI_REF_END    0x400FFFFF
 
-inline volatile uint32_t *bb_alias_sram_dword(volatile uint32_t *ptr, uint8_t bit)
+inline volatile uint32_t *bb_alias_sram_dword(volatile uint32_t *ptr, uint8_t bit) noexcept
 {
     const uint32_t p = (uint32_t) ptr;
     
@@ -34,7 +34,7 @@ inline volatile uint32_t *bb_alias_sram_dword(volatile uint32_t *ptr, uint8_t bi
 }
  
 
-inline volatile uint32_t *bb_alias_periph_dword(volatile uint32_t *ptr, uint8_t bit)
+inline volatile uint32_t *bb_alias_periph_dword(volatile uint32_t *ptr, uint8_t bit) noexcept
 {
     const uint32_t p = (uint32_t) ptr;
     

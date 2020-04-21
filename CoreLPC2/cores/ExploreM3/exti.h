@@ -61,19 +61,19 @@ union CallbackParameter
     uint32_t u32;
     int32_t i32;
     
-    CallbackParameter(void *pp) : vp(pp) { }
-    CallbackParameter(uint32_t pp) : u32(pp) { }
-    CallbackParameter(int32_t pp) : i32(pp) { }
-    CallbackParameter() : u32(0) { }
+    CallbackParameter(void *pp) noexcept : vp(pp) { }
+    CallbackParameter(uint32_t pp) noexcept : u32(pp) { }
+    CallbackParameter(int32_t pp) noexcept : i32(pp) { }
+    CallbackParameter() noexcept : u32(0) { }
 };
 
-typedef void (*StandardCallbackFunction)(CallbackParameter);
+typedef void (*StandardCallbackFunction)(CallbackParameter) noexcept;
 
-bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptMode mode, CallbackParameter param);
-void detachInterrupt(Pin pin);
+bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptMode mode, CallbackParameter param) noexcept;
+void detachInterrupt(Pin pin) noexcept;
 
 // Return true if we are in an interrupt service routine
-bool inInterrupt();
+bool inInterrupt() noexcept;
 
 constexpr size_t MaxExtIntEntries = 3;
 

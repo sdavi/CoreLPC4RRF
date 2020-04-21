@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-void Reset()
+void Reset() noexcept
 {
     NVIC_SystemReset();
 }

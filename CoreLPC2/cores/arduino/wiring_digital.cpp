@@ -33,7 +33,7 @@
 
      
 //SD: Added function to handle pin modes, based on mbed
-extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_u8)
+extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_u8) noexcept
 {
     uint8_t port_number;
     uint8_t pin_number = enm_pinNumber;
@@ -120,7 +120,7 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
     
                             
      //SD: adapted for LPC
- extern "C" void pinModeDuet(Pin pin, enum PinMode ulMode, uint32_t debounceCutoff)
+ extern "C" void pinModeDuet(Pin pin, enum PinMode ulMode, uint32_t debounceCutoff) noexcept
  {
      if(pin == NoPin) return;
      
@@ -189,18 +189,19 @@ extern "C" inline void GPIO_PinInputMode(gpioPins_et enm_pinNumber, uint8_t var_
 
      
      
-extern "C" void digitalWrite( Pin pin, bool dwVal )
+extern "C" void digitalWrite( Pin pin, bool dwVal ) noexcept
 {
     if(pin != NoPin) GPIO_PinWrite(pin,dwVal);
 }
 
-extern "C" bool digitalRead( Pin pin )
+extern "C" bool digitalRead( Pin pin ) noexcept
 {
     if(pin != NoPin) return GPIO_PinRead(pin);
     else return 0;
 }
 
-extern "C" void setPullup(Pin pin, bool en){
+extern "C" void setPullup(Pin pin, bool en) noexcept
+{
     
     pinModeDuet(pin, INPUT_PULLUP, 0);
     

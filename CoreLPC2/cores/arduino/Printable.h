@@ -34,8 +34,8 @@ class Print;
 class Printable
 {
   public:
-    virtual ~Printable() {}
-    virtual size_t printTo(Print& p) const = 0;
+    virtual ~Printable() noexcept {}
+    virtual size_t printTo(Print& p) const noexcept= 0;
 };
 
 #endif

@@ -6,7 +6,7 @@
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 
-SoftwarePWM::SoftwarePWM(Pin softPWMPin)
+SoftwarePWM::SoftwarePWM(Pin softPWMPin) noexcept
 {
     SetFrequency(1); //default to 1Hz
     
@@ -21,13 +21,13 @@ SoftwarePWM::SoftwarePWM(Pin softPWMPin)
 }
 
 #ifdef LPC_DEBUG
-void SoftwarePWM::IncrementLateCount()
+void SoftwarePWM::IncrementLateCount() noexcept
 {
     lateCount++;
 }
 #endif
 
-void SoftwarePWM::Enable()
+void SoftwarePWM::Enable() noexcept
 {
     pinMode(pin, OUTPUT_LOW);
     state = PWM_OFF;
@@ -37,7 +37,7 @@ void SoftwarePWM::Enable()
     ScheduleEvent(1); //Schedule to start the PWM
 
 }
-void SoftwarePWM::Disable()
+void SoftwarePWM::Disable() noexcept
 {
     softwarePWMTimer.RemoveEvent(&event); //remove event from the ticker
 
@@ -48,7 +48,7 @@ void SoftwarePWM::Disable()
 }
 
 //Sets the freqneucy in Hz
-void SoftwarePWM::SetFrequency(uint16_t freq)
+void SoftwarePWM::SetFrequency(uint16_t freq) noexcept
 {
     frequency = freq;
     //find the period in us
@@ -57,7 +57,7 @@ void SoftwarePWM::SetFrequency(uint16_t freq)
 }
 
 
-void SoftwarePWM::SetDutyCycle(float duty)
+void SoftwarePWM::SetDutyCycle(float duty) noexcept
 {
     uint32_t ot = (uint32_t) ((float)(period * duty));
     if(ot > period) ot = period;
@@ -66,13 +66,13 @@ void SoftwarePWM::SetDutyCycle(float duty)
 }
 
 //PWM On phase
-void SoftwarePWM::PWMOn()
+void SoftwarePWM::PWMOn() noexcept
 {
     state = PWM_ON;
     pinMode(pin, OUTPUT_HIGH);
 }
 //PWM Off Phase
-void SoftwarePWM::PWMOff()
+void SoftwarePWM::PWMOff() noexcept
 {
     state = PWM_OFF;
     pinMode(pin, OUTPUT_LOW);
@@ -80,13 +80,13 @@ void SoftwarePWM::PWMOff()
 
 
 //Schedule next even in now+timeout microseconds
-inline void SoftwarePWM::ScheduleEvent(uint32_t timeout)
+inline void SoftwarePWM::ScheduleEvent(uint32_t timeout) noexcept
 {
     softwarePWMTimer.ScheduleEventInMicroseconds(&event, timeout, this);
     nextRun = event.timestamp;
 }
 
-void SoftwarePWM::Check()
+void SoftwarePWM::Check() noexcept
 {
     if(pwmRunning == true && (int)(nextRun - softwarePWMTimer.TickerRead()) < -4*(int)softwarePWMTimer.TicksPerMicrosecond()) // is it more than 4us overdue?
     {
@@ -99,7 +99,7 @@ void SoftwarePWM::Check()
     }
 }
 
-void SoftwarePWM::Interrupt()
+void SoftwarePWM::Interrupt() noexcept
 {
     //handle 100% on/off
     if(onTime==0)

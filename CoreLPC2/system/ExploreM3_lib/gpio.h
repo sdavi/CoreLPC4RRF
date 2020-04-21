@@ -86,13 +86,13 @@ typedef enum
 /***************************************************************************************************
                              Function prototypes
 ***************************************************************************************************/
-/*inline*/ void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_u8);
-/*inline*/ void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8);
-/*inline*/ void GPIO_PinWrite(gpioPins_et enm_pinNumber, uint8_t var_pinValue_u8);
-/*inline*/ uint8_t GPIO_PinRead(gpioPins_et enm_pinNumber);
+/*inline*/ void GPIO_PinFunction(gpioPins_et enm_pinNumber, uint8_t var_pinFunction_u8) noexcept;
+/*inline*/ void GPIO_PinDirection(gpioPins_et enm_pinNumber, uint8_t var_pinDirn_u8) noexcept;
+/*inline*/ void GPIO_PinWrite(gpioPins_et enm_pinNumber, uint8_t var_pinValue_u8) noexcept;
+/*inline*/ uint8_t GPIO_PinRead(gpioPins_et enm_pinNumber) noexcept;
 
-/*inline*/ volatile uint32_t *GPIO_BB_PinDirectionPtr(gpioPins_et enm_pinNumber);
-/*inline*/ volatile uint32_t *GPIO_BB_PinValuePtr(gpioPins_et enm_pinNumber);
+/*inline*/ volatile uint32_t *GPIO_BB_PinDirectionPtr(gpioPins_et enm_pinNumber) noexcept;
+/*inline*/ volatile uint32_t *GPIO_BB_PinValuePtr(gpioPins_et enm_pinNumber) noexcept;
 
 
 

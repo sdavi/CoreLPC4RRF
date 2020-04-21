@@ -29,10 +29,10 @@ extern void itoa( int n, char s[] ) ;
 
 #else
 
-extern char* itoa( int value, char *string, int radix ) ;
-extern char* ltoa( long value, char *string, int radix ) ;
-extern char* utoa( unsigned long value, char *string, int radix ) ;
-extern char* ultoa( unsigned long value, char *string, int radix ) ;
+extern char* itoa( int value, char *string, int radix )  noexcept;
+extern char* ltoa( long value, char *string, int radix )  noexcept;
+extern char* utoa( unsigned long value, char *string, int radix )  noexcept;
+extern char* ultoa( unsigned long value, char *string, int radix )  noexcept;
 #endif /* 0 */
 
 #ifdef __cplusplus

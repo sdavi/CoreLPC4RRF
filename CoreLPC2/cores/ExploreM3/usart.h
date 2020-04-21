@@ -21,7 +21,7 @@ typedef struct usart_dev
     IRQn_Type irq_NUM;  
 } usart_dev;
 
-void usart_init(const usart_dev *dev, uint32_t baud_rate);
+void usart_init(const usart_dev *dev, uint32_t baud_rate) noexcept;
 
 
 extern const usart_dev *USART0;

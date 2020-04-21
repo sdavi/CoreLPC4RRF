@@ -22,7 +22,7 @@
 
 SoftwarePWMTimer softwarePWMTimer;
 
-SoftwarePWMTimer::SoftwarePWMTimer()
+SoftwarePWMTimer::SoftwarePWMTimer() noexcept
 {
     head = nullptr;
 
@@ -33,7 +33,7 @@ SoftwarePWMTimer::SoftwarePWMTimer()
     LPC_RITIMER->CTRL = RIT_CTRL_INT | RIT_CTRL_ENBR | RIT_CTRL_TEN;
 }
 
-inline void SoftwarePWMTimer::ticker_set_interrupt(ticker_event_t *obj, bool inInterrupt)
+inline void SoftwarePWMTimer::ticker_set_interrupt(ticker_event_t *obj, bool inInterrupt) noexcept
 {
     const irqflags_t flags = cpu_irq_save();
 
@@ -66,23 +66,23 @@ inline void SoftwarePWMTimer::ticker_set_interrupt(ticker_event_t *obj, bool inI
     cpu_irq_restore(flags);
 }
 
-inline void SoftwarePWMTimer::ticker_disable_interrupt(void)
+inline void SoftwarePWMTimer::ticker_disable_interrupt(void) noexcept
 {
     NVIC_DisableIRQ(RITIMER_IRQn);
 }
 
-inline void SoftwarePWMTimer::ticker_clear_interrupt(void)
+inline void SoftwarePWMTimer::ticker_clear_interrupt(void) noexcept
 {
     LPC_RITIMER->CTRL |= RIT_CTRL_INT; // Clear Interrupt
 }
 
-extern "C" void RIT_IRQHandler(void) __attribute__ ((hot));
-void RIT_IRQHandler(void)
+extern "C" void RIT_IRQHandler(void)  noexcept __attribute__ ((hot));
+void RIT_IRQHandler(void) noexcept
 {
     softwarePWMTimer.Interrupt();
 }
 
-void SoftwarePWMTimer::Interrupt()
+void SoftwarePWMTimer::Interrupt() noexcept
 {
     
     ticker_clear_interrupt();
@@ -118,7 +118,7 @@ void SoftwarePWMTimer::Interrupt()
 
 
 
-void SoftwarePWMTimer::ScheduleEventInMicroseconds(ticker_event_t *obj, uint32_t microseconds, SoftwarePWM *softPWMObject)
+void SoftwarePWMTimer::ScheduleEventInMicroseconds(ticker_event_t *obj, uint32_t microseconds, SoftwarePWM *softPWMObject) noexcept
 {
     //convert microseconds into timer ticks
     uint32_t timestamp = TickerRead() + microseconds * TicksPerMicrosecond();
@@ -126,7 +126,7 @@ void SoftwarePWMTimer::ScheduleEventInMicroseconds(ticker_event_t *obj, uint32_t
 }
 
 
-void SoftwarePWMTimer::ticker_insert_event(ticker_event_t *obj, uint32_t timestamp, SoftwarePWM *softPWMObject)
+void SoftwarePWMTimer::ticker_insert_event(ticker_event_t *obj, uint32_t timestamp, SoftwarePWM *softPWMObject) noexcept
 {
     /* disable interrupts for the duration of the function */
     const irqflags_t flags = cpu_irq_save();
@@ -167,7 +167,7 @@ void SoftwarePWMTimer::ticker_insert_event(ticker_event_t *obj, uint32_t timesta
     
 }
 
-void SoftwarePWMTimer::RemoveEvent(ticker_event_t *obj)
+void SoftwarePWMTimer::RemoveEvent(ticker_event_t *obj) noexcept
 {
     const irqflags_t flags = cpu_irq_save();
 

@@ -49,21 +49,21 @@ typedef enum
 extern "C" {
 #endif
 
-void sspi_master_init(struct sspi_device *device, uint32_t bits);
-void sspi_master_setup_device(const struct sspi_device *device);
-void sspi_select_device(const struct sspi_device *device);
-void sspi_deselect_device(const struct sspi_device *device);
-spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len);
-uint8_t sspi_transceive_a_packet(uint8_t buf);
-void sspi_setPinsForChannel(SSPChannel channel, Pin sck, Pin miso, Pin mosi);
+void sspi_master_init(struct sspi_device *device, uint32_t bits) noexcept;
+void sspi_master_setup_device(const struct sspi_device *device) noexcept;
+void sspi_select_device(const struct sspi_device *device) noexcept;
+void sspi_deselect_device(const struct sspi_device *device) noexcept;
+spi_status_t sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len) noexcept;
+uint8_t sspi_transceive_a_packet(uint8_t buf) noexcept;
+void sspi_setPinsForChannel(SSPChannel channel, Pin sck, Pin miso, Pin mosi) noexcept;
 
-static inline spi_status_t sspi_read_packet(uint8_t *buf, size_t len)
+static inline spi_status_t sspi_read_packet(uint8_t *buf, size_t len) noexcept
 {
 	return sspi_transceive_packet(NULL, buf, len);
 }
 
 // Send a packet
-static inline spi_status_t sspi_write_packet(const uint8_t *buf, size_t len)
+static inline spi_status_t sspi_write_packet(const uint8_t *buf, size_t len) noexcept
 {
 	return sspi_transceive_packet(buf, NULL, len);
 }
@@ -71,7 +71,7 @@ static inline spi_status_t sspi_write_packet(const uint8_t *buf, size_t len)
 
 #include "SPI.h"
 
-SPI *getSSPDevice(SSPChannel channel);
+SPI *getSSPDevice(SSPChannel channel) noexcept;
 
 #ifdef __cplusplus
 }

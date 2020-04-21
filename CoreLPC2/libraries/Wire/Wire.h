@@ -73,70 +73,70 @@ class TwoWire : public WireBase {
      * Sets the SCL line to HIGH/LOW and allow for clock stretching by slave
      * devices
      */
-    void set_scl(bool);
+    void set_scl(bool) noexcept;
 
     /*
      * Sets the SDA line to HIGH/LOW
      */
-    void set_sda(bool);
+    void set_sda(bool) noexcept;
 
     /*
      * Creates a Start condition on the bus
      */
-    void i2c_start();
+    void i2c_start() noexcept;
 
     /*
      * Creates a Stop condition on the bus
      */
-    void  i2c_stop();
+    void  i2c_stop() noexcept;
 
     /*
      * Gets an ACK condition from a slave device on the bus
      */
-    bool i2c_get_ack();
+    bool i2c_get_ack() noexcept;
 
     /*
      * Creates a ACK condition on the bus
      */
-    void i2c_send_ack();
+    void i2c_send_ack() noexcept;
 
     /*
      * Creates a NACK condition on the bus
      */
-    void i2c_send_nack();
+    void i2c_send_nack() noexcept;
 
     /*
      * Shifts in the data through SDA and clocks SCL for the slave device
      */
-    uint8_t i2c_shift_in();
+    uint8_t i2c_shift_in() noexcept;
 
     /*
      * Shifts out the data through SDA and clocks SCL for the slave device
      */
-    void i2c_shift_out(uint8_t);
+    void i2c_shift_out(uint8_t) noexcept;
  protected:
     /*
      * Processes the incoming I2C message defined by WireBase
      */
-    uint8_t process();
+    uint8_t process() noexcept;
  public:
     /*
      * Accept pin numbers for SCL and SDA lines. Set the delay needed
      * to create the timing for I2C's Standard Mode and Fast Mode.
      */
-    TwoWire(Pin scl=SCL, Pin sda=SDA, uint8_t delay=SOFT_STANDARD);
+    TwoWire(Pin scl=SCL, Pin sda=SDA, uint8_t delay=SOFT_STANDARD) noexcept;
 
     /*
      * Sets pins SDA and SCL to OUPTUT_OPEN_DRAIN, joining I2C bus as
      * master. This function overwrites the default behaviour of
      * .begin(uint8_t) in WireBase
      */
-    void begin(uint8_t = 0x00);
+    void begin(uint8_t = 0x00) noexcept;
 
     /*
      * If object is destroyed, set pin numbers to 0.
      */
-    ~TwoWire();
+    ~TwoWire() noexcept;
 };
 
 extern TwoWire Wire;

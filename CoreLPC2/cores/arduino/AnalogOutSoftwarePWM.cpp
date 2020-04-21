@@ -10,7 +10,7 @@ SoftwarePWM* softwarePWMEntries[MaxNumberSoftwarePWMPins] = {};
 static uint32_t pinsOnSoftPWM[5] = {0}; //5 ports;
 
 
-bool CanDoSoftwarePWM(Pin pin)
+bool CanDoSoftwarePWM(Pin pin) noexcept
 {
     (void)pin;
     
@@ -25,7 +25,7 @@ bool CanDoSoftwarePWM(Pin pin)
     
 }
 
-bool ConfigurePinForSoftwarePWM(Pin pin)
+bool ConfigurePinForSoftwarePWM(Pin pin) noexcept
 {
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
@@ -52,7 +52,7 @@ bool ConfigurePinForSoftwarePWM(Pin pin)
     return false;
 }
 
-void ReleaseSoftwarePWMPin(Pin pin)
+void ReleaseSoftwarePWMPin(Pin pin) noexcept
 {
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
@@ -79,7 +79,7 @@ void ReleaseSoftwarePWMPin(Pin pin)
     
 }
 
-bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin)
+bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin) noexcept
 {
     //Is the pin configured as softwarePWM?
     

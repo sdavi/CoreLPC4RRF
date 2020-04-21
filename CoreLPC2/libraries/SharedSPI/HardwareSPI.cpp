@@ -25,7 +25,7 @@ constexpr uint8_t SR_BSY = (1<<4); //Busy. This bit is 0 if the SSPn controller 
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 // Wait for transmitter ready returning true if timed out
-static inline bool waitForTxReady(LPC_SSP_T* sspDevice)
+static inline bool waitForTxReady(LPC_SSP_T* sspDevice) noexcept
 {
     uint32_t timeout = SPI_TIMEOUT;
     while (sspDevice->SR & SR_BSY) //check if SSP BSY flag (1=busy)
@@ -42,7 +42,7 @@ static inline bool waitForTxReady(LPC_SSP_T* sspDevice)
 
 //Make sure all the SSP FIFOs are empty, if they aren't clear them
 //returns true if ready, false if timeout
-static inline bool clearSSPTimeout(LPC_SSP_T* sspDevice)
+static inline bool clearSSPTimeout(LPC_SSP_T* sspDevice) noexcept
 {
 #ifdef SSPI_DEBUG
     if( (sspDevice->SR & SR_BSY) ) debugPrintf("SPI Busy\n");
@@ -54,9 +54,11 @@ static inline bool clearSSPTimeout(LPC_SSP_T* sspDevice)
     if (waitForTxReady(sspDevice)) return true; //timed out
 
     //check the Receive FIFO
-    if( (sspDevice->SR & SR_RNE) ){
+    if( (sspDevice->SR & SR_RNE) )
+    {
         //clear out the FIFO
-        while( (sspDevice->SR & SR_RNE) ){
+        while( (sspDevice->SR & SR_RNE) )
+        {
             sspDevice->DR; // read
         }
     }
@@ -68,7 +70,7 @@ static inline bool clearSSPTimeout(LPC_SSP_T* sspDevice)
 }
 
 //wait for SSP receive FIFO to be not empty
-static inline bool waitForReceiveNotEmpty(LPC_SSP_T* sspDevice)
+static inline bool waitForReceiveNotEmpty(LPC_SSP_T* sspDevice) noexcept
 {
     uint32_t timeout = SPI_TIMEOUT;
     
@@ -85,7 +87,8 @@ static inline bool waitForReceiveNotEmpty(LPC_SSP_T* sspDevice)
 
 
 //SD: added function. check if TX FIFO is not full: return true if timed out
-static inline bool waitForTxEmpty_timeout(LPC_SSP_T *ssp, uint32_t timeout) {
+static inline bool waitForTxEmpty_timeout(LPC_SSP_T *ssp, uint32_t timeout)  noexcept
+{
     while (!(ssp->SR & (1<<1)) ) // TNF = 0 if full
     {
         if (!timeout--)
@@ -98,7 +101,8 @@ static inline bool waitForTxEmpty_timeout(LPC_SSP_T *ssp, uint32_t timeout) {
 }
 
 //SD as ssp_readable but with timeout for sharedSPI: returns true if timed out
-static inline bool ssp_readable_timeout(LPC_SSP_T *ssp, uint32_t timeout) {
+static inline bool ssp_readable_timeout(LPC_SSP_T *ssp, uint32_t timeout) noexcept
+{
     while ( !(ssp->SR & (1 << 2)) )
     {
         if (--timeout == 0) return true;
@@ -109,18 +113,18 @@ static inline bool ssp_readable_timeout(LPC_SSP_T *ssp, uint32_t timeout) {
 
 // Wait for transmitter empty returning true if timed out
 //static inline bool waitForTxEmpty(LPC_SSP_TypeDef* sspDevice)
-bool HardwareSPI::waitForTxEmpty()
+bool HardwareSPI::waitForTxEmpty() noexcept
 {
     return waitForTxEmpty_timeout(selectedSSPDevice, SPI_TIMEOUT);
 }
 
 // Wait for receive data available returning true if timed out
-static inline bool waitForRxReady(LPC_SSP_T* sspDevice)
+static inline bool waitForRxReady(LPC_SSP_T* sspDevice) noexcept
 {
     return ssp_readable_timeout(sspDevice, SPI_TIMEOUT);
 }
 
-static inline CHIP_SSP_BITS_T getSSPBits(uint8_t bits)
+static inline CHIP_SSP_BITS_T getSSPBits(uint8_t bits) noexcept
 {
     //we will only support 8 or 16bit
     
@@ -129,7 +133,7 @@ static inline CHIP_SSP_BITS_T getSSPBits(uint8_t bits)
     return SSP_BITS_8;
 }
 
-static inline CHIP_SSP_CLOCK_MODE_T getSSPMode(uint8_t spiMode)
+static inline CHIP_SSP_CLOCK_MODE_T getSSPMode(uint8_t spiMode) noexcept
 {
     switch(spiMode)
     {
@@ -148,19 +152,19 @@ static inline CHIP_SSP_CLOCK_MODE_T getSSPMode(uint8_t spiMode)
 }
 
 
-void ssp0_dma_interrupt()
+void ssp0_dma_interrupt() noexcept
 {
     HardwareSPI *s = (HardwareSPI *) getSSPDevice(SSP0);
     s->interrupt();
 }
 
-void ssp1_dma_interrupt()
+void ssp1_dma_interrupt() noexcept
 {
     HardwareSPI *s = (HardwareSPI *) getSSPDevice(SSP1);
     s->interrupt();
 }
 
-void HardwareSPI::interrupt()
+void HardwareSPI::interrupt() noexcept
 {
     dmaTransferComplete = true;
 
@@ -169,7 +173,7 @@ void HardwareSPI::interrupt()
 }
 
 //setup the master device.
-void HardwareSPI::setup_device(const struct sspi_device *device)
+void HardwareSPI::setup_device(const struct sspi_device *device) noexcept
 {
     
     Chip_SSP_Disable(selectedSSPDevice);
@@ -225,7 +229,8 @@ void HardwareSPI::setup_device(const struct sspi_device *device)
 }
 
 
-HardwareSPI::HardwareSPI(LPC_SSP_T *sspDevice):needInit(true)
+HardwareSPI::HardwareSPI(LPC_SSP_T *sspDevice) noexcept
+    :needInit(true)
 {
     selectedSSPDevice = sspDevice;
     dmaTransferComplete = false;
@@ -233,7 +238,7 @@ HardwareSPI::HardwareSPI(LPC_SSP_T *sspDevice):needInit(true)
     spiTransferSemaphore = xSemaphoreCreateBinary();
 }
 
-spi_status_t HardwareSPI::sspi_transceive_packet_dma(const uint8_t *tx_data, uint8_t *rx_data, size_t len, DMA_TransferWidth_t transferWidth)
+spi_status_t HardwareSPI::sspi_transceive_packet_dma(const uint8_t *tx_data, uint8_t *rx_data, size_t len, DMA_TransferWidth_t transferWidth) noexcept
 {
     dmaTransferComplete = false;
     
@@ -291,7 +296,7 @@ spi_status_t HardwareSPI::sspi_transceive_packet_dma(const uint8_t *tx_data, uin
     return ret;
 }
 
-spi_status_t HardwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len)
+spi_status_t HardwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t *rx_data, size_t len) noexcept
 {
     return sspi_transceive_packet_dma(tx_data, rx_data, len, DMA_WIDTH_BYTE);
 }

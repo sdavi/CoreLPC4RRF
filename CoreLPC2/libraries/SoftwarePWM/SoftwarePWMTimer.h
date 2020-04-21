@@ -38,20 +38,20 @@ class SoftwarePWMTimer
     
     
 public:
-    SoftwarePWMTimer();
+    SoftwarePWMTimer() noexcept;
     
-    void ScheduleEventInMicroseconds(ticker_event_t *obj, uint32_t microseconds, SoftwarePWM *softPWMObject);
-    void RemoveEvent(ticker_event_t *obj);
-    void Interrupt();
+    void ScheduleEventInMicroseconds(ticker_event_t *obj, uint32_t microseconds, SoftwarePWM *softPWMObject) noexcept;
+    void RemoveEvent(ticker_event_t *obj) noexcept;
+    void Interrupt() noexcept;
 
-    inline uint32_t TickerRead(){ return LPC_RITIMER->COUNTER; };
-    inline uint32_t TicksPerMicrosecond(){ return Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_RIT)/1000000; };
+    inline uint32_t TickerRead() noexcept { return LPC_RITIMER->COUNTER; };
+    inline uint32_t TicksPerMicrosecond() noexcept { return Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_RIT)/1000000; };
 
 private:
-    void ticker_set_interrupt(ticker_event_t *obj, bool inInterrupt=false);
-    void ticker_disable_interrupt(void);
-    void ticker_clear_interrupt(void);
-    void ticker_insert_event(ticker_event_t *obj, uint32_t timestamp, SoftwarePWM *softPWMObject);
+    void ticker_set_interrupt(ticker_event_t *obj, bool inInterrupt=false) noexcept;
+    void ticker_disable_interrupt(void) noexcept;
+    void ticker_clear_interrupt(void) noexcept;
+    void ticker_insert_event(ticker_event_t *obj, uint32_t timestamp, SoftwarePWM *softPWMObject) noexcept;
     ticker_event_t *head;
 };
 

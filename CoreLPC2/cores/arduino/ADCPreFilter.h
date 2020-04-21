@@ -10,7 +10,7 @@
 
 #include "Core.h"
 
-bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz);
-uint16_t ADCPreFilterRead(uint8_t channel);
+bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz) noexcept;
+uint16_t ADCPreFilterRead(uint8_t channel) noexcept;
 
 #endif /* ADCPREFILTER_H_ */

@@ -60,7 +60,7 @@
 
 
 //original pinmode function (just set dir and fn)
-void original_pinMode( Pin ulPin, uint32_t ulMode )
+void original_pinMode( Pin ulPin, uint32_t ulMode ) noexcept
 {
     GPIO_PinFunction(ulPin,0); //configure pin as GPIO
     GPIO_PinDirection(ulPin,ulMode);
@@ -68,7 +68,8 @@ void original_pinMode( Pin ulPin, uint32_t ulMode )
 
 
 
-void TwoWire::set_scl(bool state) {
+void TwoWire::set_scl(bool state)  noexcept
+{
     I2C_DELAY(this->i2c_delay);
     digitalWrite(this->scl_pin,state);
     //Allow for clock stretching - dangerous currently
@@ -77,7 +78,8 @@ void TwoWire::set_scl(bool state) {
     } */
 }
 
-void TwoWire::set_sda(bool state) {
+void TwoWire::set_sda(bool state)  noexcept
+{
 	I2C_DELAY(this->i2c_delay);
     digitalWrite(this->sda_pin, state);
 }
@@ -93,7 +95,8 @@ void TwoWire::set_sda(bool state) {
                 SDA:                |
                                     |____________                      
 ***********************************************************************/
-void TwoWire::i2c_start() {
+void TwoWire::i2c_start() noexcept
+{
         
     set_scl(LOW);
     set_sda(HIGH);
@@ -113,14 +116,16 @@ void TwoWire::i2c_start() {
                       __________|                        
 ***********************************************************************/
                       
-void TwoWire::i2c_stop() {    
+void TwoWire::i2c_stop() noexcept
+{
     set_scl(LOW);
     set_sda(LOW);
     set_scl(HIGH);
     set_sda(HIGH);
 }
 
-bool TwoWire::i2c_get_ack() {
+bool TwoWire::i2c_get_ack() noexcept
+{
     
     original_pinMode(this->sda_pin,INPUT);
     set_scl(LOW);
@@ -132,19 +137,22 @@ bool TwoWire::i2c_get_ack() {
     return ret;
 }
 
-void TwoWire::i2c_send_ack() {
+void TwoWire::i2c_send_ack() noexcept
+{
     set_sda(LOW);
     set_scl(HIGH);
     set_scl(LOW);
 }
 
-void TwoWire::i2c_send_nack() {
+void TwoWire::i2c_send_nack() noexcept
+{
     set_sda(HIGH);
     set_scl(HIGH);
     set_scl(LOW);
 }
 
-uint8_t TwoWire::i2c_shift_in() {
+uint8_t TwoWire::i2c_shift_in() noexcept
+{
     uint8_t data = 0;
     int i;
     original_pinMode(this->sda_pin,INPUT);
@@ -159,7 +167,8 @@ uint8_t TwoWire::i2c_shift_in() {
     return data;
 }
 
-void TwoWire::i2c_shift_out(uint8_t val) {
+void TwoWire::i2c_shift_out(uint8_t val) noexcept
+{
     int i;
     for (i = 0; i < 8; i++) {
         set_sda(!!(val & (1 << (7 - i)) ) );
@@ -168,7 +177,8 @@ void TwoWire::i2c_shift_out(uint8_t val) {
     }
 }
 
-uint8_t TwoWire::process() {
+uint8_t TwoWire::process() noexcept
+{
     itc_msg.xferred = 0;
 
     uint8_t sla_addr = (itc_msg.addr << 1);
@@ -215,13 +225,15 @@ uint8_t TwoWire::process() {
 
 // TODO: Add in Error Handling if pins is out of range for other Maples
 // TODO: Make delays more capable
-TwoWire::TwoWire(Pin scl, Pin sda, uint8_t delay) {
+TwoWire::TwoWire(Pin scl, Pin sda, uint8_t delay) noexcept
+{
     this->scl_pin=scl;
     this->sda_pin=sda;
     this->i2c_delay = delay;
 }
 
-void TwoWire::begin(uint8_t self_addr) {
+void TwoWire::begin(uint8_t self_addr) noexcept
+{
     tx_buf_idx = 0;
     tx_buf_overflow = false;
     rx_buf_idx = 0;
@@ -232,7 +244,8 @@ void TwoWire::begin(uint8_t self_addr) {
     set_sda(HIGH);
 }
 
-TwoWire::~TwoWire() {
+TwoWire::~TwoWire() noexcept
+{
     this->scl_pin=NoPin;
     this->sda_pin=NoPin;
 }

@@ -45,7 +45,7 @@ struct InterruptCallback
     StandardCallbackFunction func;
     CallbackParameter param;
     
-    InterruptCallback() : func(nullptr) { }
+    InterruptCallback() noexcept : func(nullptr) { }
 };
 
 
@@ -57,7 +57,7 @@ Pin ExternalInterruptPins[MaxExtIntEntries] = {NoPin, NoPin, NoPin};
 //Function from WInterrupts from RRF adapted for LPC.
 
 
-bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptMode mode, CallbackParameter param)
+bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptMode mode, CallbackParameter param) noexcept
 {
     //Port 0 and Port 2 can provide a single interrupt for any combination of port pins.
     //GPIO INTS call EINT3 handler!!
@@ -160,7 +160,7 @@ bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptM
 }
 
 
-void detachInterrupt(Pin pin)
+void detachInterrupt(Pin pin) noexcept
 {
  
     const uint8_t portNumber =  (pin>>5);  //Divide the pin number by 32 go get the PORT number
@@ -196,14 +196,14 @@ void detachInterrupt(Pin pin)
 }
 
 // Return true if we are in any interrupt service routine
-bool inInterrupt()
+bool inInterrupt() noexcept
 {
     //bits 0:8 are the ISR_NUMBER
     //bits 9:31 reserved
     return (__get_IPSR() & 0xFF) != 0;
 }
 
-extern "C" void EINT3_IRQHandler(void)
+extern "C" void EINT3_IRQHandler(void) noexcept
 {
     //We assume we arent also using EINT3 (external interrupt function), but only the GPIO interrupts which share the same interrupt
     

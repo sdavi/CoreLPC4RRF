@@ -6,7 +6,7 @@
 */
 
 template <typename T>
-void split(T data[], unsigned int n, T x, unsigned int& i, unsigned int& j)
+void split(T data[], unsigned int n, T x, unsigned int& i, unsigned int& j)  noexcept
 {
   do {
     while (data[i] < x) i++;
@@ -23,7 +23,7 @@ void split(T data[], unsigned int n, T x, unsigned int& i, unsigned int& j)
 
 // C.A.R. Hoare's Quick Median
 template <typename T>
-unsigned int quick_median(T data[], unsigned int n)
+unsigned int quick_median(T data[], unsigned int n) noexcept
 {
   unsigned int l = 0, r = n-1, k = n/2;
   while (l < r) {

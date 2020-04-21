@@ -28,19 +28,19 @@ typedef uint32_t irqflags_t;
 	} while (0)
 
 
-static inline irqflags_t cpu_irq_save(void)
+static inline irqflags_t cpu_irq_save(void) noexcept
 {
 	irqflags_t flags = cpu_irq_is_enabled();
 	cpu_irq_disable();
 	return flags;
 }
 
-static inline bool cpu_irq_is_enabled_flags(irqflags_t flags)
+static inline bool cpu_irq_is_enabled_flags(irqflags_t flags) noexcept
 {
 	return (flags);
 }
 
-static inline void cpu_irq_restore(irqflags_t flags)
+static inline void cpu_irq_restore(irqflags_t flags) noexcept
 {
 	if (cpu_irq_is_enabled_flags(flags))
 		cpu_irq_enable();

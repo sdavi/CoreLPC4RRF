@@ -9,29 +9,29 @@
 class SoftwarePWM
 {
 public:
-    SoftwarePWM(Pin softPWMPin);
+    SoftwarePWM(Pin softPWMPin) noexcept;
     
-    void Enable();
-    void Disable();
+    void Enable() noexcept;
+    void Disable() noexcept;
 
-    void SetFrequency(uint16_t freq);
-    void SetDutyCycle(float duty);
+    void SetFrequency(uint16_t freq) noexcept;
+    void SetDutyCycle(float duty) noexcept;
 
-    void PWMOn();
-    void PWMOff();
+    void PWMOn() noexcept;
+    void PWMOff() noexcept;
     
-    bool IsRunning() {return pwmRunning;}
-    void Check();
+    bool IsRunning() noexcept {return pwmRunning;}
+    void Check() noexcept;
 
     
-    Pin GetPin() const {return pin;}
-    uint16_t GetFrequency() const {return frequency;}
+    Pin GetPin() const noexcept {return pin;}
+    uint16_t GetFrequency() const noexcept {return frequency;}
 
-    void Interrupt();
+    void Interrupt() noexcept;
 
 #ifdef LPC_DEBUG
-    void IncrementLateCount();
-    uint32_t GetLateCount(){ return lateCount; };
+    void IncrementLateCount() noexcept;
+    uint32_t GetLateCount() noexcept { return lateCount; };
 #endif
     
 private:
@@ -54,7 +54,7 @@ private:
     
     ticker_event_t event;
     
-    void ScheduleEvent(uint32_t timeout);
+    void ScheduleEvent(uint32_t timeout) noexcept;
 
     
 };

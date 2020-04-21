@@ -119,8 +119,8 @@ enum BitOrder {
 /**************************************************************************************************/
 
 
-void yield(void) __attribute__ ((weak));
-void sysTickHook(void) __attribute__ ((weak)); //SD:added to be compatible with RRF
+void yield(void)  noexcept __attribute__ ((weak));
+void sysTickHook(void) noexcept __attribute__ ((weak)); //SD:added to be compatible with RRF
 
 
 /***************************************************************************************************

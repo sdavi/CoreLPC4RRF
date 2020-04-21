@@ -75,7 +75,7 @@ extern "C" void UART3_IRQHandler(void)
 
 
 //Serial_baud from MBED
-void serial_baud(LPC_USART_T *obj, int baudrate)
+void serial_baud(LPC_USART_T *obj, int baudrate) noexcept
 {
     // set pclk to /1
     if( obj == LPC_UART0)
@@ -191,7 +191,7 @@ typedef enum
     ParityForced0 = 4
 } SerialParity;
 
-void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int stop_bits)
+void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int stop_bits) noexcept
 {
     // 5 data bits = 0 ... 8 data bits = 3
     if (data_bits < 5 || data_bits > 8)
@@ -235,7 +235,7 @@ void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int sto
 
 
 
-void usart_init(const usart_dev *dev, uint32_t baud_rate)
+void usart_init(const usart_dev *dev, uint32_t baud_rate) noexcept
 {
     
     //Enable Power and Clocking

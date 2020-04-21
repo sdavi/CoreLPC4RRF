@@ -84,77 +84,77 @@ protected:
     // Force derived classes to define process function
     virtual uint8_t process() = 0;
 public:
-    WireBase() {}
-    ~WireBase() {}
+    WireBase() noexcept {}
+    ~WireBase() noexcept {}
 
     /*
      * Initialises the class interface
      */
     // Allow derived classes to overwrite begin function
-    virtual void begin(uint8_t = 0x00);
+    virtual void begin(uint8_t = 0x00) noexcept;
 
     /*
      * Sets up the transmission message to be processed
      */
-    void beginTransmission(uint8_t);
+    void beginTransmission(uint8_t) noexcept;
 
     /*
      * Allow only 8 bit addresses to be used
      */
-    void beginTransmission(int);
+    void beginTransmission(int) noexcept;
 
     /*
      * Call the process function to process the message if the TX
      * buffer has not overflowed.
      */
-    uint8_t endTransmission(void);
+    uint8_t endTransmission(void) noexcept;
 
     /*
      * Request bytes from a slave device and process the request,
      * storing into the receiving buffer.
      */
-    uint8_t requestFrom(uint8_t, int);
+    uint8_t requestFrom(uint8_t, int) noexcept;
 
     /*
      * Allow only 8 bit addresses to be used when requesting bytes
      */
-    uint8_t requestFrom(int, int);
+    uint8_t requestFrom(int, int) noexcept;
 
     /*
      * Stack up bytes to be sent when transmitting
      */
-    void write(uint8_t);
+    void write(uint8_t) noexcept;
 
     /*
      * Stack up bytes from the array to be sent when transmitting
      */
-    void write(const uint8_t*, int);
+    void write(const uint8_t*, int) noexcept;
 
     /*
      * Ensure that a sending data will only be 8-bit bytes
      */
-    void write(int);
+    void write(int) noexcept;
 
     /*
      * Ensure that an array sending data will only be 8-bit bytes
      */
-    void write(int*, int);
+    void write(int*, int) noexcept;
 
     /*
      * Stack up bytes from a string to be sent when transmitting
      */
-    void write(char*);
+    void write(char*) noexcept;
 
     /*
      * Return the amount of bytes that is currently in the receiving buffer
      */
-    uint8_t available();
+    uint8_t available() noexcept;
 
     /*
      * Return the value of byte in the receiving buffer that is currently being
      * pointed to
      */
-    uint8_t read();
+    uint8_t read() noexcept;
 };
 
 #endif // _WIREBASE_H_

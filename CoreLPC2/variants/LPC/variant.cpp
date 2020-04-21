@@ -21,7 +21,7 @@
 #include "AnalogIn.h"
 #include "AnalogOut.h"
 
-void ConfigurePin(const PinDescription& pinDesc)
+void ConfigurePin(const PinDescription& pinDesc) noexcept
 {
 //UnUsed
     //pio_configure(pinDesc.pPort, pinDesc.ulPinType, pinDesc.ulPin, pinDesc.ulPinConfiguration);
@@ -202,7 +202,7 @@ extern const PinDescription g_APinDescription[]=
 
 
 
-void init( void )
+void init( void ) noexcept
 {
     AnalogInInit(); // Initialize Analog Controller
     AnalogOutInit();// Initialize analogOutput module

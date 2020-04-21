@@ -28,42 +28,43 @@
 
 typedef uint8_t CARD_TYPE;
 
-class SDCard {
+class SDCard
+{
 public:
 
 
-    SDCard(uint8_t SSPSlot, Pin cs);
-    ~SDCard() {};
-    void ReInit(Pin cs, uint32_t frequency);
-    void SetSSPChannel(SSPChannel channel);
+    SDCard(uint8_t SSPSlot, Pin cs) noexcept;
+    ~SDCard() noexcept {};
+    void ReInit(Pin cs, uint32_t frequency) noexcept;
+    void SetSSPChannel(SSPChannel channel) noexcept;
 
-    CARD_TYPE card_type(void);
+    CARD_TYPE card_type(void) noexcept;
     
-    void unmount();
-    uint32_t interface_speed() { return frequency; };
-    uint32_t disk_sectors() { return sdcardSectors; };
-    uint32_t disk_blocksize() { return sdcardBlockSize; };
-    uint32_t disk_highSpeedMode() {return isHighSpeed; };
+    void unmount() noexcept;
+    uint32_t interface_speed() noexcept { return frequency; };
+    uint32_t disk_sectors() noexcept { return sdcardSectors; };
+    uint32_t disk_blocksize() noexcept { return sdcardBlockSize; };
+    uint32_t disk_highSpeedMode() noexcept {return isHighSpeed; };
     
     
     
     //DiskIO
-    uint8_t disk_initialize();
-    uint8_t disk_status();
-    DRESULT disk_read (uint8_t *buff, uint32_t sector, uint32_t count);
-    DRESULT disk_write (const uint8_t *buff, uint32_t sector, uint32_t count);
-    DRESULT disk_ioctl (uint8_t cmd, void *buff);
+    uint8_t disk_initialize() noexcept;
+    uint8_t disk_status() noexcept;
+    DRESULT disk_read (uint8_t *buff, uint32_t sector, uint32_t count) noexcept;
+    DRESULT disk_write (const uint8_t *buff, uint32_t sector, uint32_t count) noexcept;
+    DRESULT disk_ioctl (uint8_t cmd, void *buff) noexcept;
 
 protected:
 
-    int wait_ready (uint32_t wt);
-    void deselect (void);
-    int select (void);
-    int rcvr_datablock (uint8_t *buff, uint32_t btr);
-    int xmit_datablock (const uint8_t *buff, uint8_t token);
-    uint8_t send_cmd (uint8_t cmd, uint32_t arg);
+    int wait_ready (uint32_t wt) noexcept;
+    void deselect (void) noexcept;
+    int select (void) noexcept;
+    int rcvr_datablock (uint8_t *buff, uint32_t btr) noexcept;
+    int xmit_datablock (const uint8_t *buff, uint8_t token) noexcept;
+    uint8_t send_cmd (uint8_t cmd, uint32_t arg) noexcept;
 
-    bool enableHighSpeedMode();
+    bool enableHighSpeedMode() noexcept;
     
     //variables
     sspi_device _sspi_device;

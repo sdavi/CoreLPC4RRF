@@ -39,7 +39,7 @@
 constexpr uint32_t MaxBaudRate = 460800;
 
 
-HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint16_t rxRingBufferSize, uint16_t txRingBufferSize)
+HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint16_t rxRingBufferSize, uint16_t txRingBufferSize) noexcept
 {
     initialised = false;
     this->usart_device = usart_device;
@@ -52,13 +52,13 @@ HardwareSerial::HardwareSerial(const usart_dev *usart_device, uint16_t rxRingBuf
     
 }
 
-void HardwareSerial::SetRingBufferSizes(uint16_t rxRingBufferSize, uint16_t txRingBufferSize)
+void HardwareSerial::SetRingBufferSizes(uint16_t rxRingBufferSize, uint16_t txRingBufferSize) noexcept
 {
     rxBufferSize = rxRingBufferSize;
     txBufferSize = txRingBufferSize;
 }
 
-void HardwareSerial::begin(uint32_t baud)
+void HardwareSerial::begin(uint32_t baud) noexcept
 {
     if(initialised == false)
     {
@@ -84,13 +84,13 @@ void HardwareSerial::begin(uint32_t baud)
     usart_init(this->usart_device, baud);
 }
 
-void HardwareSerial::end(void)
+void HardwareSerial::end(void) noexcept
 {
     NVIC_DisableIRQ(this->usart_device->irq_NUM);
     Chip_UART_IntDisable(this->usart_device->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
 }
 
-int HardwareSerial::read(void)
+int HardwareSerial::read(void) noexcept
 {
     //read from the Ring Buffer
     int data;
@@ -104,7 +104,7 @@ int HardwareSerial::read(void)
     }
 }
 
-int HardwareSerial::peek(void)
+int HardwareSerial::peek(void) noexcept
 {
     int data;
     if(RingBuffer_Peek(&this->rxRingBuffer, &data))
@@ -114,7 +114,7 @@ int HardwareSerial::peek(void)
     return -1;
 }
 
-int HardwareSerial::available(void)
+int HardwareSerial::available(void) noexcept
 {
     irqflags_t flags = cpu_irq_save();
     int avail = RingBuffer_GetCount(&this->rxRingBuffer);
@@ -122,7 +122,7 @@ int HardwareSerial::available(void)
     return avail;
 }
 
-int HardwareSerial::availableForWrite(void)
+int HardwareSerial::availableForWrite(void) noexcept
 {
     //return number for free items in the txRingBuffer
     irqflags_t flags = cpu_irq_save();
@@ -131,7 +131,7 @@ int HardwareSerial::availableForWrite(void)
     return avail;
 }
 
-size_t HardwareSerial::canWrite()
+size_t HardwareSerial::canWrite() noexcept
 {
     irqflags_t flags = cpu_irq_save();
     int avail = RingBuffer_GetFree(&this->txRingBuffer);
@@ -139,14 +139,14 @@ size_t HardwareSerial::canWrite()
     return avail;
 }
 
-size_t HardwareSerial::write(const uint8_t ch)
+size_t HardwareSerial::write(const uint8_t ch) noexcept
 {
     Chip_UART_SendRB(this->usart_device->UARTx, &this->txRingBuffer, &ch, 1);
     return 1;
 }
 
 
-size_t HardwareSerial::write(const uint8_t *buffer, size_t size)
+size_t HardwareSerial::write(const uint8_t *buffer, size_t size) noexcept
 {
     size_t ret = size;
     while (size != 0)
@@ -159,13 +159,13 @@ size_t HardwareSerial::write(const uint8_t *buffer, size_t size)
 
 }
 
-void HardwareSerial::flush(void)
+void HardwareSerial::flush(void) noexcept
 {
     while(RingBuffer_GetFree(&this->txRingBuffer) > 0); //wait for the ring buffer to empty
     //TODO:: should wait for the fifo to empty too
 }
 
-void HardwareSerial::IRQHandler()
+void HardwareSerial::IRQHandler() noexcept
 {
     //call the LPCOpen Interrupt Handler
     Chip_UART_IRQRBHandler(this->usart_device->UARTx, &this->rxRingBuffer, &this->txRingBuffer);
@@ -174,12 +174,12 @@ void HardwareSerial::IRQHandler()
 
 
 //compat with RRF
-void HardwareSerial::setInterruptPriority(uint32_t priority)
+void HardwareSerial::setInterruptPriority(uint32_t priority) noexcept
 {
     NVIC_SetPriority(this->usart_device->irq_NUM, priority);
 }
 
-uint32_t HardwareSerial::getInterruptPriority()
+uint32_t HardwareSerial::getInterruptPriority() noexcept
 {
     return NVIC_GetPriority(this->usart_device->irq_NUM);
 }

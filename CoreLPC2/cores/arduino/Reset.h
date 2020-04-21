@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-void Reset();
+void Reset() noexcept;
     
 //LPC Reset Reason definitions
 #define RSID_POR      (1<<0)  //Power On Reset

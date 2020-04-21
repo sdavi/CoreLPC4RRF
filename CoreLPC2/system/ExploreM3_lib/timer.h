@@ -81,8 +81,8 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
      
 #define SBIT_CNTEN   0
 
-uint32_t getPrescalarForUs(uint8_t timerPclkBit_u8);
-uint32_t getPclk(uint8_t timerPclkBit_u8);
+uint32_t getPrescalarForUs(uint8_t timerPclkBit_u8) noexcept;
+uint32_t getPclk(uint8_t timerPclkBit_u8) noexcept;
 
      
 #endif

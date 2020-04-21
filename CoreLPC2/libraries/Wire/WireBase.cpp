@@ -41,25 +41,29 @@
 #include "WireBase.h"
 //#include "wirish.h"
 
-void WireBase::begin(uint8_t self_addr) {
+void WireBase::begin(uint8_t self_addr) noexcept
+{
     tx_buf_idx = 0;
     tx_buf_overflow = false;
     rx_buf_idx = 0;
     rx_buf_len = 0;
 }
 
-void WireBase::beginTransmission(uint8_t slave_address) {
+void WireBase::beginTransmission(uint8_t slave_address) noexcept
+{
     itc_msg.addr = slave_address;
     itc_msg.data = &tx_buf[tx_buf_idx];
     itc_msg.length = 0;
     itc_msg.flags = 0;
 }
 
-void WireBase::beginTransmission(int slave_address) {
+void WireBase::beginTransmission(int slave_address) noexcept
+{
     beginTransmission((uint8_t)slave_address);
 }
 
-uint8_t WireBase::endTransmission(void) {
+uint8_t WireBase::endTransmission(void) noexcept
+{
     uint8_t retVal;
     if (tx_buf_overflow) {
         return EDATA;
@@ -73,7 +77,8 @@ uint8_t WireBase::endTransmission(void) {
 //TODO: Add the ability to queue messages (adding a boolean to end of function
 // call, allows for the Arduino style to stay while also giving the flexibility
 // to bulk send
-uint8_t WireBase::requestFrom(uint8_t address, int num_bytes) {
+uint8_t WireBase::requestFrom(uint8_t address, int num_bytes) noexcept
+{
     if (num_bytes > WIRE_BUFSIZ) {
         num_bytes = WIRE_BUFSIZ;
     }
@@ -87,11 +92,13 @@ uint8_t WireBase::requestFrom(uint8_t address, int num_bytes) {
     return rx_buf_len;
 }
 
-uint8_t WireBase::requestFrom(int address, int numBytes) {
+uint8_t WireBase::requestFrom(int address, int numBytes) noexcept
+{
     return WireBase::requestFrom((uint8_t)address, numBytes);
 }
 
-void WireBase::write(uint8_t value) {
+void WireBase::write(uint8_t value) noexcept
+{
     if (tx_buf_idx == WIRE_BUFSIZ) {
         tx_buf_overflow = true;
         return;
@@ -100,21 +107,25 @@ void WireBase::write(uint8_t value) {
     itc_msg.length++;
 }
 
-void WireBase::write(const uint8_t* buf, int len) {
+void WireBase::write(const uint8_t* buf, int len) noexcept
+{
     for (uint8_t i = 0; i < len; i++) {
         write(buf[i]);
     }
 }
 
-void WireBase::write(int value) {
+void WireBase::write(int value) noexcept
+{
     write((uint8_t)value);
 }
 
-void WireBase::write(int* buf, int len) {
+void WireBase::write(int* buf, int len) noexcept
+{
     write((uint8_t*)buf, (uint8_t)len);
 }
 
-void WireBase::write(char* buf) {
+void WireBase::write(char* buf) noexcept
+{
     uint8_t *ptr = (uint8_t*)buf;
     while (*ptr) {
         write(*ptr);
@@ -122,11 +133,13 @@ void WireBase::write(char* buf) {
     }
 }
 
-uint8_t WireBase::available() {
+uint8_t WireBase::available() noexcept
+{
     return rx_buf_len - rx_buf_idx;
 }
 
-uint8_t WireBase::read() {
+uint8_t WireBase::read() noexcept
+{
     if (rx_buf_idx == rx_buf_len) {
         rx_buf_idx = 0;
         rx_buf_len = 0;

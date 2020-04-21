@@ -58,9 +58,9 @@ enum PinMode
       * \param ulMode Either INPUT or OUTPUT
       * \param debounceCutoff Debounce cutoff frequency (only one can be set per PIO)
       */
-     void pinModeDuet(Pin pin, enum PinMode dwMode, uint32_t debounceCutoff);
+     void pinModeDuet(Pin pin, enum PinMode dwMode, uint32_t debounceCutoff) noexcept;
      
-     static inline void pinMode(Pin pin, enum PinMode dwMode)
+     static inline void pinMode(Pin pin, enum PinMode dwMode) noexcept
      {
          pinModeDuet(pin, dwMode, 0);
      }
@@ -74,7 +74,7 @@ enum PinMode
       * \param dwPin the pin number
       * \param dwVal true to set the pin HIGH, false to set it LOW
       */
-     extern void digitalWrite(Pin pin, bool dwVal);
+     extern void digitalWrite(Pin pin, bool dwVal) noexcept;
      
      /**
       * \brief Reads the value from a specified digital pin, either HIGH or LOW.
@@ -83,7 +83,7 @@ enum PinMode
       *
       * \return true for HIGH, false for LOW
       */
-     extern bool digitalRead(Pin pin);
+     extern bool digitalRead(Pin pin) noexcept;
      
      /**
       * \brief Enable or disable the pullup resistor on a pin.
@@ -92,7 +92,7 @@ enum PinMode
       *
       * \param en Whether to enable (true) or disable (false) the pullup resistor
       */
-     extern void setPullup(Pin pin, bool en);
+     extern void setPullup(Pin pin, bool en) noexcept;
      
 #ifdef __cplusplus
  } //Extern "C"
@@ -103,13 +103,13 @@ enum PinMode
 #ifdef __cplusplus
 
 // Set a pin high with no error checking
-inline void fastDigitalWriteHigh(Pin pin)
+inline void fastDigitalWriteHigh(Pin pin) noexcept
 {
     GPIO_PinWrite(pin, 1);
 }
 
 // Set a pin low with no error checking
-inline void fastDigitalWriteLow(Pin pin)
+inline void fastDigitalWriteLow(Pin pin) noexcept
 {
     GPIO_PinWrite(pin, 0);
     

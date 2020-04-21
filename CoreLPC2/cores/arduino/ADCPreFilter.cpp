@@ -17,10 +17,10 @@ static uint8_t adcDmaChannel;
 static volatile uint8_t currentSamplePosition;
 static bool ADCPreFilterInitialised = false;
 
-void ADC_DMA_HANDLER();
+void ADC_DMA_HANDLER() noexcept;
 
 
-bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz)
+bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz) noexcept
 {
     numberADCSamples = numSamples;
     currentSamplePosition = 0;
@@ -65,7 +65,7 @@ bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz)
 
 
 //from LPCOpen gpdma_17xx_40xx.c
-static inline uint8_t configDMAMux(uint32_t gpdma_peripheral_connection_number)
+static inline uint8_t configDMAMux(uint32_t gpdma_peripheral_connection_number) noexcept
 {
     if (gpdma_peripheral_connection_number > 15)
     {
@@ -82,7 +82,7 @@ static inline uint8_t configDMAMux(uint32_t gpdma_peripheral_connection_number)
     }
 }
 
-static inline void PrepareADCDMA(uint32_t adcSampleBufferAddress)
+static inline void PrepareADCDMA(uint32_t adcSampleBufferAddress) noexcept
 {
 
     //Setup DMA Channel
@@ -123,7 +123,7 @@ static inline void PrepareADCDMA(uint32_t adcSampleBufferAddress)
 
 }
 
-void ADC_DMA_HANDLER()
+void ADC_DMA_HANDLER() noexcept
 {
     Chip_TIMER_Disable(LPC_TIMER1);
 
@@ -144,7 +144,7 @@ void ADC_DMA_HANDLER()
     Chip_TIMER_Enable(LPC_TIMER1);
 }
 
-uint16_t ADCPreFilterRead(uint8_t channel)
+uint16_t ADCPreFilterRead(uint8_t channel) noexcept
 {
     if(ADCPreFilterInitialised == false)
     {

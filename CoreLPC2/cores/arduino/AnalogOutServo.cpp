@@ -26,7 +26,7 @@ static uint32_t pinsOnATimer[5] = {0}; // 5 Ports
 
 
 
-bool IsServoCapable(Pin pin)
+bool IsServoCapable(Pin pin) noexcept
 {
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
@@ -51,7 +51,7 @@ bool IsServoCapable(Pin pin)
     return (count <= MaxTimerEntries);
 }
 
-void ReleaseServoPin(Pin pin)
+void ReleaseServoPin(Pin pin) noexcept
 {
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
@@ -77,7 +77,7 @@ void ReleaseServoPin(Pin pin)
 }
 
 
-bool ConfigurePinForServo(Pin pin, bool outputHigh)
+bool ConfigurePinForServo(Pin pin, bool outputHigh) noexcept
 {
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
@@ -114,7 +114,7 @@ bool ConfigurePinForServo(Pin pin, bool outputHigh)
 
 
 //Initialse a timer
-static inline void initServoTimer()
+static inline void initServoTimer() noexcept
 {
     Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_TIMER2); //enable power and clocking
 
@@ -130,7 +130,7 @@ static inline void initServoTimer()
 }
 
 
-bool AnalogWriteServo(float ulValue, uint16_t freq, Pin pin)
+bool AnalogWriteServo(float ulValue, uint16_t freq, Pin pin) noexcept
 pre(0.0 <= ulValue; ulValue <= 1.0)
 {
     uint8_t slot = 0;
@@ -239,7 +239,7 @@ pre(0.0 <= ulValue; ulValue <= 1.0)
 
 
 
-static inline void servoFunctionResetPeriod()
+static inline void servoFunctionResetPeriod() noexcept
 {
     if( servoOutputUsed == 0 ) return; // nothing to do
 
@@ -276,7 +276,7 @@ static inline void servoFunctionResetPeriod()
 }
 
 
-extern "C" void TIMER2_IRQHandler(void)
+extern "C" void TIMER2_IRQHandler(void) noexcept
 {
     LPC_TIMER_T *timer = ServoTimerPWM.timer;
     uint32_t regval = timer->IR;

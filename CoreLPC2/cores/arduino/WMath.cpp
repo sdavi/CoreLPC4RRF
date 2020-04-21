@@ -22,7 +22,7 @@
 
 #include "WMath.h"
 
-int32_t random(int32_t howbig)
+int32_t random(int32_t howbig) noexcept
 {
 	if (howbig <= 0)
 	{
@@ -41,7 +41,7 @@ int32_t random(int32_t howbig)
 
 }
 
-int32_t random(int32_t howsmall, int32_t howbig)
+int32_t random(int32_t howsmall, int32_t howbig) noexcept
 {
 	if (howsmall >= howbig)
 	{
@@ -51,7 +51,7 @@ int32_t random(int32_t howsmall, int32_t howbig)
 	return random(howbig - howsmall) + howsmall;
 }
 
-int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max)
+int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max) noexcept
 {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }

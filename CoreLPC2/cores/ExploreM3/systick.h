@@ -74,15 +74,15 @@ typedef void (*sysTickCallBackFunPtr)(void);
 /*************************************************************************************************
                                 Function Prototypes 							   
 *************************************************************************************************/
-void SysTick_Init(void);
-void SysTick_Start(void);
-void SysTick_Stop(void);
+void SysTick_Init(void) noexcept;
+void SysTick_Start(void) noexcept;
+void SysTick_Stop(void) noexcept;
 //void SysTick_AttachInterrupt(sysTickCallBackFunPtr funPtr);
-uint32_t SysTick_GetMsTime(void);
-uint32_t SysTick_GetUsTime(void); 
-uint32_t millis(void);
-uint32_t micros(void);
-uint64_t millis64(void);
+uint32_t SysTick_GetMsTime(void) noexcept;
+uint32_t SysTick_GetUsTime(void) noexcept;
+uint32_t millis(void) noexcept;
+uint32_t micros(void) noexcept;
+uint64_t millis64(void) noexcept;
 
 
 /*************************************************************************************************/

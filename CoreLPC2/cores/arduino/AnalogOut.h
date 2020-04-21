@@ -22,7 +22,7 @@
 #include "Core.h"
 
 // Initialise this module
-void AnalogOutInit();
+void AnalogOutInit() noexcept;
 
 /*
  * \brief Writes an analog value (PWM wave) to a pin.
@@ -38,26 +38,26 @@ constexpr size_t MaxTimerEntries = 3; //MR0 for the Frequency and MR1-3 for the 
 
 constexpr uint16_t HardwarePWMFrequency = 50; //50Hz for Servos
 
-void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000);
-bool IsPwmCapable(Pin pin);
-bool ConfigurePinForPWM(Pin pin, bool outputHigh);
-void ReleasePWMPin(Pin pin);
+void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000) noexcept;
+bool IsPwmCapable(Pin pin) noexcept;
+bool ConfigurePinForPWM(Pin pin, bool outputHigh) noexcept;
+void ReleasePWMPin(Pin pin) noexcept;
 
 
-bool IsServoCapable(Pin pin);
-bool ConfigurePinForServo(Pin pin, bool outputHigh);
-void ReleaseServoPin(Pin pin);
-bool AnalogWriteServo(float ulValue, uint16_t freq, Pin pin);
+bool IsServoCapable(Pin pin) noexcept;
+bool ConfigurePinForServo(Pin pin, bool outputHigh) noexcept;
+void ReleaseServoPin(Pin pin) noexcept;
+bool AnalogWriteServo(float ulValue, uint16_t freq, Pin pin) noexcept;
 
-bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin);
-bool CanDoSoftwarePWM(Pin pin);
-bool ConfigurePinForSoftwarePWM(Pin pin);
-void ReleaseSoftwarePWMPin(Pin pin);
+bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin) noexcept;
+bool CanDoSoftwarePWM(Pin pin) noexcept;
+bool ConfigurePinForSoftwarePWM(Pin pin) noexcept;
+void ReleaseSoftwarePWMPin(Pin pin) noexcept;
 
-bool AnalogWriteHWPWM(const PinDescription& pinDesc, float ulValue, uint16_t freq, Pin pin);
-bool CanDoHWPWM(Pin pin);
-bool ConfigurePinForHWPWM(Pin pin, bool outputHigh);
-bool ReleaseHWPWMPin(Pin pin);
+bool AnalogWriteHWPWM(const PinDescription& pinDesc, float ulValue, uint16_t freq, Pin pin) noexcept;
+bool CanDoHWPWM(Pin pin) noexcept;
+bool ConfigurePinForHWPWM(Pin pin, bool outputHigh) noexcept;
+bool ReleaseHWPWMPin(Pin pin) noexcept;
 
 
 

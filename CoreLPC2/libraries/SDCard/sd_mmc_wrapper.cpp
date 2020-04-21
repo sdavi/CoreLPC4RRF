@@ -11,7 +11,8 @@
 SDCard *_ffs[_DRIVES]; //also used by FatFS
 
 //writeProtect pins and ChipSelect Pins for the SDCards
-void sd_mmc_init(Pin const wpPins[_DRIVES],Pin const spiCsPins[_DRIVES]){
+void sd_mmc_init(Pin const wpPins[_DRIVES],Pin const spiCsPins[_DRIVES]) noexcept
+{
 
     if(spiCsPins != nullptr)
     {
@@ -21,7 +22,7 @@ void sd_mmc_init(Pin const wpPins[_DRIVES],Pin const spiCsPins[_DRIVES]){
 }
 
 //reinit to support setting cs/freq from config
-void sd_mmc_reinit_slot(uint8_t slot, Pin csPin, uint32_t spiFrequency)
+void sd_mmc_reinit_slot(uint8_t slot, Pin csPin, uint32_t spiFrequency) noexcept
 {
     if(slot < _DRIVES)
     {
@@ -29,7 +30,7 @@ void sd_mmc_reinit_slot(uint8_t slot, Pin csPin, uint32_t spiFrequency)
     }
 }
 
-void sd_mmc_setSSPChannel(uint8_t slot, SSPChannel channel)
+void sd_mmc_setSSPChannel(uint8_t slot, SSPChannel channel) noexcept
 {
     if(slot < _DRIVES)
     {
@@ -38,7 +39,7 @@ void sd_mmc_setSSPChannel(uint8_t slot, SSPChannel channel)
 }
 
 
-void sd_mmc_unmount(uint8_t slot)
+void sd_mmc_unmount(uint8_t slot) noexcept
 {
     if(slot < _DRIVES)
     {
@@ -47,7 +48,8 @@ void sd_mmc_unmount(uint8_t slot)
 }
 
 
-sd_mmc_err_t sd_mmc_check(uint8_t slot){
+sd_mmc_err_t sd_mmc_check(uint8_t slot)  noexcept
+{
     
     if(slot < _DRIVES && _ffs[slot]->disk_initialize() == 0)
     {
@@ -60,7 +62,8 @@ sd_mmc_err_t sd_mmc_check(uint8_t slot){
 }
 
 
-uint32_t sd_mmc_get_capacity(uint8_t slot){
+uint32_t sd_mmc_get_capacity(uint8_t slot) noexcept
+{
 
     if(slot < _DRIVES)
     {
@@ -74,7 +77,7 @@ uint32_t sd_mmc_get_capacity(uint8_t slot){
     return 0;
 }
 
-card_type_t sd_mmc_get_type(uint8_t slot)
+card_type_t sd_mmc_get_type(uint8_t slot) noexcept
 {
     if(slot < _DRIVES)
     {
@@ -91,7 +94,7 @@ card_type_t sd_mmc_get_type(uint8_t slot)
     return CARD_TYPE_UNKNOWN;
 }
 
-uint32_t sd_mmc_get_interface_speed(uint8_t slot)
+uint32_t sd_mmc_get_interface_speed(uint8_t slot) noexcept
 {
     if(slot < _DRIVES)
     {

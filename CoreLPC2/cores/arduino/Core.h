@@ -23,15 +23,15 @@
 #undef yield            // eCv definition clashes with function 'yield' in wiring.c (can use _ecv_yield instead within annotations)
 
 
-extern void loop();
-extern void setup();
-extern void init( void );
+extern void loop() noexcept;
+extern void setup() noexcept;
+extern void init( void ) noexcept;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-    void CoreSysTick(void);
+    void CoreSysTick(void) noexcept;
 #ifdef __cplusplus
 }// end exten "C"
 #endif

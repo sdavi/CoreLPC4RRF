@@ -111,7 +111,7 @@ static const pwmChannelConfig_st PinMap_PWM[] =
 static bool PWMEnabled = false;
 Pin UsedHardwarePWMChannel[NumPwmChannels] = {NoPin, NoPin, NoPin, NoPin, NoPin, NoPin};
 
-void PWM_Set( Pin pin, uint32_t dutyCycle )
+void PWM_Set( Pin pin, uint32_t dutyCycle ) noexcept
 {
     //find entry in array
     for(uint8_t i=0;i<size(PinMap_PWM); i++)
@@ -157,7 +157,7 @@ void PWM_Set( Pin pin, uint32_t dutyCycle )
 }
 
 
-void PWM_Clear( Pin pin)
+void PWM_Clear( Pin pin) noexcept
 {
     for(uint8_t i=0;i<size(PinMap_PWM); i++)
     {
@@ -193,7 +193,7 @@ void PWM_Clear( Pin pin)
 
 // AnalogWrite to a PWM pin
 // Return true if successful, false if we need to fall back to digitalWrite
-bool AnalogWriteHWPWM(const PinDescription& pinDesc, float ulValue, uint16_t freq, Pin pin)
+bool AnalogWriteHWPWM(const PinDescription& pinDesc, float ulValue, uint16_t freq, Pin pin) noexcept
     pre(0.0 <= ulValue; ulValue <= 1.0)
     pre((pinDesc.ulPinAttribute & PIN_ATTR_PWM) != 0)
 {
@@ -241,7 +241,7 @@ bool AnalogWriteHWPWM(const PinDescription& pinDesc, float ulValue, uint16_t fre
     return true;
 }
 
-bool ReleaseHWPWMPin(Pin pin)
+bool ReleaseHWPWMPin(Pin pin) noexcept
 {
     for(uint8_t i=0; i<NumPwmChannels; i++)
     {
@@ -256,7 +256,7 @@ bool ReleaseHWPWMPin(Pin pin)
     return false;
 }
 
-bool CanDoHWPWM(Pin pin)
+bool CanDoHWPWM(Pin pin) noexcept
 {
     for(uint8_t i=0; i<size(PinMap_PWM); i++)
     {
@@ -274,7 +274,7 @@ bool CanDoHWPWM(Pin pin)
 }
 
 
-bool ConfigurePinForHWPWM(Pin pin, bool outputHigh)
+bool ConfigurePinForHWPWM(Pin pin, bool outputHigh) noexcept
 {
     if(pin == NoPin || pin > MaxPinNumber) return false;
 

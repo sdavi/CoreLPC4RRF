@@ -48,7 +48,7 @@
  */
 // This has been renamed from delay to coreDelay so that RTOS-based applications can use a different definition of delay()
 
-void coreDelay(uint32_t ms);
+void coreDelay(uint32_t ms) noexcept;
 
 /**
  * Delay for at least the given number of microseconds.
@@ -60,6 +60,6 @@ void coreDelay(uint32_t ms);
  * @param us the number of microseconds to delay.
  * @see delay()
  */
-void delayMicroseconds(uint32_t us);
+void delayMicroseconds(uint32_t us) noexcept;
 
 #endif

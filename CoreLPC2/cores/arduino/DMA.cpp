@@ -8,7 +8,7 @@ static constexpr uint8_t NumberDMAChannels = 8;
 static DMACallbackFunction dma_callbacks[NumberDMAChannels] = {nullptr};
 static uint8_t dma_channels[NumberDMAChannels];
 
-void InitialiseDMA()
+void InitialiseDMA() noexcept
 {
 
     static bool gpdmaInit = false;
@@ -39,21 +39,21 @@ void InitialiseDMA()
 }
 
 //Get the DMA channel number that was assigned to DMA channels we configured.
-uint8_t DMAGetChannelNumber(DMA_Channel_t dma_channel)
+uint8_t DMAGetChannelNumber(DMA_Channel_t dma_channel) noexcept
 {
     return dma_channels[dma_channel];
 }
 
 
 //Attach DMA Handler for channel
-void AttachDMAChannelInterruptHandler(DMACallbackFunction callback, DMA_Channel_t channel)
+void AttachDMAChannelInterruptHandler(DMACallbackFunction callback, DMA_Channel_t channel) noexcept
 {
     dma_callbacks[channel] = callback;
 }
 
 
 //DMA Interrupt Handler
-extern "C"  void DMA_IRQHandler(void)
+extern "C"  void DMA_IRQHandler(void) noexcept
 {
     //SSP0 Channels
     if (Chip_GPDMA_Interrupt(LPC_GPDMA, dma_channels[DMA_SSP0_RX]) == SUCCESS) //also clears the interrupt
@@ -93,7 +93,7 @@ extern "C"  void DMA_IRQHandler(void)
 }
 
 
-void SspDmaRxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth)
+void SspDmaRxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
 {
     // Setup DMA Receive: SSP --> inBuffer (Peripheral to Memory)
     const uint8_t channelNumber = dma_channels[ssp_dma_channel];
@@ -152,7 +152,7 @@ void SspDmaRxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t t
     
 }
 
-void SspDmaTxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth)
+void SspDmaTxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
 {
     // Setup DMA transfer: outBuffer --> SSP (Memory to Peripheral Transfer)
     const uint8_t channelNumber = dma_channels[ssp_dma_channel];
@@ -217,7 +217,7 @@ void SspDmaTxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t t
 
 //No Increment Versions (do not increment the memory buffer after each data transfer)
 
-void SspDmaRxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth)
+void SspDmaRxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
 {
     // Setup DMA Receive: SSP --> inBuffer (Peripheral to Memory)
     const uint8_t channelNumber = dma_channels[ssp_dma_channel];
@@ -275,7 +275,7 @@ void SspDmaRxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t
     
 }
 
-void SspDmaTxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth)
+void SspDmaTxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
 {
     // Setup DMA transfer: outBuffer --> SSP (Memory to Peripheral Transfer)
     const uint8_t channelNumber = dma_channels[ssp_dma_channel];

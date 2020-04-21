@@ -16,31 +16,31 @@ class ConfigurableUART : public Stream
 {
 
 public:
-    ConfigurableUART();
+    ConfigurableUART() noexcept;
 
-    bool Configure(Pin rx, Pin tx);
+    bool Configure(Pin rx, Pin tx) noexcept;
     
-    void begin(uint32_t baud);
-    void end();
+    void begin(uint32_t baud) noexcept;
+    void end() noexcept;
 
-    size_t write(const uint8_t *buffer, size_t size) override;
-    size_t write(uint8_t) override;
+    size_t write(const uint8_t *buffer, size_t size) noexcept override;
+    size_t write(uint8_t) noexcept override;
 
-    int available(void);
-    int availableForWrite(void);
+    int available(void) noexcept;
+    int availableForWrite(void) noexcept;
     
-    int peek(void);
-    int read(void);
-    void flush(void);
+    int peek(void) noexcept;
+    int read(void) noexcept;
+    void flush(void) noexcept;
     using Print::write;
-    size_t canWrite();
+    size_t canWrite() noexcept;
 
-    bool IsConnected();
+    bool IsConnected() noexcept;
 
-    int8_t GetUARTPortNumber();
+    int8_t GetUARTPortNumber() noexcept;
 
-    void setInterruptPriority(uint32_t priority);
-    uint32_t getInterruptPriority();
+    void setInterruptPriority(uint32_t priority) noexcept;
+    uint32_t getInterruptPriority() noexcept;
 
 private:
     HardwareSerial *serialPort;

@@ -51,7 +51,7 @@ constexpr Pin SPI1_SSEL = P0_6;
 constexpr Pin SDA = P0_0;
 constexpr Pin SCL = P0_1;
 
-void ConfigurePin(const PinDescription& pinDesc);
+void ConfigurePin(const PinDescription& pinDesc) noexcept;
 
 #endif //end __cplusplus
 

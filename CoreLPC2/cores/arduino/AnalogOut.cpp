@@ -23,7 +23,7 @@
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 // Initialise this module
-extern void AnalogOutInit()
+extern void AnalogOutInit() noexcept
 {
 	// Nothing to do yet
 }
@@ -31,7 +31,7 @@ extern void AnalogOutInit()
 // Analog write to DAC, PWM, TC or plain output pin
 // Setting the frequency of a TC or PWM pin to zero resets it so that the next call to AnalogOut with a non-zero frequency
 // will re-initialise it. The pinMode function relies on this.
-void AnalogOut(Pin pin, float ulValue, uint16_t freq)
+void AnalogOut(Pin pin, float ulValue, uint16_t freq) noexcept
 {
 	if (pin > MaxPinNumber || std::isnan(ulValue))
 	{
@@ -70,18 +70,18 @@ void AnalogOut(Pin pin, float ulValue, uint16_t freq)
 
 
  // Return true if this pin exists and can do PWM
-bool IsPwmCapable(Pin pin)
+bool IsPwmCapable(Pin pin) noexcept
 {
     if (pin > MaxPinNumber || pin == NoPin) return false;
     return CanDoSoftwarePWM(pin);
 }
 
-bool ConfigurePinForPWM(Pin pin, bool outputHigh)
+bool ConfigurePinForPWM(Pin pin, bool outputHigh) noexcept
 {
     return ConfigurePinForSoftwarePWM(pin);
 }
 
-void ReleasePWMPin(Pin pin)
+void ReleasePWMPin(Pin pin) noexcept
 {
     ReleaseSoftwarePWMPin(pin);
 }
