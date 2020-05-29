@@ -24,6 +24,10 @@
 #include "FreeRTOS.h"
 
 #define WEAK __attribute__ ((weak))
+
+
+
+
 //*****************************************************************************
 //
 // Forward declaration of the default fault handlers.
@@ -116,7 +120,6 @@ extern void _CPUregTestPOST (void);
 __attribute__ ((section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
 {
-         //&_estack,                   // The initial stack pointer
         (void *)&__StackTop,           // The initial stack pointer
         Reset_Handler,             /* Reset Handler */
         NMI_Handler,               /* NMI Handler */
@@ -274,9 +277,11 @@ void Reset_Handler(void)
 // for examination by a debugger.
 //
 //*****************************************************************************
+
+void OtherFault_Handler(void);
+
 void Default_Handler(void) {
-	// Go into an infinite loop.
-	//
-	while (1) {
-	}
+    //rather then got into a while(1) loop, call the OtherFault_Handler which is
+    //already handled in RRF to produce a SoftwareReset with a stack dump.
+    OtherFault_Handler();
 }
