@@ -31,6 +31,7 @@ SoftwarePWMTimer::SoftwarePWMTimer() noexcept
     LPC_RITIMER->MASK = 0;
     LPC_RITIMER->COUNTER = 0;
     LPC_RITIMER->CTRL = RIT_CTRL_INT | RIT_CTRL_ENBR | RIT_CTRL_TEN;
+    ticks_per_us = Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_RIT)/1000000;
 }
 
 inline void SoftwarePWMTimer::ticker_set_interrupt(ticker_event_t *obj, bool inInterrupt) noexcept

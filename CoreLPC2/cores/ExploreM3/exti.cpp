@@ -261,7 +261,7 @@ extern "C" void EINT3_IRQHandler(void) noexcept
         }
 
 
-        isr0 &= ~(1u << pos2);
+        isr2 &= ~(1u << pos2);
     }
 
     

@@ -8,6 +8,20 @@
  *   : - Uses the "Burst" mode of the LPC to continously sample each of the selected ADC channels once enabled
  *   : - Resolution is 12bit
  */
+
+
+/*
+ - From Errata sheet Rev. 10.4 — 17 March 2020
+
+ Noise caused by I/O switching activity on pins close to the ADC input channels or caused by the board design/layout
+ can couple into the ADC input channels. This causes the ADC conversion results to be corrupted up to 0xFFF.
+ The issue occurs more frequently at -45 C and when toggling the I/O pins adjacent to the ADC input channels.
+
+- SD some users were seeing large spikes in temp readings likey caused by this issue. The glitch only seems to
+ occur for a sample or two and a prefilter was added to help eliminate the glitched samples.
+ */
+
+
 #include "AnalogIn.h"
 #include "chip.h"
 #include "ADCPreFilter.h"

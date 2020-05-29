@@ -45,7 +45,7 @@ public:
     void Interrupt() noexcept;
 
     inline uint32_t TickerRead() noexcept { return LPC_RITIMER->COUNTER; };
-    inline uint32_t TicksPerMicrosecond() noexcept { return Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_RIT)/1000000; };
+    inline uint32_t TicksPerMicrosecond() noexcept { return ticks_per_us; };
 
 private:
     void ticker_set_interrupt(ticker_event_t *obj, bool inInterrupt=false) noexcept;
@@ -53,6 +53,7 @@ private:
     void ticker_clear_interrupt(void) noexcept;
     void ticker_insert_event(ticker_event_t *obj, uint32_t timestamp, SoftwarePWM *softPWMObject) noexcept;
     ticker_event_t *head;
+    uint32_t ticks_per_us;
 };
 
 

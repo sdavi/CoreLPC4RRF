@@ -38,10 +38,7 @@ Errors and omissions should be reported to codelibraries@exploreembedded.com
 #include "wdt.h"
 #include "wirish_time.h"
 
-
-static volatile uint32_t V_SysTickMiliSecCount_U32 = 0;
 static volatile uint64_t V_SysTickMiliSecCount_U64 = 0;
-//sysTickCallBackFunPtr sysTickCallBack = NULL;
 
 
 /***************************************************************************************************
@@ -103,24 +100,6 @@ void SysTick_Stop(void)
 }
 
 
-
-
-
-/***************************************************************************************************
-               uint32_t SysTick_GetMsTime(void)
-****************************************************************************************************
- * I/P Arguments: none
-
- * Return value: None 
-
- * description :This functions returns the time in ms since the power on.
-                Max time=0xffffffff ms after that it rolls back to 0. 
-****************************************************************************************************/
-uint32_t SysTick_GetMsTime(void)
-{
-   return V_SysTickMiliSecCount_U32;
-}
-
 uint32_t millis(void)
 {
    return (uint32_t) V_SysTickMiliSecCount_U64;
@@ -128,20 +107,16 @@ uint32_t millis(void)
 
 uint64_t millis64( void )
 {
-    return V_SysTickMiliSecCount_U64;
-    
+    const irqflags_t flags = cpu_irq_save();    // save and disable interrupts
+    const uint64_t ret = V_SysTickMiliSecCount_U64;            // take a copy with interrupts disabled to guard against rollover while we read it
+    cpu_irq_restore(flags);
+    return ret;
 }
-
-
-
-
-
 
 
 void CoreSysTick(void)
 {
     const irqflags_t flags = cpu_irq_save();    // save and disable interrupts, because under RTOS the systick interrupt is low priority
-    V_SysTickMiliSecCount_U32++;
     V_SysTickMiliSecCount_U64++;
     cpu_irq_restore(flags);
 

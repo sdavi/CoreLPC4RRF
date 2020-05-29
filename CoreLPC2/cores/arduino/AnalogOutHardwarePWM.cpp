@@ -234,6 +234,11 @@ bool AnalogWriteHWPWM(const PinDescription& pinDesc, float ulValue, uint16_t fre
     }
 
     uint32_t v = (uint32_t)((float)(LPC_PWM1->MR0) * ulValue); //calculate duty cycle
+    
+    //From Errata sheet Rev. 10.4 — 17 March 2020
+    //Only in single-edge mode, if the duty cycle for PWM1.1 (Pulse Width Modulator 1, channel 1 output)
+    //is updated from 100 % (PWM1MR1 = PWM1MR0), then the output for PWM1.1 could unexpectedly remain low
+    //for a full PWM period before the new desired duty cycle takes effect. This problem only affects the output for PWM1.1.
     if (v == LPC_PWM1->MR0) v++; //ensure not equal to MR0
 
     PWM_Set(pin, v); //set the duty cycle for the pin
