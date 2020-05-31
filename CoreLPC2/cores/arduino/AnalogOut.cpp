@@ -52,18 +52,7 @@ void AnalogOut(Pin pin, float ulValue, uint16_t freq) noexcept
     {
         return;
     }
-    
-    //Is the pin configured as HW PWM
-    const PinDescription& pinDesc = g_APinDescription[pin];
-    const uint32_t attr = pinDesc.ulPinAttribute;
-    if ((attr & PIN_ATTR_PWM) != 0)
-    {
-        if (AnalogWriteHWPWM(pinDesc, ulValue, freq, pin))
-        {
-            return;
-        }
-    }
-    
+        
 	// Fall back to digital write
 	pinMode(pin, (ulValue < 0.5) ? OUTPUT_LOW : OUTPUT_HIGH);
 }

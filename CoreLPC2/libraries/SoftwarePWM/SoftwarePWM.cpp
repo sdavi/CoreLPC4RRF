@@ -5,132 +5,92 @@
 
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
+SoftwarePWM::SoftwarePWM(Pin softPWMPin) noexcept:
+        pwmRunning(false),
+        pin(softPWMPin),
+        gpioPort((LPC_GPIO_T*)(LPC_GPIO0_BASE + ((softPWMPin & 0xE0)))),
+        gpioPortPinBitPosition( 1 << (softPWMPin & 0x1f) ),
+        period(0),
+        onTime(0)
 
-SoftwarePWM::SoftwarePWM(Pin softPWMPin) noexcept
 {
-    SetFrequency(1); //default to 1Hz
-    
-    pwmRunning = false;
-#ifdef LPC_DEBUG
-    lateCount = 0;
-#endif
-    pin = softPWMPin;
     pinMode(pin, OUTPUT_LOW);
-    state = PWM_OFF;
-
 }
-
-#ifdef LPC_DEBUG
-void SoftwarePWM::IncrementLateCount() noexcept
-{
-    lateCount++;
-}
-#endif
 
 void SoftwarePWM::Enable() noexcept
 {
-    pinMode(pin, OUTPUT_LOW);
-    state = PWM_OFF;
-    
     pwmRunning = true;
-    
-    ScheduleEvent(1); //Schedule to start the PWM
-
+    softwarePWMTimer.EnableChannel(this);
 }
 void SoftwarePWM::Disable() noexcept
 {
-    softwarePWMTimer.RemoveEvent(&event); //remove event from the ticker
-
-    pinMode(pin, OUTPUT_LOW);
-    state = PWM_OFF;
-    
     pwmRunning = false;
-}
-
-//Sets the freqneucy in Hz
-void SoftwarePWM::SetFrequency(uint16_t freq) noexcept
-{
-    frequency = freq;
-    //find the period in us
-    period = 1000000/freq;
-    
-}
-
-
-void SoftwarePWM::SetDutyCycle(float duty) noexcept
-{
-    uint32_t ot = (uint32_t) ((float)(period * duty));
-    if(ot > period) ot = period;
-    
-    onTime = ot; //update the Duty
-}
-
-//PWM On phase
-void SoftwarePWM::PWMOn() noexcept
-{
-    state = PWM_ON;
-    pinMode(pin, OUTPUT_HIGH);
-}
-//PWM Off Phase
-void SoftwarePWM::PWMOff() noexcept
-{
-    state = PWM_OFF;
     pinMode(pin, OUTPUT_LOW);
+    softwarePWMTimer.DisableChannel(this);
 }
 
-
-//Schedule next even in now+timeout microseconds
-inline void SoftwarePWM::ScheduleEvent(uint32_t timeout) noexcept
+void SoftwarePWM::AnalogWrite(float ulValue, uint16_t freq, Pin pin) noexcept
 {
-    softwarePWMTimer.ScheduleEventInMicroseconds(&event, timeout, this);
-    nextRun = event.timestamp;
-}
-
-void SoftwarePWM::Check() noexcept
-{
-    if(pwmRunning == true && (int)(nextRun - softwarePWMTimer.TickerRead()) < -4*(int)softwarePWMTimer.TicksPerMicrosecond()) // is it more than 4us overdue?
-    {
-        //PWM is overdue, has it stopped running ?
-        //TODO:: check if ticker int has not fired recently.
-        
-        PWMOff(); // Disable the PWM for protection
-        debugPrintf("PWM Overdue! (%d.%d)\n", (pin >> 5), (pin & 0x1f));
-        
-    }
-}
-
-void SoftwarePWM::Interrupt() noexcept
-{
-    //handle 100% on/off
-    if(onTime==0)
-    {
-        PWMOff();
-        //schedule next int in +period
-        ScheduleEvent(period);
-        return;
-    }
-    else if(onTime==period)
-    {
-        PWMOn();
-        //schedule next int in +period
-        ScheduleEvent(period);
-        return;
-    }
+    //Note: AnalogWrite gets called repeatedly by RRF for heaters
     
+    //debugPrintf("[SoftwarePWM] Write -  %d.%d %f %" PRIu32 "\n", (pin >> 5), (pin & 0x1f), ulValue, freq);
+    const uint32_t newPeriod = (1000000/freq);
+    const uint32_t newOnTime = CalculateDutyCycle(ulValue, newPeriod);
+
+    //Common Frequnecies used in RRF:
+    //Freq:   10Hz,     250Hz  and 500Hz
+    //Period: 100000us, 4000us and 2000us
+    //Typically 10Hz are used for Heat beds 250Hz is used for Hotends/fans and some fans may need up to 500Hz
     
-    if(state==PWM_OFF)
+
+    //if enforcing a minimum on/off time to prevent the same channel firing in rapid succession, we get:
+    // 100us = Min Duty:   0.1%,  2.5%  and 5%
+    // 50us  = Min Duty:   0.05%, 1.25% and 2.5%
+    // 10us  = Min Duey:   0.01%, 0.25% and 0.5%
+    constexpr uint16_t MinimumTime = 100; //microseconds
+
+    if(onTime < MinimumTime){ onTime = 0; }
+    if(onTime > (period-MinimumTime)){ onTime = period; }
+    
+    if(newOnTime != onTime || newPeriod != period)
     {
-        //last state was off, turn on
-        PWMOn();
-        ScheduleEvent(onTime);
+        //Frequency or duty has changed, requires update
+        
+        Disable(); //Disable the channel and stop the interrupt
+        
+        period = newPeriod;
+        onTime = newOnTime;
+        
+        //check for 100% on or 100% off, no need for interrupts
+        if(onTime == 0)
+        {
+            gpioPort->CLR = gpioPortPinBitPosition; //Pin Low
+        }
+        else if(onTime == period)
+        {
+            gpioPort->SET = gpioPortPinBitPosition; //Pin High
+        }
+        else
+        {
+            //Enable and use interrupts to generate the PWM signal
+            Enable();
+        }
     }
     else
     {
-        //last state was On, turn off
-        PWMOff();
-        ScheduleEvent(period-onTime);
+        //PWM not changed
+        
+        if(pwmRunning == false)
+        {
+            // this pwm is not running, keep setting to zero as a precaution incase the same pin has accidently been used elsewhere
+            gpioPort->CLR = gpioPortPinBitPosition; //Pin Low
+        }
     }
-
 }
 
-
+uint32_t SoftwarePWM::CalculateDutyCycle(float newValue, uint32_t newPeriod)
+{
+    uint32_t ot = (uint32_t) (newPeriod * newValue);
+    if(ot > newPeriod) ot = newPeriod;
+    return ot;
+}

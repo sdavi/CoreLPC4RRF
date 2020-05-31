@@ -85,6 +85,7 @@ SECTIONS
 
     .text :
     {
+	    _sfixed = .;
         KEEP(*(.isr_vector))
         *(.text*)
 

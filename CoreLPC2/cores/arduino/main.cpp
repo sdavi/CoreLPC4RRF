@@ -45,8 +45,6 @@ extern uint8_t __AHB0_end;
 
 extern "C" char *sbrk(int i);
 
-
-extern "C" void Board_Init(void);
 int main( void )
 {
 

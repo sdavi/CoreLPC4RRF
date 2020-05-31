@@ -34,11 +34,7 @@ bool IsServoCapable(Pin pin) noexcept
 
     if(pin > MaxPinNumber || port > 4) return false;
     
-    //First see if the pin can use the HWPWM
-    if(HardwarePWMFrequency == 50 && CanDoHWPWM(pin)) return true; //HWPWM configured at servo freq and is PWM capable
-    
     //Check if there is a free slot on the Timer
-    
     if( (pinsOnATimer[port] & portPinPosition) ) return true; //already setup as a Timer servo
     for(uint8_t t=0; t<MaxTimerEntries; t++)
     {
@@ -55,11 +51,6 @@ void ReleaseServoPin(Pin pin) noexcept
 {
     const uint8_t port = (pin >> 5);
     const uint32_t portPinPosition = 1 << (pin & 0x1f);
-
-    
-    //First check if pin was running on HWPWM
-    if(ReleaseHWPWMPin(pin)) return; //Servo was running on HWPWM and was released
-
 
     if( !(pinsOnATimer[port] & portPinPosition) ) return; //pin not configured as Timer Servo
     //Send one more AnalogWriteServo with value 0 to turn off the match interrupt for that slot
@@ -84,16 +75,6 @@ bool ConfigurePinForServo(Pin pin, bool outputHigh) noexcept
     
     if (pin == NoPin || pin > MaxPinNumber || port > 4) return false;
     
-    
-    //First try HW PWM for servo
-    if(ConfigurePinForHWPWM(pin, outputHigh))
-    {
-        return true; //Pin was configured to use HWPWM
-    }
-
-    
-    //Next try Servo PWM on Timer
-    
     if( (pinsOnATimer[port] & portPinPosition) ) return true; // This pin is already configured to be a Timer Servo
     //get next free Slot
     for(uint8_t t=0; t<MaxTimerEntries; t++)
@@ -105,6 +86,9 @@ bool ConfigurePinForServo(Pin pin, bool outputHigh) noexcept
             
             //Update the  bitmask to tell analogWrite that pin is now ServoPWM capable
             pinsOnATimer[port] |= 1 << (pin & 0x1f);
+            
+            pinMode(pin, OUTPUT_LOW );
+            
             return true;
         }
     }
@@ -128,7 +112,6 @@ static inline void initServoTimer() noexcept
 
     servoTimerInitialised = true;
 }
-
 
 bool AnalogWriteServo(float ulValue, uint16_t freq, Pin pin) noexcept
 pre(0.0 <= ulValue; ulValue <= 1.0)
@@ -247,29 +230,38 @@ static inline void servoFunctionResetPeriod() noexcept
     //Determine which pins need to be set High for the start of the PWM Period
     if( servoOutputUsed & TimerPWM_Slot1 ) // if output pin is enabled
     {
-        if(ServoTimerPWM.timer->MR[1] > 0){
-            pinMode(ServoTimerPWM.timerPins[0], OUTPUT_HIGH ); //go HIGH if we have a OnTime Set
-        } else {
-            pinMode(ServoTimerPWM.timerPins[0], OUTPUT_LOW ); //else keep next cycle off
+        if(ServoTimerPWM.timer->MR[1] > 0)
+        {
+            GPIO_PinWrite(ServoTimerPWM.timerPins[0], 1); //go HIGH if we have a OnTime Set
+        }
+        else
+        {
+            GPIO_PinWrite(ServoTimerPWM.timerPins[0], 0); //else keep next cycle off
         }
     }
     
     if( servoOutputUsed & TimerPWM_Slot2 ) // if output pin is enabled
     {
-        if(ServoTimerPWM.timer->MR[2] > 0){
-            pinMode(ServoTimerPWM.timerPins[1], OUTPUT_HIGH );
-        } else {
-            pinMode(ServoTimerPWM.timerPins[1], OUTPUT_LOW );
+        if(ServoTimerPWM.timer->MR[2] > 0)
+        {
+            GPIO_PinWrite(ServoTimerPWM.timerPins[1], 1);
+        }
+        else
+        {
+            GPIO_PinWrite(ServoTimerPWM.timerPins[1], 0);
         }
     }
     
     if( servoOutputUsed & TimerPWM_Slot3 ) // if output pin is enabled
     {
-        if(ServoTimerPWM.timer->MR[3] > 0){
+        if(ServoTimerPWM.timer->MR[3] > 0)
+        {
 
-            pinMode(ServoTimerPWM.timerPins[2], OUTPUT_HIGH );
-        } else {
-            pinMode(ServoTimerPWM.timerPins[2], OUTPUT_LOW );
+            GPIO_PinWrite(ServoTimerPWM.timerPins[2], 1);
+        }
+        else
+        {
+            GPIO_PinWrite(ServoTimerPWM.timerPins[2], 0);
         }
     }
 

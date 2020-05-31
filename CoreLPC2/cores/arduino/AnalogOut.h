@@ -33,10 +33,8 @@ void AnalogOutInit() noexcept;
  */
 
 
-constexpr uint8_t MaxNumberSoftwarePWMPins = 8;
+constexpr uint8_t MaxNumberSoftwarePWMPins = 7;
 constexpr size_t MaxTimerEntries = 3; //MR0 for the Frequency and MR1-3 for the Timer PWM
-
-constexpr uint16_t HardwarePWMFrequency = 50; //50Hz for Servos
 
 void AnalogOut(Pin pin, float ulValue, uint16_t freq = 1000) noexcept;
 bool IsPwmCapable(Pin pin) noexcept;
@@ -54,14 +52,6 @@ bool CanDoSoftwarePWM(Pin pin) noexcept;
 bool ConfigurePinForSoftwarePWM(Pin pin) noexcept;
 void ReleaseSoftwarePWMPin(Pin pin) noexcept;
 
-bool AnalogWriteHWPWM(const PinDescription& pinDesc, float ulValue, uint16_t freq, Pin pin) noexcept;
-bool CanDoHWPWM(Pin pin) noexcept;
-bool ConfigurePinForHWPWM(Pin pin, bool outputHigh) noexcept;
-bool ReleaseHWPWMPin(Pin pin) noexcept;
-
-
-
-extern Pin UsedHardwarePWMChannel[NumPwmChannels];
 extern Pin Timer2PWMPins[MaxTimerEntries];
 class SoftwarePWM; //fwd decl
 extern SoftwarePWM* softwarePWMEntries[MaxNumberSoftwarePWMPins];

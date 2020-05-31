@@ -13,52 +13,62 @@ public:
     
     void Enable() noexcept;
     void Disable() noexcept;
+    void AnalogWrite(float ulValue, uint16_t freq, Pin pin) noexcept;
 
-    void SetFrequency(uint16_t freq) noexcept;
-    void SetDutyCycle(float duty) noexcept;
+    Pin GetPin() const noexcept { return pin; }
+    uint16_t GetFrequency() const noexcept { return 1000000/period; }
 
-    void PWMOn() noexcept;
-    void PWMOff() noexcept;
+    bool IsRunning() noexcept { return pwmRunning; }
     
-    bool IsRunning() noexcept {return pwmRunning;}
-    void Check() noexcept;
+    uint32_t lastState() noexcept;
+    bool updateState(uint32_t *nextEvent) noexcept;
 
-    
-    Pin GetPin() const noexcept {return pin;}
-    uint16_t GetFrequency() const noexcept {return frequency;}
-
-    void Interrupt() noexcept;
-
-#ifdef LPC_DEBUG
-    void IncrementLateCount() noexcept;
-    uint32_t GetLateCount() noexcept { return lateCount; };
-#endif
-    
 private:
 
-    enum pwmState_t: uint8_t{
-        PWM_OFF = 0,
-        PWM_ON
-    };
-
-    bool pwmRunning;
-    pwmState_t state;
-    Pin pin;
-
-    uint16_t frequency;
+    volatile bool pwmRunning;
+    const Pin pin;
+    LPC_GPIO_T * const gpioPort;
+    const uint32_t gpioPortPinBitPosition;
+    
     volatile uint32_t period;
     volatile uint32_t onTime;
-    
-    volatile uint32_t nextRun;
-    volatile uint32_t lateCount;
-    
-    ticker_event_t event;
-    
-    void ScheduleEvent(uint32_t timeout) noexcept;
 
+    uint32_t CalculateDutyCycle(float newValue, uint32_t newPeriod);
     
 };
 
+
+//functions called by timer interrupt
+inline uint32_t SoftwarePWM::lastState() noexcept
+{
+    return (gpioPort->PIN & gpioPortPinBitPosition);
+}
+
+inline bool SoftwarePWM::updateState(uint32_t *nextEvent) noexcept
+{
+    if(pwmRunning)
+    {
+        //read the current state from the pin
+        if( gpioPort->PIN & gpioPortPinBitPosition )
+        {
+            //last pwm state was on
+            *nextEvent = (period - onTime); //next change in offTime
+            gpioPort->CLR = gpioPortPinBitPosition; //Pin Low
+        }
+        else
+        {
+            //last pwm state was off
+            *nextEvent = onTime; //next change in onTime
+            gpioPort->SET = gpioPortPinBitPosition; //Pin High
+        }
+        return true; //schedule next interrupt
+    }
+    else
+    {
+        gpioPort->CLR = gpioPortPinBitPosition; //Pin Low
+    }
+    return false; //disable interrupts
+}
 
 
 #endif

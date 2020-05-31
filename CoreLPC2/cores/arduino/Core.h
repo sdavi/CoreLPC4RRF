@@ -15,7 +15,6 @@
 #include "delay.h"
 #include "Reset.h"
 
-
 #include "interrupt_lpc.h"
 
 
@@ -44,6 +43,7 @@ static const Pin NoPin = P_NC; //which =0xff
 #include "wirish_time.h"
 #include "wdt.h"
 
+
 #ifdef __cplusplus
 
 // Pin Attributes to be OR-ed
@@ -70,19 +70,7 @@ enum AnalogChannelNumber : int8_t
     ADC7
 };
 
-constexpr uint8_t NumPwmChannels = 6;
-// Definitions for PWM channels
-enum EPWMChannel : int8_t
-{
-    NOT_ON_PWM=-1,
-    PWM1_1=0,
-    PWM1_2,
-    PWM1_3,
-    PWM1_4,
-    PWM1_5,
-    PWM1_6,
-};
-
+#include "pwm_176x.h"
 
 struct PinDescription
 {

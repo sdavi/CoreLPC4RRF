@@ -1,201 +1,96 @@
-/* mbed Microcontroller Library
-* Copyright (c) 2006-2013 ARM Limited
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+//Author: sdavi
 
-//SD:: Code adapted from mbed us_ticker_api.c merged into class for Software PWM Timer
+//This class uses the HardwarePWM as a general timer to generate software PWM for up to 7 channels
+//This allows using any available GPIO pin to generate PWM and each pin can be running at different frequencies
 
+#include "AnalogOut.h"
 #include "SoftwarePWMTimer.h"
 #include "SoftwarePWM.h"
+#include "chip.h"
+#include "pwm_176x.h"
 
+static_assert( (MaxNumberSoftwarePWMPins < 8), "Max number of software PWM using HWPWM Timer is 7");
 
 SoftwarePWMTimer softwarePWMTimer;
 
+volatile uint32_t* const MRxMap[] = {&LPC_PWM1->MR0, &LPC_PWM1->MR1, &LPC_PWM1->MR2, &LPC_PWM1->MR3, &LPC_PWM1->MR4, &LPC_PWM1->MR5, &LPC_PWM1->MR6};
+
 SoftwarePWMTimer::SoftwarePWMTimer() noexcept
 {
-    head = nullptr;
-
-    //Setup RIT
-    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_RIT); //enable power and clocking
-    LPC_RITIMER->MASK = 0;
-    LPC_RITIMER->COUNTER = 0;
-    LPC_RITIMER->CTRL = RIT_CTRL_INT | RIT_CTRL_ENBR | RIT_CTRL_TEN;
-    ticks_per_us = Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_RIT)/1000000;
+    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_PWM1); //enable power and clocking
+    LPC_PWM1->TCR = PWM_TCR_RESET; //set reset
+    LPC_PWM1->PR = Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_PWM1)/1000000 - 1; //Setup prescaler so every timer tick is 1us
+    LPC_PWM1->PCR = 0; //ensure all pwm outputs are disabled
+    LPC_PWM1->MCR = 0; //clear all match controls
+    LPC_PWM1->CTCR = 0; //Timer Mode
+    LPC_PWM1->TCR = PWM_TCR_CNT_EN; // Enable the counter but keep PWM mode disabled
+    
+    NVIC_EnableIRQ(PWM1_IRQn);
 }
 
-inline void SoftwarePWMTimer::ticker_set_interrupt(ticker_event_t *obj, bool inInterrupt) noexcept
+static inline void UpdateChannel(SoftwarePWM *sChannel, uint8_t channelIndex)
 {
-    const irqflags_t flags = cpu_irq_save();
+    uint32_t nextEvent;
+    if(sChannel->updateState(&nextEvent))
+    {
+        //schedule next event
+        const irqflags_t flags = cpu_irq_save();//make sure we dont get interrupted while setting the next event
+        *MRxMap[channelIndex] = LPC_PWM1->TC + nextEvent;
+        cpu_irq_restore(flags);
+    }
+    else
+    {
+        //disable int for this channel
+        LPC_PWM1->MCR &= ~(1u << (channelIndex*3) );
+    }
+}
 
+void SoftwarePWMTimer::EnableChannel(SoftwarePWM *sChannel) noexcept
+{
+    for(uint8_t i=0; i<MaxNumberSoftwarePWMPins; i++)
+    {
+        if(softwarePWMEntries[i] == sChannel)
+        {
+            LPC_PWM1->MCR |= (1u << (i*3) ); //enable the interrupt
+            UpdateChannel(sChannel, i);
+            return;
+        }
+    }
+}
+
+void SoftwarePWMTimer::DisableChannel(SoftwarePWM *sChannel) noexcept
+{
+    for(uint8_t i=0; i<MaxNumberSoftwarePWMPins; i++)
+    {
+        if(softwarePWMEntries[i] == sChannel)
+        {
+            LPC_PWM1->MCR &= ~(1u << (i*3) ); //disable the interrupt
+            return;
+        }
+    }
+}
+
+extern "C" void PWM1_IRQHandler(void) __attribute__ ((hot));
+void PWM1_IRQHandler(void)
+{
+    uint32_t flags = LPC_PWM1->IR;
+    LPC_PWM1->IR = flags; //clear interrupts
+
+    flags = flags & 0x70F; // get only the MR0-7 interrupt flags MR0-3 (bits 0:4) MR4-6 (bits 8:10)
     
-    LPC_RITIMER->CTRL &= ~RIT_CTRL_TEN; //Stop the timer
+    while(flags != 0)
+    {
+        unsigned int indx = LowestSetBitNumber(flags);
+        flags &= ~(1u << indx);
+
+        if(indx > 4) indx = indx - 4; //index if MR4-6
         
-    //Check to make sure the timestamp is in the future
-    if((int)(obj->timestamp - TickerRead()) <= 0)
-    {
-#ifdef LPC_DEBUG
-        obj->PWM->IncrementLateCount(); // scheduled late
-#endif
-        if(inInterrupt)
+        SoftwarePWM *channel = softwarePWMEntries[indx];
+        if(channel != nullptr)
         {
-            //called from the ticker interrupt, schedule a little later to allow lower priority ints to run
-            obj->timestamp = TickerRead() + TicksPerMicrosecond();
-        }
-        else
-        {
-            obj->timestamp = TickerRead() + 1; //next timer tick
-        }
-    }
-
-    ticker_clear_interrupt();
-    LPC_RITIMER->COMPVAL = obj->timestamp; //Set timer compare value
-    NVIC_EnableIRQ(RITIMER_IRQn);
-
-    LPC_RITIMER->CTRL |= RIT_CTRL_TEN; //Enable the timer
-    
-    cpu_irq_restore(flags);
-}
-
-inline void SoftwarePWMTimer::ticker_disable_interrupt(void) noexcept
-{
-    NVIC_DisableIRQ(RITIMER_IRQn);
-}
-
-inline void SoftwarePWMTimer::ticker_clear_interrupt(void) noexcept
-{
-    LPC_RITIMER->CTRL |= RIT_CTRL_INT; // Clear Interrupt
-}
-
-extern "C" void RIT_IRQHandler(void)  noexcept __attribute__ ((hot));
-void RIT_IRQHandler(void) noexcept
-{
-    softwarePWMTimer.Interrupt();
-}
-
-void SoftwarePWMTimer::Interrupt() noexcept
-{
-    
-    ticker_clear_interrupt();
-
-    /* Go through all the pending TimerEvents */
-    while (1)
-    {
-        if (head == NULL)
-        {
-            // There are no more TimerEvents left, so disable matches.
-            ticker_disable_interrupt();
-            return;
-        }
-
-        if ((int)(head->timestamp - TickerRead()) <= 0)
-        {
-            // This event was in the past:
-            //      point to the following one and execute its handler
-            ticker_event_t *p = head;
-            head = head->next;
-
-            p->PWM->Interrupt(); // NOTE: the handler can set new events
-        }
-        else
-        {
-            // This event and the following ones in the list are in the future:
-            //      set it as next interrupt and return
-            ticker_set_interrupt(head, true);
-            return;
+            UpdateChannel(channel, indx);
         }
     }
 }
 
 
-
-void SoftwarePWMTimer::ScheduleEventInMicroseconds(ticker_event_t *obj, uint32_t microseconds, SoftwarePWM *softPWMObject) noexcept
-{
-    //convert microseconds into timer ticks
-    uint32_t timestamp = TickerRead() + microseconds * TicksPerMicrosecond();
-    ticker_insert_event(obj, timestamp, softPWMObject);
-}
-
-
-void SoftwarePWMTimer::ticker_insert_event(ticker_event_t *obj, uint32_t timestamp, SoftwarePWM *softPWMObject) noexcept
-{
-    /* disable interrupts for the duration of the function */
-    const irqflags_t flags = cpu_irq_save();
-
-    // initialise our data
-    obj->timestamp = timestamp;
-    obj->PWM = softPWMObject;
-
-    /* Go through the list until we either reach the end, or find
-       an element this should come before (which is possibly the
-       head). */
-    ticker_event_t *prev = NULL, *p = head;
-    while (p != NULL)
-    {
-        /* check if we come before p */
-        if ((int)(timestamp - p->timestamp) <= 0)
-        {
-            break;
-        }
-        /* go to the next element */
-        prev = p;
-        p = p->next;
-    }
-    /* if prev is NULL we're at the head */
-    if (prev == NULL)
-    {
-        head = obj;
-        ticker_set_interrupt(obj);
-    }
-    else
-    {
-        prev->next = obj;
-    }
-    /* if we're at the end p will be NULL, which is correct */
-    obj->next = p;
-
-    cpu_irq_restore(flags);
-    
-}
-
-void SoftwarePWMTimer::RemoveEvent(ticker_event_t *obj) noexcept
-{
-    const irqflags_t flags = cpu_irq_save();
-
-    // remove this object from the list
-    if (head == obj)
-    {
-        // first in the list, so just drop me
-        head = obj->next;
-        if (obj->next != NULL)
-        {
-            ticker_set_interrupt(head);
-        }
-    }
-    else
-    {
-        // find the object before me, then drop me
-        ticker_event_t* p = head;
-        while (p != NULL)
-        {
-            if (p->next == obj)
-            {
-                p->next = obj->next;
-                break;
-            }
-            p = p->next;
-        }
-    }
-
-    cpu_irq_restore(flags);
-}

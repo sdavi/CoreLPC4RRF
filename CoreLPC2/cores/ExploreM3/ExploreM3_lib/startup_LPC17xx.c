@@ -21,11 +21,22 @@
 #include "chip.h"
 #include "core_cm3.h"
 
-#include "FreeRTOS.h"
+//*****************************************************************************
+//
+// This is the code that gets called when the processor receives an unexpected
+// interrupt.  This simply enters an infinite loop, preserving the system state
+// for examination by a debugger.
+//
+//*****************************************************************************
 
-#define WEAK __attribute__ ((weak))
+void OtherFault_Handler(void);// defined in RRF
 
-
+void Default_Handler(void)
+{
+    //rather then got into a while(1) loop, call the OtherFault_Handler which is
+    //already handled in RRF to produce a SoftwareReset with a stack dump.
+    OtherFault_Handler();
+}
 
 
 //*****************************************************************************
@@ -33,52 +44,53 @@
 // Forward declaration of the default fault handlers.
 //
 //*****************************************************************************
+
 /* System exception vector handler */
-void WEAK 		Reset_Handler(void);             /* Reset Handler */
-void WEAK 		NMI_Handler(void);               /* NMI Handler */
-void WEAK 		HardFault_Handler(void);         /* Hard Fault Handler */
-void WEAK 		MemManage_Handler(void);         /* MPU Fault Handler */
-void WEAK 		BusFault_Handler(void);          /* Bus Fault Handler */
-void WEAK 		UsageFault_Handler(void);        /* Usage Fault Handler */
-void WEAK 		SVC_Handler(void);               /* SVCall Handler */
-void WEAK 		DebugMon_Handler(void);          /* Debug Monitor Handler */
-void WEAK 		PendSV_Handler(void);            /* PendSV Handler */
-void WEAK 		SysTick_Handler(void);           /* SysTick Handler */
+void Reset_Handler      (void) __attribute__((__interrupt__));
+void NMI_Handler        (void) __attribute__ ((weak));                                   /* NMI Handler */
+void HardFault_Handler  (void) __attribute__ ((weak));                                   /* Hard Fault Handler */
+void MemManage_Handler  (void) __attribute__ ((weak));                                   /* MPU Fault Handler */
+void BusFault_Handler   (void) __attribute__ ((weak));                                   /* Bus Fault Handler */
+void UsageFault_Handler (void) __attribute__ ((weak));                                   /* Usage Fault Handler */
+void SVC_Handler        (void) __attribute__ ((weak));                                   /* SVCall Handler */
+void DebugMon_Handler   (void) __attribute__ ((weak));                                   /* Debug Monitor Handler */
+void PendSV_Handler     (void) __attribute__ ((weak));                                   /* PendSV Handler */
+void SysTick_Handler    (void) __attribute__ ((weak));                                   /* SysTick Handler */
 
 /* External interrupt vector handler */
-void WEAK      	WDT_IRQHandler(void);            /* Watchdog Timer */
-void WEAK      	TIMER0_IRQHandler(void);         /* Timer0 */
-void WEAK      	TIMER1_IRQHandler(void);         /* Timer1 */
-void WEAK      	TIMER2_IRQHandler(void);         /* Timer2 */
-void WEAK      	TIMER3_IRQHandler(void);         /* Timer3 */
-void WEAK      	UART0_IRQHandler(void);          /* UART0 */
-void WEAK      	UART1_IRQHandler(void);          /* UART1 */
-void WEAK      	UART2_IRQHandler(void);          /* UART2 */
-void WEAK      	UART3_IRQHandler(void);          /* UART3 */
-void WEAK      	PWM1_IRQHandler(void);           /* PWM1 */
-void WEAK      	I2C0_IRQHandler(void);           /* I2C0 */
-void WEAK      	I2C1_IRQHandler(void);           /* I2C1 */
-void WEAK      	I2C2_IRQHandler(void);           /* I2C2 */
-void WEAK      	SPI_IRQHandler(void);            /* SPI */
-void WEAK      	SSP0_IRQHandler(void);           /* SSP0 */
-void WEAK      	SSP1_IRQHandler(void);           /* SSP1 */
-void WEAK      	PLL0_IRQHandler(void);           /* PLL0 (Main PLL) */
-void WEAK      	RTC_IRQHandler(void);            /* Real Time Clock */
-void WEAK      	EINT0_IRQHandler(void);          /* External Interrupt 0 */
-void WEAK      	EINT1_IRQHandler(void);          /* External Interrupt 1 */
-void WEAK      	EINT2_IRQHandler(void);          /* External Interrupt 2 */
-void WEAK      	EINT3_IRQHandler(void);          /* External Interrupt 3 */
-void WEAK      	ADC_IRQHandler(void);            /* A/D Converter */
-void WEAK      	BOD_IRQHandler(void);            /* Brown Out Detect */
-void WEAK      	USB_IRQHandler(void);            /* USB */
-void WEAK      	CAN_IRQHandler(void);            /* CAN */
-void WEAK      	DMA_IRQHandler(void);            /* GP DMA */
-void WEAK      	I2S_IRQHandler(void);            /* I2S */
-void WEAK      	ENET_IRQHandler(void);           /* Ethernet */
-void WEAK      	RIT_IRQHandler(void);            /* Repetitive Interrupt Timer */
-void WEAK      	MCPWM_IRQHandler(void);          /* Motor Control PWM */
-void WEAK      	QEI_IRQHandler(void);            /* Quadrature Encoder Interface */
-void WEAK      	PLL1_IRQHandler(void);           /* PLL1 (USB PLL) */
+void WDT_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* Watchdog Timer */
+void TIMER0_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));         /* Timer0 */
+void TIMER1_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));         /* Timer1 */
+void TIMER2_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));         /* Timer2 */
+void TIMER3_IRQHandler  (void) __attribute__ ((weak, alias("Default_Handler")));         /* Timer3 */
+void UART0_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* UART0 */
+void UART1_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* UART1 */
+void UART2_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* UART2 */
+void UART3_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* UART3 */
+void PWM1_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* PWM1 */
+void I2C0_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* I2C0 */
+void I2C1_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* I2C1 */
+void I2C2_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* I2C2 */
+void SPI_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* SPI */
+void SSP0_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* SSP0 */
+void SSP1_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* SSP1 */
+void PLL0_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* PLL0 (Main PLL) */
+void RTC_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* Real Time Clock */
+void EINT0_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* External Interrupt 0 */
+void EINT1_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* External Interrupt 1 */
+void EINT2_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* External Interrupt 2 */
+void EINT3_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* External Interrupt 3 */
+void ADC_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* A/D Converter */
+void BOD_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* Brown Out Detect */
+void USB_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* USB */
+void CAN_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* CAN */
+void DMA_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* GP DMA */
+void I2S_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* I2S */
+void ENET_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* Ethernet */
+void RIT_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* Repetitive Interrupt Timer */
+void MCPWM_IRQHandler   (void) __attribute__ ((weak, alias("Default_Handler")));         /* Motor Control PWM */
+void QEI_IRQHandler     (void) __attribute__ ((weak, alias("Default_Handler")));         /* Quadrature Encoder Interface */
+void PLL1_IRQHandler    (void) __attribute__ ((weak, alias("Default_Handler")));         /* PLL1 (USB PLL) */
 
 
 
@@ -92,19 +104,14 @@ extern unsigned long __data_end__;		/* end address for the .data section. define
 extern unsigned long __bss_start__;			/* start address for the .bss section. defined in linker script */
 extern unsigned long __bss_end__;			/* end address for the .bss section. defined in linker script */
 
-//extern void _estack;		/* init value for the stack pointer. defined in linker script */
+extern uint32_t _sfixed;
 extern void _estack(void);
-//extern char __StackTop;//in ld script
-
-
-//extern uint32_t __StackTop;//in ld script
 extern void __StackTop(void);
 
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* function prototypes ------------------------------------------------------*/
-void Reset_Handler(void) __attribute__((__interrupt__));
 extern int main(void);
 extern void _CPUregTestPOST (void);
 
@@ -210,78 +217,15 @@ void Reset_Handler(void)
           "        strlt   r2, [r0], #4\n"
           "        blt     zero_loop");
 
+    //BSS segment in AHB ram will be zeroed later in main
+
+    //Set the vector table base address
+    pulSrc = (uint32_t *) & _sfixed;
+    SCB->VTOR = ((uint32_t) pulSrc & SCB_VTOR_TBLOFF_Msk);
+
 
     //
     // Call the application's entry point.
     //
     main();
-}
-
-//*****************************************************************************
-//
-// Provide weak aliases for each Exception handler to the Default_Handler.
-// As they are weak aliases, any function with the same name will override
-// this definition.
-//
-//*****************************************************************************
-#pragma weak MemManage_Handler = Default_Handler          /* MPU Fault Handler */
-#pragma weak BusFault_Handler = Default_Handler           /* Bus Fault Handler */
-#pragma weak UsageFault_Handler = Default_Handler         /* Usage Fault Handler */
-#pragma weak DebugMon_Handler = Default_Handler           /* Debug Monitor Handler */
-
-
-#pragma weak SVC_Handler = Default_Handler                /* SVCall Handler */
-#pragma weak PendSV_Handler = Default_Handler             /* PendSV Handler */
-#pragma weak SysTick_Handler = Default_Handler            /* SysTick Handler */
-
-
-/* External interrupt vector handler */
-#pragma weak WDT_IRQHandler = Default_Handler            /* Watchdog Timer */
-#pragma weak TIMER0_IRQHandler = Default_Handler         /* Timer0 */
-#pragma weak TIMER1_IRQHandler = Default_Handler         /* Timer1 */
-#pragma weak TIMER2_IRQHandler = Default_Handler         /* Timer2 */
-#pragma weak TIMER3_IRQHandler = Default_Handler         /* Timer3 */
-#pragma weak UART0_IRQHandler = Default_Handler          /* UART0 */
-#pragma weak UART1_IRQHandler = Default_Handler          /* UART1 */
-#pragma weak UART2_IRQHandler = Default_Handler          /* UART2 */
-#pragma weak UART3_IRQHandler = Default_Handler          /* UART3 */
-#pragma weak PWM1_IRQHandler = Default_Handler           /* PWM1 */
-#pragma weak I2C0_IRQHandler = Default_Handler           /* I2C0 */
-#pragma weak I2C1_IRQHandler = Default_Handler           /* I2C1 */
-#pragma weak I2C2_IRQHandler = Default_Handler           /* I2C2 */
-#pragma weak SPI_IRQHandler = Default_Handler            /* SPI */
-#pragma weak SSP0_IRQHandler = Default_Handler           /* SSP0 */
-#pragma weak SSP1_IRQHandler = Default_Handler           /* SSP1 */
-#pragma weak PLL0_IRQHandler = Default_Handler           /* PLL0 (Main PLL) */
-#pragma weak RTC_IRQHandler = Default_Handler            /* Real Time Clock */
-#pragma weak EINT0_IRQHandler = Default_Handler          /* External Interrupt 0 */
-#pragma weak EINT1_IRQHandler = Default_Handler          /* External Interrupt 1 */
-#pragma weak EINT2_IRQHandler = Default_Handler          /* External Interrupt 2 */
-#pragma weak EINT3_IRQHandler = Default_Handler          /* External Interrupt 3 */
-#pragma weak ADC_IRQHandler = Default_Handler            /* A/D Converter */
-#pragma weak BOD_IRQHandler = Default_Handler            /* Brown Out Detect */
-#pragma weak USB_IRQHandler = Default_Handler            /* USB */
-#pragma weak CAN_IRQHandler = Default_Handler            /* CAN */
-#pragma weak DMA_IRQHandler = Default_Handler            /* GP DMA */
-#pragma weak I2S_IRQHandler = Default_Handler            /* I2S */
-#pragma weak ENET_IRQHandler = Default_Handler           /* Ethernet */
-#pragma weak RIT_IRQHandler = Default_Handler            /* Repetitive Interrupt Timer */
-#pragma weak MCPWM_IRQHandler = Default_Handler          /* Motor Control PWM */
-#pragma weak QEI_IRQHandler = Default_Handler            /* Quadrature Encoder Interface */
-#pragma weak PLL1_IRQHandler = Default_Handler           /* PLL1 (USB PLL) */
-
-//*****************************************************************************
-//
-// This is the code that gets called when the processor receives an unexpected
-// interrupt.  This simply enters an infinite loop, preserving the system state
-// for examination by a debugger.
-//
-//*****************************************************************************
-
-void OtherFault_Handler(void);
-
-void Default_Handler(void) {
-    //rather then got into a while(1) loop, call the OtherFault_Handler which is
-    //already handled in RRF to produce a SoftwareReset with a stack dump.
-    OtherFault_Handler();
 }
