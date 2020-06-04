@@ -30,6 +30,8 @@
  * @brief Wirish serial port interface.
  */
 
+//sdavi: Edited to use ringbuffers and UART0 DMA support
+
 #ifndef _WIRISH_HARDWARESERIAL_H_
 #define _WIRISH_HARDWARESERIAL_H_
 
@@ -44,7 +46,7 @@ class HardwareSerial : public Stream
 {
 
 public:
-    HardwareSerial(const struct usart_dev *usart_device, uint16_t rxRingBufferSize = 128, uint16_t txRingBufferSize = 64) noexcept;
+    HardwareSerial(const struct usart_dev *usart_device, uint16_t rxRingBufferSize = 128, uint16_t txRingBufferSize = 256) noexcept;
 
 
     /* Set up/tear down */
@@ -69,19 +71,32 @@ public:
     
     void SetRingBufferSizes(uint16_t rxRingBufferSize, uint16_t txRingBufferSize) noexcept;
 
-
-private:
-    const struct usart_dev *usart_device;
-    RINGBUFF_T txRingBuffer;
-    RINGBUFF_T rxRingBuffer;
+    void TxDMAInterrupt(bool error);
+    void RxDMAInterrupt(bool error);
     
-    uint8_t *rxDataBuffer;
-    uint8_t *txDataBuffer;
+    
+private:
+    const struct usart_dev * const usartDevice;
     
     uint16_t rxBufferSize;
     uint16_t txBufferSize;
+
+    uint8_t *rxDataBuffer;
+    uint8_t *txDataBuffer;
     
+    bool usingDMA;
     bool initialised;
+
+    volatile size_t tail; //tail for RX DMA Ringbuffer
+    volatile bool txPending;
+
+
+    GPDMA_CH_T *pDMAchRx;
+    
+    size_t GetRingBufferHead();
+    
+    RINGBUFF_T txRingBuffer;
+    RINGBUFF_T rxRingBuffer;
 
   protected:
 };

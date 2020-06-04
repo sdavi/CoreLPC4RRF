@@ -17,7 +17,7 @@ static uint8_t adcDmaChannel;
 static volatile uint8_t currentSamplePosition;
 static bool ADCPreFilterInitialised = false;
 
-void ADC_DMA_HANDLER() noexcept;
+void ADC_DMA_HANDLER(bool error) noexcept;
 
 
 bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz) noexcept
@@ -58,7 +58,7 @@ bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz) noe
     
     ADCPreFilterInitialised = true;
     
-    ADC_DMA_HANDLER(); //call the handler to kick off the DMA sampling
+    ADC_DMA_HANDLER(false); //call the handler to kick off the DMA sampling
     
     return true;
 }
@@ -123,7 +123,7 @@ static inline void PrepareADCDMA(uint32_t adcSampleBufferAddress) noexcept
 
 }
 
-void ADC_DMA_HANDLER() noexcept
+void ADC_DMA_HANDLER(bool error) noexcept
 {
     Chip_TIMER_Disable(LPC_TIMER1);
 

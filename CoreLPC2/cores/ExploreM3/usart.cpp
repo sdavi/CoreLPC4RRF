@@ -235,7 +235,7 @@ void serial_format(LPC_USART_T *obj, int data_bits, SerialParity parity, int sto
 
 
 
-void usart_init(const usart_dev *dev, uint32_t baud_rate) noexcept
+void usart_init(const usart_dev *dev, uint32_t baud_rate, bool enableInts) noexcept
 {
     
     //Enable Power and Clocking
@@ -298,8 +298,11 @@ void usart_init(const usart_dev *dev, uint32_t baud_rate) noexcept
     
     Chip_UART_TXEnable(dev->UARTx);
 
-    /* Enable receive data and line status interrupt */
-    Chip_UART_IntEnable(dev->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
-    
+    if(enableInts)
+    {
+        /* Enable receive data and line status interrupt */
+        Chip_UART_IntEnable(dev->UARTx, (UART_IER_RBRINT | UART_IER_RLSINT));
+    }
+
     NVIC_EnableIRQ(dev->irq_NUM);
 }
