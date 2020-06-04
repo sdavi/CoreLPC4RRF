@@ -72,9 +72,6 @@ typedef void (*StandardCallbackFunction)(CallbackParameter) noexcept;
 bool attachInterrupt(Pin pin, StandardCallbackFunction callback, enum InterruptMode mode, CallbackParameter param) noexcept;
 void detachInterrupt(Pin pin) noexcept;
 
-// Return true if we are in an interrupt service routine
-bool inInterrupt() noexcept;
-
 constexpr size_t MaxExtIntEntries = 3;
 
 #endif //__cplusplus

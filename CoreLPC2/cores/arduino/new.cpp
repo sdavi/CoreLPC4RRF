@@ -20,7 +20,7 @@
 #include <FreeRTOS.h>
 
 
-//Using Heap5.c from FreeROTS. Needs to be setup before using new
+//sdavi: Edited to use FreeRTOS pvPortMalloc and vPortFree as we are using Heap5.c. Needs to be setup before using new
 
 void *operator new(size_t size)
 {

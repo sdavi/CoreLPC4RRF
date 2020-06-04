@@ -45,7 +45,7 @@ bool ADCPreFilterInit(const uint8_t numSamples, const uint32_t sampleRateHz) noe
     Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_TIMER1);                          //Enable power and clocking
     Chip_TIMER_Reset(LPC_TIMER1);
     Chip_TIMER_Disable(LPC_TIMER1);                                             //Stop the Timer
-    Chip_TIMER_PrescaleSet(LPC_TIMER1, (getPclk(PCLK_TIMER1) / 1000000) - 1);   //Set the Prescaler to 1us
+    Chip_TIMER_PrescaleSet(LPC_TIMER1, (Chip_Clock_GetPeripheralClockRate(SYSCTL_PCLK_TIMER1)/1000000 - 1));   //Set the Prescaler to 1us
     Chip_TIMER_SetMatch(LPC_TIMER1, 0, 1000000/(sampleRateHz*NumADCChannels));  //Set MR0 (will be in microseconds)
     Chip_TIMER_ResetOnMatchEnable(LPC_TIMER1, 0);                               //Reset Timer on MR0 match
 

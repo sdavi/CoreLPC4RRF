@@ -46,6 +46,13 @@ static inline void cpu_irq_restore(irqflags_t flags) noexcept
 		cpu_irq_enable();
 }
     
+// Return true if we are in any interrupt service routine
+static inline bool inInterrupt() noexcept
+{
+    //bits 0:8 are the ISR_NUMBER
+    //bits 9:31 reserved
+    return (__get_IPSR() & 0xFF) != 0;
+}
     
 #ifdef __cplusplus
 }

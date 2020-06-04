@@ -137,11 +137,7 @@ bool ConfigurableUART::Configure(Pin rx, Pin tx) noexcept
         }
                 
         //Configure the Pin Functions to UART
-        //TXD
-        GPIO_PinDirection(txEntry->upin, LPC_OUTPUT);
         GPIO_PinFunction(txEntry->upin, txEntry->pinselFunction);
-        //RXD
-        GPIO_PinDirection(rxEntry->upin, LPC_INPUT);
         GPIO_PinFunction(rxEntry->upin, rxEntry->pinselFunction);
         
         return true; // success

@@ -195,13 +195,6 @@ void detachInterrupt(Pin pin) noexcept
     
 }
 
-// Return true if we are in any interrupt service routine
-bool inInterrupt() noexcept
-{
-    //bits 0:8 are the ISR_NUMBER
-    //bits 9:31 reserved
-    return (__get_IPSR() & 0xFF) != 0;
-}
 
 extern "C" void EINT3_IRQHandler(void) noexcept
 {
