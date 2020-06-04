@@ -15,14 +15,12 @@ bool CanDoSoftwarePWM(Pin pin) noexcept
     (void)pin;
     
     //SoftwarePWM can be on any pin, the only restriction if the Max number we allow
-    uint8_t count = 0;
     for(size_t i=0; i<MaxNumberSoftwarePWMPins; i++)
     {
-        if(softwarePWMEntries[i] == nullptr) count++;
+        if(softwarePWMEntries[i] == nullptr) return true; //found a free slot
     }
 
-    return (count <= MaxNumberSoftwarePWMPins);
-    
+    return false;// no free slots
 }
 
 bool ConfigurePinForSoftwarePWM(Pin pin) noexcept
@@ -71,7 +69,7 @@ void ReleaseSoftwarePWMPin(Pin pin) noexcept
             softwarePWMEntries[i]->Disable();
             delete(softwarePWMEntries[i]);
             softwarePWMEntries[i] = nullptr;
-            pinsOnSoftPWM[i] &= ~(portPinPosition);
+            pinsOnSoftPWM[port] &= ~(portPinPosition);
             return;
         }
     }

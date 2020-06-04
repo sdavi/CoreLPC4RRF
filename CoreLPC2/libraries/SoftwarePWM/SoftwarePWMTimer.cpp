@@ -28,7 +28,7 @@ SoftwarePWMTimer::SoftwarePWMTimer() noexcept
     NVIC_EnableIRQ(PWM1_IRQn);
 }
 
-static inline void UpdateChannel(SoftwarePWM *sChannel, uint8_t channelIndex)
+__attribute__((always_inline)) static inline void UpdateChannel(SoftwarePWM * const sChannel, const uint8_t channelIndex) noexcept
 {
     uint32_t nextEvent;
     if(sChannel->updateState(&nextEvent))
@@ -70,11 +70,11 @@ void SoftwarePWMTimer::DisableChannel(SoftwarePWM *sChannel) noexcept
     }
 }
 
-extern "C" void PWM1_IRQHandler(void) __attribute__ ((hot));
-void PWM1_IRQHandler(void)
+extern "C" void PWM1_IRQHandler(void) noexcept __attribute__ ((hot));
+void PWM1_IRQHandler(void) noexcept
 {
     uint32_t flags = LPC_PWM1->IR;
-    LPC_PWM1->IR = flags; //clear interrupts
+    LPC_PWM1->IR = flags;   //clear interrupts that we are going to service
 
     flags = flags & 0x70F; // get only the MR0-7 interrupt flags MR0-3 (bits 0:4) MR4-6 (bits 8:10)
     
@@ -85,7 +85,7 @@ void PWM1_IRQHandler(void)
 
         if(indx > 4) indx = indx - 4; //index if MR4-6
         
-        SoftwarePWM *channel = softwarePWMEntries[indx];
+        SoftwarePWM * const channel = softwarePWMEntries[indx];
         if(channel != nullptr)
         {
             UpdateChannel(channel, indx);
