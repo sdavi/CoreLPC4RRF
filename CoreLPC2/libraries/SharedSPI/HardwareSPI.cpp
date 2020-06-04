@@ -14,6 +14,10 @@
 //#define SSPI_DEBUG
 extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
+static SemaphoreHandle_t ssp0TransferSemaphore;
+static SemaphoreHandle_t ssp1TransferSemaphore;
+
+
 // Wait for transmitter ready returning true if timed out
 static inline bool waitForTxReady(LPC_SSP_T* sspDevice) noexcept
 {
@@ -95,21 +99,31 @@ static inline CHIP_SSP_CLOCK_MODE_T getSSPMode(uint8_t spiMode) noexcept
 
 void ssp0_dma_interrupt(bool error) noexcept
 {
-    ssp0.interrupt();
+    BaseType_t mustYield=false;
+    xSemaphoreGiveFromISR(ssp0TransferSemaphore, &mustYield);
 }
 
 void ssp1_dma_interrupt(bool error) noexcept
 {
-    ssp1.interrupt();
-}
-
-inline void HardwareSPI::interrupt() noexcept
-{
-    dmaTransferComplete = true;
-
     BaseType_t mustYield=false;
-    xSemaphoreGiveFromISR(spiTransferSemaphore, &mustYield);
+    xSemaphoreGiveFromISR(ssp1TransferSemaphore, &mustYield);
 }
+
+HardwareSPI::HardwareSPI(LPC_SSP_T *sspDevice) noexcept
+    :selectedSSPDevice(sspDevice), needInit(true)
+{
+    if(sspDevice == LPC_SSP0)
+    {
+        ssp0TransferSemaphore = xSemaphoreCreateBinary();
+        sspTransferSemaphore = &ssp0TransferSemaphore;
+    }
+    else
+    {
+        ssp1TransferSemaphore = xSemaphoreCreateBinary();
+        sspTransferSemaphore = &ssp1TransferSemaphore;
+    }
+}
+
 
 //setup the master device.
 void HardwareSPI::setup_device(const struct sspi_device *device) noexcept
@@ -162,18 +176,9 @@ void HardwareSPI::setup_device(const struct sspi_device *device) noexcept
     clearSSPTimeout(selectedSSPDevice);
 }
 
-
-HardwareSPI::HardwareSPI(LPC_SSP_T *sspDevice) noexcept
-    :selectedSSPDevice(sspDevice), needInit(true), dmaTransferComplete(false)
-{
-    spiTransferSemaphore = xSemaphoreCreateBinary();
-}
-
 spi_status_t HardwareSPI::sspi_transceive_packet_dma(const uint8_t *tx_data, uint8_t *rx_data, size_t len, DMA_TransferWidth_t transferWidth) noexcept
 {
     if(selectedSSPDevice == nullptr) return SPI_ERROR_TIMEOUT;//todo: just return timeout error if null
-
-    dmaTransferComplete = false;
     
     uint8_t dontCareRX = 0;
     uint8_t dontCareTX = 0xFF;
@@ -213,10 +218,11 @@ spi_status_t HardwareSPI::sspi_transceive_packet_dma(const uint8_t *tx_data, uin
         SspDmaTxTransferNI(chanTX, &dontCareTX, len); //No Increment mode, send 0xFF
     }
     
-    configASSERT(spiTransferSemaphore != nullptr);
+    configASSERT(*sspTransferSemaphore != nullptr);
+
     spi_status_t ret = SPI_OK;
     const TickType_t xDelay = SPITimeoutMillis / portTICK_PERIOD_MS; //timeout
-    if( xSemaphoreTake(spiTransferSemaphore, xDelay) == pdFALSE) // timed out or failed to take semaphore
+    if( xSemaphoreTake(*sspTransferSemaphore, xDelay) == pdFALSE) // timed out or failed to take semaphore
     {
         ret = SPI_ERROR_TIMEOUT;
     }
@@ -277,7 +283,7 @@ spi_status_t HardwareSPI::sspi_transceive_packet(const uint8_t *tx_data, uint8_t
 
 
 
-void SspDmaRxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
+/*static*/ void HardwareSPI::SspDmaRxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
 {
     // Setup DMA Receive: SSP --> inBuffer (Peripheral to Memory)
     const uint8_t channelNumber = DMAGetChannelNumber(ssp_dma_channel);
@@ -336,7 +342,7 @@ void SspDmaRxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t t
     
 }
 
-void SspDmaTxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
+/*static*/ void HardwareSPI::SspDmaTxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
 {
     // Setup DMA transfer: outBuffer --> SSP (Memory to Peripheral Transfer)
     const uint8_t channelNumber = DMAGetChannelNumber(ssp_dma_channel);
@@ -401,7 +407,7 @@ void SspDmaTxTransfer(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t t
 
 //No Increment Versions (do not increment the memory buffer after each data transfer)
 
-void SspDmaRxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
+/*static*/ void HardwareSPI::SspDmaRxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
 {
     // Setup DMA Receive: SSP --> inBuffer (Peripheral to Memory)
     const uint8_t channelNumber = DMAGetChannelNumber(ssp_dma_channel);
@@ -459,7 +465,7 @@ void SspDmaRxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t
     
 }
 
-void SspDmaTxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
+/*static*/ void HardwareSPI::SspDmaTxTransferNI(DMA_Channel_t ssp_dma_channel, const void *buf, uint32_t transferLength, DMA_TransferWidth_t transferWidth) noexcept
 {
     // Setup DMA transfer: outBuffer --> SSP (Memory to Peripheral Transfer)
     const uint8_t channelNumber = DMAGetChannelNumber(ssp_dma_channel);
