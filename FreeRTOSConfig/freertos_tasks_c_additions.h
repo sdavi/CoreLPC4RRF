@@ -118,6 +118,19 @@ const uint8_t FreeRTOSDebugConfig[] =
     0 /* pad to 32-bit boundary */
 };
 
+//SD Added to get top of task stacks
+
+#if (configRECORD_STACK_HIGH_ADDRESS != 1)
+# error configRECORD_STACK_HIGH_ADDRESS must be set to 1
+#endif
+volatile StackType_t *CheckSPCurrentTaskStack(const uint32_t *stackPointer)
+{
+    if(pxCurrentTCB == NULL || stackPointer == NULL) return NULL;
+    if(stackPointer < pxCurrentTCB->pxStack || stackPointer > pxCurrentTCB->pxEndOfStack) return NULL; // stackPointer not in task stack
+    return pxCurrentTCB->pxEndOfStack;
+}
+
+
 #ifdef __cplusplus
 }
 #endif
