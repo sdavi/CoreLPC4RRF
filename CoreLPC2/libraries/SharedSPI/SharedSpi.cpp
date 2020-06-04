@@ -1,3 +1,4 @@
+//Author: sdavi
 //Implement the SharedSpi as in RRF
 
 #include "Core.h"
@@ -6,9 +7,9 @@
 #include "SoftwareSPI.h"
 #include "HardwareSPI.h"
 
-static HardwareSPI ssp0(LPC_SSP0);
-static HardwareSPI ssp1(LPC_SSP1);
-static SoftwareSPI swspi0;
+HardwareSPI ssp0(LPC_SSP0);
+HardwareSPI ssp1(LPC_SSP1);
+SoftwareSPI swspi0;
 
 
 static SPI *selectedSPIDevice = nullptr;
@@ -79,8 +80,6 @@ void sspi_select_device(const struct sspi_device *device) noexcept
 // deselect
 void sspi_deselect_device(const struct sspi_device *device) noexcept
 {
-	if(selectedSPIDevice != nullptr) selectedSPIDevice->waitForTxEmpty();
-
 	// Disable the CS line
     if(device->csPolarity == false)
     {

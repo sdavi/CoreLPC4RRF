@@ -67,11 +67,14 @@ static inline spi_status_t sspi_write_packet(const uint8_t *buf, size_t len) noe
 {
 	return sspi_transceive_packet(buf, NULL, len);
 }
-    
 
-#include "SPI.h"
+//Forward declarations
+class HardwareSPI;
+class SoftwareSPI;
 
-SPI *getSSPDevice(SSPChannel channel) noexcept;
+extern HardwareSPI ssp0;
+extern HardwareSPI ssp1;
+extern SoftwareSPI swspi0;
 
 #ifdef __cplusplus
 }

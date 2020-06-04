@@ -1,17 +1,9 @@
+//Author: sdavi
+
 //SoftwareSPI
 
 
 #include "SoftwareSPI.h"
-
-//#define SWSPI_DEBUG
-extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
-
-
-bool SoftwareSPI::waitForTxEmpty() noexcept
-{
-    return false;
-}
-
 
 void SoftwareSPI::InitPins(Pin sck_pin, Pin miso_pin, Pin mosi_pin) noexcept
 {
