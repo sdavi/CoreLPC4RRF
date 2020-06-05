@@ -28,6 +28,7 @@
 #include "chip.h"
 #include "SerialUSB.h"
 
+SerialUSB Serial;
 
 constexpr uint16_t vendor_id = 0x1d50;
 constexpr uint16_t product_id = 0x6015;

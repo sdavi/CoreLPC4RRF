@@ -42,6 +42,24 @@
 #include "usart.h"
 #include "DMA.h"
 
+
+HardwareSerial Serial0(USART0);
+
+#if defined(ENABLE_UART1)
+    HardwareSerial Serial1(USART1);
+#endif
+
+#if defined(ENABLE_UART2)
+    HardwareSerial Serial2(USART2);
+#endif
+
+#if defined(ENABLE_UART3)
+    HardwareSerial Serial3(USART3);
+#endif
+
+
+
+
 constexpr uint32_t MaxBaudRate = 460800;
 
 static void Uart0DMATxInterrupt(bool error) noexcept

@@ -1,38 +1,17 @@
 
 #define ARDUINO_MAIN
 
-#include "chip.h"
 #include "Core.h"
 #include <FreeRTOS.h>
-#include "SerialUSB.h"
 
 extern "C" void UrgentInit();
 extern "C" void __libc_init_array(void);
 extern "C" void AppMain();
 
-
-SerialUSB Serial;
-HardwareSerial Serial0(USART0);
-
-#if defined(ENABLE_UART1)
-    HardwareSerial Serial1(USART1);
-#endif
-
-#if defined(ENABLE_UART2)
-    HardwareSerial Serial2(USART2);
-#endif
-
-#if defined(ENABLE_UART3)
-    HardwareSerial Serial3(USART3);
-#endif
-
-
-
 //How much memory to reserve when allocating the heap space.
 //Stack size + 256 bytes pagesize and <=128 bytes for SoftwareReset data + any other code that uses malloc
 constexpr uint32_t stackSize = 300;
 constexpr uint32_t reserveMemory = stackSize + (256+128);
-
 
 __attribute__ ((used)) uint8_t *ucHeap;
 
