@@ -32,6 +32,31 @@ static inline bool waitForTxReady(LPC_SSP_T* sspDevice) noexcept
     return false;
 }
 
+//flushTxFifo from GloomyAndy
+// Flush the TX fifo. Note this code makes use of "reserved" registers
+// these are actually test registers for the ARM PrimeCell Synchronous Serial
+// Port (PL022), which is used to provide SSP devices on the LPC1768 device.
+// For details see:
+// http://infocenter.arm.com/help/topic/com.arm.doc.ddi0194g/DDI0194G_ssp_pl022_r1p3_trm.pdf
+#define SSPTCR(SSP) ((__IO uint32_t *)((__IO uint8_t *)(SSP) + 0x80))
+#define SSPTDR(SSP) ((__IO uint32_t *)((__IO uint8_t *)(SSP) + 0x8C))
+
+static inline void flushTxFifo(LPC_SSP_T* sspDevice)
+{
+    if(Chip_SSP_GetStatus(sspDevice, SSP_STAT_TFE)) return;
+    // enable test mode access to the TX fifo
+    *SSPTCR(sspDevice) |= 0x2;
+    //debugPrintf("status reg %x\n", LPC_SSP0->SR);
+    int cnt = 8;
+    while(!Chip_SSP_GetStatus(sspDevice, SSP_STAT_TFE) && cnt-- > 0)
+    {
+        (void)(*SSPTDR(sspDevice));
+    }
+    // back to normal mode
+    *SSPTCR(sspDevice) &= ~2;
+    //debugPrintf("status reg %x cnt %d\n", LPC_SSP0->SR, cnt);
+}
+
 
 
 //Make sure all the SSP FIFOs are empty, if they aren't clear them
@@ -53,6 +78,8 @@ static inline bool clearSSPTimeout(LPC_SSP_T* sspDevice) noexcept
         Chip_SSP_ReceiveFrame(sspDevice);
     }
 
+    flushTxFifo(sspDevice);
+    
     Chip_SSP_ClearIntPending(sspDevice, SSP_INT_CLEAR_BITMASK);
     
     return false; //did not timeout (success)
