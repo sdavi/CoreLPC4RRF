@@ -69,6 +69,7 @@ void SoftwarePWM::AnalogWrite(float ulValue, uint16_t freq, Pin pin) noexcept
         else if(onTime == period)
         {
             gpioPort->SET = gpioPortPinBitPosition; //Pin High
+            pwmRunning = true; //flag pwm "running" but interrupts are off
         }
         else
         {
