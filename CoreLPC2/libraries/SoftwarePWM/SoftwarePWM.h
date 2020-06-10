@@ -16,7 +16,7 @@ public:
     void AnalogWrite(float ulValue, uint16_t freq, Pin pin) noexcept;
 
     Pin GetPin() const noexcept { return pin; }
-    uint16_t GetFrequency() const noexcept { return 1000000/period; }
+    uint16_t GetFrequency() const noexcept { return (period!=0)?(1000000/period):0; }
 
     bool IsRunning() noexcept { return pwmRunning; }
     

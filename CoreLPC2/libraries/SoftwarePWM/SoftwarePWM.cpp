@@ -3,7 +3,6 @@
 #include "SoftwarePWM.h"
 #include "SoftwarePWMTimer.h"
 
-extern "C" void debugPrintf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 SoftwarePWM::SoftwarePWM(Pin softPWMPin) noexcept:
         pwmRunning(false),
@@ -33,8 +32,7 @@ void SoftwarePWM::AnalogWrite(float ulValue, uint16_t freq, Pin pin) noexcept
 {
     //Note: AnalogWrite gets called repeatedly by RRF for heaters
     
-    //debugPrintf("[SoftwarePWM] Write -  %d.%d %f %" PRIu32 "\n", (pin >> 5), (pin & 0x1f), ulValue, freq);
-    const uint32_t newPeriod = (1000000/freq);
+    const uint32_t newPeriod = (freq!=0)?(1000000/freq):0;
     const uint32_t newOnTime = CalculateDutyCycle(ulValue, newPeriod);
 
     //Common Frequnecies used in RRF:
