@@ -33,6 +33,8 @@ static uint8_t activeChannels = 0;
 static bool usingPreFilter = false;
 const unsigned int numberSamples = 8;
 
+static ADCPreFilter preFilter;
+
 typedef struct
 {
     gpioPins_et pinNumber;
@@ -56,17 +58,18 @@ const adcChannelConfig_st AdcConfig[numChannels]=
 void AnalogInInit() noexcept
 {
     Chip_ADC_Init(LPC_ADC, &ADCSetup);                                  //Init ADC and setup the ADCSetup struct
+    ADCSetup.burstMode = true;                                          //update the struct so SetSampleRate knows we will be using burst mode
+    Chip_ADC_SetSampleRate(LPC_ADC, &ADCSetup, 1000);
     Chip_ADC_SetBurstCmd(LPC_ADC, ENABLE);                              //enable burst mode
-    Chip_ADC_SetSampleRate(LPC_ADC, &ADCSetup, ADC_MAX_SAMPLE_RATE);    //200kHz
     
     LPC_ADC->INTEN = 0x00; //disable all interrupts
 }
 
-void ConfigureADCPreFilter(bool enable, uint8_t numSamples, uint32_t sampleRateHz) noexcept
+void ConfigureADCPreFilter(bool enable) noexcept
 {
     if(enable == true)
     {
-        usingPreFilter = ADCPreFilterInit(numSamples, sampleRateHz);
+        usingPreFilter = preFilter.Init();
     }
 }
 
@@ -89,19 +92,26 @@ void AnalogInEnableChannel(AnalogChannelNumber channel, bool enable) noexcept
 			activeChannels &= ~(1u << channel);
             LPC_ADC->CR  = (LPC_ADC->CR  & 0xFFFFFF00) | (activeChannels & 0x000000FF );
 		}
+        
+        if(usingPreFilter == true)
+        {
+            preFilter.UpdateChannels(activeChannels);
+        }
+        
     }
 }
 
 // Read the most recent 12-bit result from a channel
+__attribute__((optimize("-O3")))
 uint16_t AnalogInReadChannel(AnalogChannelNumber channel) noexcept
 {
-    uint16_t val = 0;
     if(usingPreFilter == true)
     {
-        return ADCPreFilterRead((uint8_t)channel);
+        return preFilter.Read((uint8_t)channel);
     }
     else
     {
+        uint16_t val = 0;
         Chip_ADC_ReadValue(LPC_ADC, (uint8_t)channel, &val);
         return val;
     }
