@@ -3,7 +3,7 @@ PROCESSOR = LPC17xx
 
 #Enable when debugging on MBED to swap serial and USB 
 #and select direct ld script
-MBED = true
+#MBED = true
 
 
 
@@ -13,15 +13,13 @@ REPRAPFIRMWARE_DIR = ./RepRapFirmware
 RRFLIBRARIES_DIR = ./RRFLibraries
 CORELPC_DIR = ./CoreLPC2
 
-BUILD = Debug
-#BUILD = Release
+#BUILD = Debug
+BUILD = Release
 
 #Enable only one
-#NETWORKING = true
-ESP8266WIFI = true
+NETWORKING = true
+#ESP8266WIFI = true
 #SBC = true
-
-TMC22XX = false
 
 #Comment out to show compilation commands (verbose)
 V=@
@@ -41,6 +39,9 @@ OBJDUMP = arm-none-eabi-objdump
 SIZE    = arm-none-eabi-size
 
 MKDIR = mkdir -p
+
+#function to get unique values from a list from bobbogo (https://stackoverflow.com/questions/16144115/makefile-remove-duplicate-words-without-sorting)
+uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 
 
 include LPCCore.mk
