@@ -35,6 +35,10 @@
 #include "stdutils.h"
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /**
  * Delay for at least the given number of milliseconds.
@@ -61,5 +65,10 @@ void coreDelay(uint32_t ms) noexcept;
  * @see delay()
  */
 void delayMicroseconds(uint32_t us) noexcept;
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

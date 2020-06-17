@@ -167,7 +167,7 @@ void SystemInit (void)
     SystemCoreClock = Chip_Clock_GetSystemClockRate();
 
     
-    LPC_SYSCTL->PCONP = 0x2084DE; // enable select peripherals. Others will be turned on as necessary
+    LPC_SYSCTL->PCONP = 0x42886CE; // enable select peripherals. Others will be turned on as necessary
     
     //Set the Flash memory access time
     Chip_SYSCTL_SetFLASHAccess(FLASHTIM_100MHZ_CPU); //this same value for both 100MHz and 120MHz

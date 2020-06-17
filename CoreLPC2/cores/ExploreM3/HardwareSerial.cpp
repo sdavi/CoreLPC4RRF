@@ -135,8 +135,8 @@ static void Uart0DmaRxRingTransfer(const void *buf, uint32_t transferLength) noe
                                             | GPDMA_DMACCxControl_DBSize(GPDMA_BSIZE_1)         //Destination burst size set to 1
                                             | GPDMA_DMACCxControl_SWidth(DMA_WIDTH_BYTE)        //Source Tranfser width set to 1 byte
                                             | GPDMA_DMACCxControl_DWidth(DMA_WIDTH_BYTE)        //Destination Transfer width set to 1 byte
-                                            | GPDMA_DMACCxControl_DI                            //Destination increment after each transfer
-                                            | GPDMA_DMACCxControl_I;                            //Terminal count interrupt enable
+                                            | GPDMA_DMACCxControl_DI;                            //Destination increment after each transfer
+                                            //| GPDMA_DMACCxControl_I;                            //Terminal count interrupt enable
     
      
     // Enable DMA channels
