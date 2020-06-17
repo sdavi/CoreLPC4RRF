@@ -557,7 +557,7 @@ const uint8_t *USBCDC::configuration_desc(uint8_t index)
         1,                      // bConfigurationValue
         0,                      // iConfiguration
         0x80,                   // bmAttributes
-        50,                     // bMaxPower
+        250,                    // bMaxPower //SD:: set to 500mA (value = 500/2)
 
         // IAD to associate the two CDC interfaces
         0x08,                   // bLength
