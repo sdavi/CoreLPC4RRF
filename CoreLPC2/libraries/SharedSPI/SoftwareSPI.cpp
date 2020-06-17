@@ -13,7 +13,7 @@ void SoftwareSPI::InitPins(Pin sck_pin, Pin miso_pin, Pin mosi_pin) noexcept
 }
 
 //setup the master device.
-void SoftwareSPI::setup_device(const struct sspi_device *device) noexcept
+void SoftwareSPI::setup_device(const struct sspi_device *device, bool master) noexcept
 {
     if(needInit)
     {

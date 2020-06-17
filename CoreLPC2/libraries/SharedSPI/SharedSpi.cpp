@@ -7,8 +7,6 @@
 #include "SoftwareSPI.h"
 #include "HardwareSPI.h"
 
-HardwareSPI ssp0(LPC_SSP0);
-HardwareSPI ssp1(LPC_SSP1);
 SoftwareSPI swspi0;
 
 

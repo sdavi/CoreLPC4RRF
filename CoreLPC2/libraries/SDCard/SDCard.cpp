@@ -80,7 +80,6 @@ SDCard::SDCard(uint8_t SSPSlot, Pin cs) noexcept
     _sspi_device.spiMode = SPI_MODE_0;
     
     sspi_master_init(&_sspi_device, 8); //default to 8bits
-    sspi_master_setup_device(&_sspi_device); //init the bus
     
     status = STA_NOINIT;
 }
@@ -115,8 +114,6 @@ void SDCard::ReInit(Pin cs, uint32_t freq) noexcept
     _sspi_device.csPin = cs;
     
     sspi_master_init(&_sspi_device, 8); //default to 8bits
-    sspi_master_setup_device(&_sspi_device); //init the bus
-    
 }
 
 void SDCard::unmount() noexcept
