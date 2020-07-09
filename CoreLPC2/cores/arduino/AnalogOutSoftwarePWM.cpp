@@ -14,7 +14,7 @@ bool CanDoSoftwarePWM(Pin pin) noexcept
 {
     (void)pin;
     
-    //SoftwarePWM can be on any pin, the only restriction if the Max number we allow
+    //SoftwarePWM can be on any pin, the only restriction is the Max number we allow
     for(size_t i=0; i<MaxNumberSoftwarePWMPins; i++)
     {
         if(softwarePWMEntries[i] == nullptr) return true; //found a free slot
@@ -57,7 +57,7 @@ void ReleaseSoftwarePWMPin(Pin pin) noexcept
 
     if( !(pinsOnSoftPWM[port] & portPinPosition))
     {
-        return;// pin not condifigured as a Software PWM
+        return;// pin not configured as a Software PWM
     }
 
     //find the pin
@@ -72,9 +72,7 @@ void ReleaseSoftwarePWMPin(Pin pin) noexcept
             pinsOnSoftPWM[port] &= ~(portPinPosition);
             return;
         }
-    }
-
-    
+    }    
 }
 
 bool AnalogWriteSoftwarePWM(float ulValue, uint16_t freq, Pin pin) noexcept

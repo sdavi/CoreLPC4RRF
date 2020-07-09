@@ -70,13 +70,13 @@ void SoftwarePWMTimer::DisableChannel(SoftwarePWM *sChannel) noexcept
     }
 }
 
-extern "C" void PWM1_IRQHandler(void) noexcept __attribute__ ((hot));
+extern "C" void PWM1_IRQHandler(void) noexcept __attribute__ ((hot, optimize("-O3")));
 void PWM1_IRQHandler(void) noexcept
 {
     uint32_t flags = LPC_PWM1->IR;
     LPC_PWM1->IR = flags;   //clear interrupts that we are going to service
 
-    flags = flags & 0x70F; // get only the MR0-7 interrupt flags MR0-3 (bits 0:4) MR4-6 (bits 8:10)
+    flags = flags & 0x70F; // get only the MR0-7 interrupt flags MR0-3 (bits 0:3) MR4-6 (bits 8:10)
     
     while(flags != 0)
     {

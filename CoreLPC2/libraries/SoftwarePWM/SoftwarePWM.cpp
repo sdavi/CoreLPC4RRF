@@ -44,7 +44,7 @@ void SoftwarePWM::AnalogWrite(float ulValue, uint16_t freq, Pin pin) noexcept
     //if enforcing a minimum on/off time to prevent the same channel firing in rapid succession, we get:
     // 100us = Min Duty:   0.1%,  2.5%  and 5%
     // 50us  = Min Duty:   0.05%, 1.25% and 2.5%
-    // 10us  = Min Duey:   0.01%, 0.25% and 0.5%
+    // 10us  = Min Duty:   0.01%, 0.25% and 0.5%
     constexpr uint16_t MinimumTime = 100; //microseconds
 
     if(onTime < MinimumTime){ onTime = 0; }
